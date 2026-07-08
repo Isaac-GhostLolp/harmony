@@ -1,14 +1,27 @@
 {
   "name": "harmony",
   "version": "0.9.0",
-  "description": "Modern offline music player — Spotify-grade experience for your local library",
+  "description": "Modern offline music player \u2014 Spotify-grade experience for your local library",
   "main": "out/main/index.js",
   "author": "Isaac (Aisaac)",
   "license": "MIT",
-  "homepage": "https://github.com/Isaac-GhostLolp/harmony#readme",
-  "repository": { "type": "git", "url": "https://github.com/Isaac-GhostLolp/harmony.git" },
-  "bugs": { "url": "https://github.com/Isaac-GhostLolp/harmony/issues" },
-  "keywords": ["music-player", "electron", "react", "typescript", "offline", "visualizer", "audio"],
+  "homepage": "https://github.com/AISAAC-USER/harmony#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AISAAC-USER/harmony.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AISAAC-USER/harmony/issues"
+  },
+  "keywords": [
+    "music-player",
+    "electron",
+    "react",
+    "typescript",
+    "offline",
+    "visualizer",
+    "audio"
+  ],
   "scripts": {
     "dev": "electron-vite dev -- --no-sandbox",
     "dev:sandboxed": "electron-vite dev",
@@ -28,8 +41,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8",
     "electron-vite": "^2.3.0",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.469.0",
@@ -45,19 +58,48 @@
   "build": {
     "appId": "dev.aisaac.harmony",
     "productName": "Harmony",
-    "files": ["out/**/*"],
-    "directories": { "output": "release", "buildResources": "resources" },
+    "files": [
+      "out/**/*"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "AudioVideo",
       "synopsis": "Modern offline music player with a cinematic visualizer",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     },
-    "mac": { "target": "dmg", "category": "public.app-category.music" }
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.music"
+    },
+    "electronVersion": "33.4.11"
   }
 }
