@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Theme system ----------
+   Every theme only redefines tokens; components never hardcode colors.
+   --accent is overridden at runtime by the current album cover. */
+
+:root,
+[data-theme='dark'] {
+  --bg-base: #0b0b10;
+  --bg-surface: rgb(255 255 255 / 0.04);
+  --bg-raised: rgb(255 255 255 / 0.08);
+  --text-primary: #f4f4f6;
+  --text-muted: #9a9aa6;
+  --accent: #7c6cf4;
+  --accent-soft: rgb(124 108 244 / 0.18);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --shadow: 0 8px 32px rgb(0 0 0 / 0.35);
+}
+
+[data-theme='light'] {
+  --bg-base: #f3f2f7;
+  --bg-surface: rgb(0 0 0 / 0.04);
+  --bg-raised: rgb(255 255 255 / 0.85);
+  --text-primary: #17171c;
+  --text-muted: #5d5d68;
+  --accent: #5b48e0;
+  --accent-soft: rgb(91 72 224 / 0.14);
+  --glass-border: rgb(0 0 0 / 0.07);
+  --shadow: 0 8px 24px rgb(20 20 40 / 0.10);
+}
+
+[data-theme='amoled'] {
+  --bg-base: #000000;
+  --bg-surface: rgb(255 255 255 / 0.05);
+  --bg-raised: rgb(255 255 255 / 0.09);
+  --text-primary: #ffffff;
+  --text-muted: #8b8b93;
+  --accent: #3ddc97;
+  --accent-soft: rgb(61 220 151 / 0.16);
+  --glass-border: rgb(255 255 255 / 0.10);
+  --shadow: 0 8px 32px rgb(0 0 0 / 0.8);
+}
+
+[data-theme='cyberpunk'] {
+  --bg-base: #0d0221;
+  --bg-surface: rgb(255 42 255 / 0.06);
+  --bg-raised: rgb(0 255 249 / 0.08);
+  --text-primary: #eafffd;
+  --text-muted: #8f7bb3;
+  --accent: #ff2a6d;
+  --accent-soft: rgb(255 42 109 / 0.20);
+  --glass-border: rgb(0 255 249 / 0.20);
+  --shadow: 0 0 24px rgb(255 42 109 / 0.25);
+}
+
+[data-theme='ghostguard'] {
+  /* GhostGuard brand: deep graphite + spectral cyan */
+  --bg-base: #0a0e14;
+  --bg-surface: rgb(94 234 212 / 0.05);
+  --bg-raised: rgb(94 234 212 / 0.09);
+  --text-primary: #e6fffb;
+  --text-muted: #7b93a3;
+  --accent: #2dd4bf;
+  --accent-soft: rgb(45 212 191 / 0.16);
+  --glass-border: rgb(45 212 191 / 0.16);
+  --shadow: 0 8px 32px rgb(0 20 25 / 0.6);
+}
+
+[data-theme='pixel'] {
+  --bg-base: #1a1c2c;
+  --bg-surface: rgb(255 255 255 / 0.06);
+  --bg-raised: rgb(255 255 255 / 0.10);
+  --text-primary: #f4f4f4;
+  --text-muted: #94b0c2;
+  --accent: #ffcd75;
+  --accent-soft: rgb(255 205 117 / 0.18);
+  --glass-border: rgb(255 255 255 / 0.14);
+  --shadow: 4px 4px 0 rgb(0 0 0 / 0.5);
+}
+[data-theme='pixel'] * {
+  border-radius: 0 !important;
+}
+
+/* ---------- Base ---------- */
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Ambient glow driven by the current album accent — Harmony's signature */
+.ambient::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 50% 110%, var(--accent-soft), transparent 70%),
+    radial-gradient(40% 30% at 90% -10%, var(--accent-soft), transparent 70%);
+  transition: background 800ms ease;
+  z-index: 0;
+}
+
+.glass {
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-raised);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-soft);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Range inputs (progress / volume) ---------- */
+input[type='range'] {
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--fill, 0%),
+    var(--bg-raised) var(--fill, 0%),
+    var(--bg-raised) 100%
+  );
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+input[type='range']:hover::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Lyrics: Edit mode ---------- */
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0) rotate(-0.4deg); }
+  50% { transform: translateY(-10px) rotate(0.4deg); }
+}
+@keyframes lyric-wave {
+  0%, 100% { transform: translateY(0); }
+  33% { transform: translateY(-6px); }
+  66% { transform: translateY(3px); }
+}
+.vinyl {
+  animation: vinyl-spin 22s linear infinite;
+}
+.vinyl.paused {
+  animation-play-state: paused;
+}
+.gentle-float {
+  animation: gentle-float 9s ease-in-out infinite;
+}
+.lyric-wave {
+  animation: lyric-wave 8s ease-in-out infinite;
+}
+
+/* Edit mode typography: soft serif with a breathing glow */
+.font-lyrics {
+  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.text-lyrics-glow {
+  color: rgb(255 255 255 / 0.94);
+  text-shadow:
+    0 0 18px rgb(255 255 255 / 0.28),
+    0 0 70px var(--accent-soft);
+}
+
+/* CD disc: cover + radial sheen + spindle hole */
+.cd-sheen {
+  background:
+    conic-gradient(
+      from 210deg,
+      transparent 0deg,
+      rgb(255 255 255 / 0.22) 40deg,
+      transparent 90deg,
+      transparent 180deg,
+      rgb(255 255 255 / 0.12) 230deg,
+      transparent 290deg
+    );
+  mix-blend-mode: screen;
+}
