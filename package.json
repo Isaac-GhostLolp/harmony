@@ -3,7 +3,10 @@
   "version": "0.9.0",
   "description": "Modern offline music player \u2014 Spotify-grade experience for your local library",
   "main": "out/main/index.js",
-  "author": "Isaac (Aisaac)",
+  "author": {
+    "name": "Isaac (Aisaac)",
+    "email": "Isaac-GhostLolp@users.noreply.github.com"
+  },
   "license": "MIT",
   "homepage": "https://github.com/Isaac-GhostLolp/harmony#readme",
   "repository": {
@@ -94,7 +97,8 @@
       ],
       "category": "AudioVideo",
       "synopsis": "Modern offline music player with a cinematic visualizer",
-      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
+      "maintainer": "Isaac (Aisaac) <Isaac-GhostLolp@users.noreply.github.com>"
     },
     "mac": {
       "target": "dmg",
