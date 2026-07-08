@@ -5,13 +5,13 @@
   "main": "out/main/index.js",
   "author": "Isaac (Aisaac)",
   "license": "MIT",
-  "homepage": "https://github.com/AISAAC-USER/harmony#readme",
+  "homepage": "https://github.com/Isaac-GhostLolp/harmony#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AISAAC-USER/harmony.git"
+    "url": "https://github.com/Isaac-GhostLolp/harmony.git"
   },
   "bugs": {
-    "url": "https://github.com/AISAAC-USER/harmony/issues"
+    "url": "https://github.com/Isaac-GhostLolp/harmony/issues"
   },
   "keywords": [
     "music-player",

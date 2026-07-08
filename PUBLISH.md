@@ -25,7 +25,7 @@ Vá em <https://github.com/new>, crie um repositório chamado **harmony**
 
 ```bash
 git init
-git add .
+git add .   # inclui o package-lock.json — necessário para o CI (npm ci + cache)
 git commit -m "Harmony v0.9.0 — offline music player with cinematic visualizer"
 git branch -M main
 git remote add origin https://github.com/SEU_USUARIO/harmony.git
