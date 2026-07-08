@@ -29,7 +29,7 @@ The elegance of a streaming app, the freedom of your own local library — plus 
 ## 🚀 Install
 
 Grab an installer from the [**Releases**](https://github.com/Isaac-GhostLolp/harmony/releases) page:
-- **Windows** — `Harmony-<version>-win-x64.exe` (installer) or the portable `.exe`
+- **Windows** — `Harmony-<version>-win-x64-Setup.exe` (installer) or `Harmony-<version>-win-x64-Portable.exe`
 - **Linux** — `Harmony-<version>-linux-x86_64.AppImage` (make it executable and run) or the `.deb`
 
 Or build it yourself — see **Getting started** below.

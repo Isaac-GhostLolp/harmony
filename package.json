@@ -83,7 +83,7 @@
           ]
         }
       ],
-      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-win-${arch}-Setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -104,6 +104,15 @@
       "target": "dmg",
       "category": "public.app-category.music"
     },
-    "electronVersion": "33.4.11"
+    "electronVersion": "33.4.11",
+    "portable": {
+      "artifactName": "${productName}-${version}-win-${arch}-Portable.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "timeout": 600000
+      }
+    ]
   }
 }
