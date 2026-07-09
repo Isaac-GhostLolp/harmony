@@ -193,6 +193,16 @@ src/
 - **LED wall animation library** (14): equalizer, pixel rain, audio wave, pulse rings, matrix, cyber lines, spectrum mirror, triangles, noise, geometric pulse, glitch, tunnel, aurora, checker — crossfading, all synced
 - Never a frozen frame: breathing, sway, drifting particles/fireflies/stars, floor waves persist even in silence. Zero per-frame allocations (pools in SceneState), no React re-renders in the loop
 
+**Patch 0.9.1 — bug fixes**
+- **Edit-mode animations** (spinning disc, drifting lyrics) no longer run wildly fast on some systems — the disc rotation is now driven by playback time instead of an independent CSS animation, so it's identical on every platform and can't run away.
+- **Create/rename/delete playlist now works**: Electron disables `window.prompt()`/`confirm()` in packaged builds (they silently did nothing), so these now use proper in-app dialogs. The same fix applies to the "remove song from library" confirmation.
+- **Synthwave City** no longer hammers the GPU: full-screen sky/sun/ground gradients are cached instead of rebuilt every frame, and the perspective grid avoids massive overdraw near the horizon.
+- **Lyrics timing drift fixed**: removed fixed look-ahead offsets (a `+0.2s` in line detection and a `+0.65s` in Edit mode) that made lyrics feel slightly early on slow songs and late on fast ones. Lines now follow the song's real time.
+
+**Patch 0.9.2 — volume fix + data safety**
+- **Volume slider no longer freezes the app.** Dragging it was writing to the database on every single change event (dozens per second over IPC). The volume now applies to the audio instantly, while the *saved* value is debounced (~250ms after you stop). The same debounce was applied to the crossfade and EQ sliders, and the volume change now ramps smoothly to avoid clicks.
+- **User data is stable across updates.** The library, stats, playlists, favorites and settings live in a SQLite database inside the OS user-data folder (`%APPDATA%/Harmony` on Windows, `~/.config/Harmony` on Linux) — *outside* the app, so reinstalling or updating never touches it. The schema only ever adds tables/columns (never drops), so updates preserve everything. The app name is now pinned so this folder is always `Harmony`.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")

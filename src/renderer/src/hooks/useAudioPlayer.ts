@@ -5,6 +5,7 @@ import { useUiStore } from '@/store/uiStore'
 import { applyAccentFromCover } from '@/utils/color'
 import { mediaUrl } from '@/utils/format'
 import { api } from '@/services/api'
+import { persistSettingDebounced } from '@/utils/persistSetting'
 import { getEngine } from '@/services/audioEngine'
 
 /**
@@ -82,10 +83,12 @@ export function useAudioPlayer(): void {
     else engine.pause()
   }, [isPlaying])
 
-  // Volume (persisted)
+  // Volume: apply to the audio graph immediately (cheap), but debounce the
+  // settings write. Dragging the slider fires dozens of changes/second, and
+  // persisting each one to SQLite over IPC was freezing the UI.
   useEffect(() => {
     getEngine().setVolume(volume)
-    api.settings.set('volume', volume)
+    persistSettingDebounced('volume', volume)
   }, [volume])
 
   // Seek (one-shot request from UI)

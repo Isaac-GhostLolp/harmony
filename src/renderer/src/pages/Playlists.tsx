@@ -5,11 +5,19 @@ import { api } from '@/services/api'
 import { PageHeader } from '@/components/PageHeader'
 import { EmptyState } from '@/components/EmptyState'
 import { SongList } from '@/components/SongList'
+import { InputDialog, ConfirmDialog } from '@/components/InputDialog'
+
+type Dialog =
+  | { kind: 'create' }
+  | { kind: 'rename'; playlist: Playlist }
+  | { kind: 'delete'; playlist: Playlist }
+  | null
 
 export function Playlists(): JSX.Element {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [selected, setSelected] = useState<Playlist | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
+  const [dialog, setDialog] = useState<Dialog>(null)
 
   const load = async (): Promise<void> =>
     setPlaylists((await api.playlists.getAll()) as Playlist[])
@@ -23,104 +31,146 @@ export function Playlists(): JSX.Element {
     setSongs((await api.playlists.getSongs(p.id)) as Song[])
   }
 
-  const create = async (): Promise<void> => {
-    const name = prompt('Nome da playlist:')
-    if (!name?.trim()) return
-    await api.playlists.create(name.trim())
+  // Electron disables window.prompt/confirm in packaged builds, so all of these
+  // go through in-app dialogs (that was the "click does nothing" bug).
+  const doCreate = async (name: string): Promise<void> => {
+    setDialog(null)
+    await api.playlists.create(name)
     load()
   }
-
-  const rename = async (p: Playlist): Promise<void> => {
-    const name = prompt('Novo nome:', p.name)
-    if (!name?.trim()) return
-    await api.playlists.rename(p.id, name.trim())
+  const doRename = async (p: Playlist, name: string): Promise<void> => {
+    setDialog(null)
+    await api.playlists.rename(p.id, name)
     load()
   }
-
-  const remove = async (p: Playlist): Promise<void> => {
-    if (!confirm(`Excluir "${p.name}"?`)) return
+  const doDelete = async (p: Playlist): Promise<void> => {
+    setDialog(null)
     await api.playlists.remove(p.id)
     if (selected?.id === p.id) setSelected(null)
     load()
   }
-
   const duplicate = async (p: Playlist): Promise<void> => {
     await api.playlists.duplicate(p.id)
     load()
   }
 
-  if (selected) {
-    return (
-      <div>
-        <button onClick={() => { setSelected(null); load() }} className="mb-4 text-xs text-muted hover:text-ink">
-          ← Playlists
-        </button>
-        <PageHeader title={selected.name} subtitle={`${songs.length} músicas`} />
-        {songs.length === 0 ? (
-          <EmptyState
-            title="Playlist vazia"
-            hint="Use o menu ⋯ de qualquer música na biblioteca para adicioná-la aqui."
-          />
-        ) : (
-          <SongList
-            songs={songs}
-            onChanged={() => open(selected)}
-            extraAction={{
-              label: 'Remover da playlist',
-              run: async (song) => {
-                await api.playlists.removeSong(selected.id, song.id)
-                open(selected)
-              }
-            }}
-            onReorder={async (ids) => {
-              await api.playlists.reorder(selected.id, ids)
-              open(selected)
-            }}
-          />
-        )}
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <PageHeader
-        title="Playlists"
-        subtitle={`${playlists.length} playlists`}
-        actions={
+    <>
+      {selected ? (
+        <div>
           <button
-            onClick={create}
-            className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:scale-[1.03]"
+            onClick={() => {
+              setSelected(null)
+              load()
+            }}
+            className="mb-4 text-xs text-muted hover:text-ink"
           >
-            <Plus size={14} /> Nova playlist
+            ← Playlists
           </button>
-        }
-      />
-      {playlists.length === 0 ? (
-        <EmptyState title="Nenhuma playlist" hint="Crie sua primeira playlist para organizar sua biblioteca." />
+          <PageHeader title={selected.name} subtitle={`${songs.length} músicas`} />
+          {songs.length === 0 ? (
+            <EmptyState
+              title="Playlist vazia"
+              hint="Use o menu ⋯ de qualquer música na biblioteca para adicioná-la aqui."
+            />
+          ) : (
+            <SongList
+              songs={songs}
+              onChanged={() => open(selected)}
+              extraAction={{
+                label: 'Remover da playlist',
+                run: async (song) => {
+                  await api.playlists.removeSong(selected.id, song.id)
+                  open(selected)
+                }
+              }}
+              onReorder={async (ids) => {
+                await api.playlists.reorder(selected.id, ids)
+                open(selected)
+              }}
+            />
+          )}
+        </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-          {playlists.map((p) => (
-            <div key={p.id} className="glass group rounded-2xl p-4">
-              <button onClick={() => open(p)} className="flex w-full items-center gap-3 text-left">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)]">
-                  <ListMusic size={17} className="text-[var(--accent)]" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted">{p.songCount} músicas</p>
-                </div>
+        <div>
+          <PageHeader
+            title="Playlists"
+            subtitle={`${playlists.length} playlists`}
+            actions={
+              <button
+                onClick={() => setDialog({ kind: 'create' })}
+                className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:scale-[1.03]"
+              >
+                <Plus size={14} /> Nova playlist
               </button>
-              <div className="mt-3 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <IconBtn onClick={() => rename(p)} label="Renomear"><Pencil size={13} /></IconBtn>
-                <IconBtn onClick={() => duplicate(p)} label="Duplicar"><Copy size={13} /></IconBtn>
-                <IconBtn onClick={() => remove(p)} label="Excluir" danger><Trash2 size={13} /></IconBtn>
-              </div>
+            }
+          />
+          {playlists.length === 0 ? (
+            <EmptyState
+              title="Nenhuma playlist"
+              hint="Crie sua primeira playlist para organizar sua biblioteca."
+            />
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+              {playlists.map((p) => (
+                <div key={p.id} className="glass group rounded-2xl p-4">
+                  <button onClick={() => open(p)} className="flex w-full items-center gap-3 text-left">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)]">
+                      <ListMusic size={17} className="text-[var(--accent)]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-muted">{p.songCount} músicas</p>
+                    </div>
+                  </button>
+                  <div className="mt-3 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <IconBtn onClick={() => setDialog({ kind: 'rename', playlist: p })} label="Renomear">
+                      <Pencil size={13} />
+                    </IconBtn>
+                    <IconBtn onClick={() => duplicate(p)} label="Duplicar">
+                      <Copy size={13} />
+                    </IconBtn>
+                    <IconBtn
+                      onClick={() => setDialog({ kind: 'delete', playlist: p })}
+                      label="Excluir"
+                      danger
+                    >
+                      <Trash2 size={13} />
+                    </IconBtn>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
-    </div>
+
+      <InputDialog
+        open={dialog?.kind === 'create'}
+        title="Nova playlist"
+        label="Dê um nome para a sua playlist."
+        confirmLabel="Criar"
+        onConfirm={doCreate}
+        onCancel={() => setDialog(null)}
+      />
+      <InputDialog
+        open={dialog?.kind === 'rename'}
+        title="Renomear playlist"
+        initialValue={dialog?.kind === 'rename' ? dialog.playlist.name : ''}
+        confirmLabel="Salvar"
+        onConfirm={(name) => dialog?.kind === 'rename' && doRename(dialog.playlist, name)}
+        onCancel={() => setDialog(null)}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === 'delete'}
+        title="Excluir playlist"
+        message={dialog?.kind === 'delete' ? `Excluir "${dialog.playlist.name}"?` : ''}
+        confirmLabel="Excluir"
+        danger
+        onConfirm={() => dialog?.kind === 'delete' && doDelete(dialog.playlist)}
+        onCancel={() => setDialog(null)}
+      />
+    </>
   )
 }
 

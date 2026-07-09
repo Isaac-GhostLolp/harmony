@@ -52,6 +52,11 @@ export interface SceneState {
   // space starfield / nature fireflies (x, y, z|phase triplets)
   stars: Float32Array
   flies: Float32Array
+  // cached static gradients (rebuilt only on resize) — avoids rebuilding
+  // full-screen gradients every frame, which is heavy on fill-rate/GPU
+  gradW: number
+  gradH: number
+  gradCache: Record<string, CanvasGradient>
 }
 
 export const MAX_PARTICLES = 360
@@ -79,6 +84,9 @@ export function createSceneState(): SceneState {
     flies[i * 3 + 2] = Math.random() * Math.PI * 2
   }
   return {
+    gradW: 0,
+    gradH: 0,
+    gradCache: {},
     particles,
     ripples,
     co2: 0,
@@ -97,6 +105,32 @@ export function createSceneState(): SceneState {
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Returns a cached gradient, rebuilding the cache only when the canvas size
+ * changes. Building a full-screen CanvasGradient every frame is a real
+ * fill-rate cost; static gradients (sky, sun, grid) should never be per-frame.
+ */
+function cachedGradient(
+  ctx: CanvasRenderingContext2D,
+  S: SceneState,
+  W: number,
+  H: number,
+  key: string,
+  build: (ctx: CanvasRenderingContext2D) => CanvasGradient
+): CanvasGradient {
+  if (S.gradW !== W || S.gradH !== H) {
+    S.gradCache = {}
+    S.gradW = W
+    S.gradH = H
+  }
+  let g = S.gradCache[key]
+  if (!g) {
+    g = build(ctx)
+    S.gradCache[key] = g
+  }
+  return g
+}
 
 export function spawnBurst(
   S: SceneState,
@@ -1116,11 +1150,15 @@ function drawSynthwave(
   const horizon = H * 0.52
   triggerFloorFx(S, F, W)
 
-  // sky gradient: purple → magenta → orange near the horizon
-  const sky = ctx.createLinearGradient(0, 0, 0, horizon)
-  sky.addColorStop(0, '#160a2e')
-  sky.addColorStop(0.6, '#3a1152')
-  sky.addColorStop(1, '#7a1e63')
+  // sky gradient (static → cached; rebuilding full-screen gradients every
+  // frame was the GPU hog)
+  const sky = cachedGradient(ctx, S, W, H, 'sw-sky', (c) => {
+    const g = c.createLinearGradient(0, 0, 0, horizon)
+    g.addColorStop(0, '#160a2e')
+    g.addColorStop(0.6, '#3a1152')
+    g.addColorStop(1, '#7a1e63')
+    return g
+  })
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, W, horizon)
 
@@ -1132,25 +1170,28 @@ function drawSynthwave(
   ctx.beginPath()
   ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2)
   ctx.clip()
-  const sun = ctx.createLinearGradient(0, sunY - sunR, 0, sunY + sunR)
-  sun.addColorStop(0, '#ffd23f')
-  sun.addColorStop(0.5, '#ff8c42')
-  sun.addColorStop(1, '#ff2e97')
+  const sun = cachedGradient(ctx, S, W, H, 'sw-sun', (c) => {
+    const g = c.createLinearGradient(0, sunY - sunR, 0, sunY + sunR)
+    g.addColorStop(0, '#ffd23f')
+    g.addColorStop(0.5, '#ff8c42')
+    g.addColorStop(1, '#ff2e97')
+    return g
+  })
   ctx.fillStyle = sun
   ctx.fillRect(sunX - sunR, sunY - sunR, sunR * 2, sunR * 2)
-  // horizontal cut stripes (thicker toward the bottom)
   ctx.fillStyle = '#160a2e'
   for (let i = 0; i < 7; i++) {
     const sy = sunY + sunR * 0.15 + i * (sunR * 0.11)
     ctx.fillRect(sunX - sunR, sy, sunR * 2, 2 + i * 0.8)
   }
   ctx.restore()
-  // sun glow reacts to vocals
+
+  // sun glow reacts to vocals (small area, cheap to keep dynamic)
   const glow = ctx.createRadialGradient(sunX, sunY, sunR * 0.5, sunX, sunY, sunR * 2)
   glow.addColorStop(0, `hsla(330, 100%, 60%, ${(0.15 + F.vocals * 0.3) * E})`)
   glow.addColorStop(1, 'hsla(0,0%,0%,0)')
   ctx.fillStyle = glow
-  ctx.fillRect(0, 0, W, horizon)
+  ctx.fillRect(sunX - sunR * 2, sunY - sunR * 2, sunR * 4, sunR * 4)
 
   // retro skyline silhouette
   ctx.fillStyle = '#0d0620'
@@ -1158,27 +1199,33 @@ function drawSynthwave(
   ctx.moveTo(0, horizon)
   for (let i = 0; i < 16; i++) {
     const bw = W / 16
-    const bh = ((i * 6547) % 100) / 100 * H * 0.12 + H * 0.03
+    const bh = (((i * 6547) % 100) / 100) * H * 0.12 + H * 0.03
     ctx.lineTo(i * bw, horizon - bh)
     ctx.lineTo((i + 1) * bw, horizon - bh)
   }
   ctx.lineTo(W, horizon)
   ctx.closePath()
   ctx.fill()
-  // neon window rows on the buildings
+  // neon windows
   ctx.fillStyle = `hsla(190, 100%, 60%, ${(0.3 + F.hihats * 0.5) * E})`
   for (let i = 0; i < 40; i++) {
-    const x = ((i * 131) % W)
+    const x = (i * 131) % W
     const y = horizon - (((i * 79) % 40) / 40) * H * 0.1 - 4
     if (Math.sin(F.t * 3 + i) > 0.3) ctx.fillRect(x, y, 2, 2)
   }
 
-  // perspective neon grid ground (scrolls toward the viewer)
-  const grid = ctx.createLinearGradient(0, horizon, 0, H)
-  grid.addColorStop(0, '#1a0833')
-  grid.addColorStop(1, '#05010f')
+  // ground fill (static → cached)
+  const grid = cachedGradient(ctx, S, W, H, 'sw-ground', (c) => {
+    const g = c.createLinearGradient(0, horizon, 0, H)
+    g.addColorStop(0, '#1a0833')
+    g.addColorStop(1, '#05010f')
+    return g
+  })
   ctx.fillStyle = grid
   ctx.fillRect(0, horizon, W, H - horizon)
+
+  // perspective neon grid — draw as a SINGLE stroked path (one GPU op) and
+  // cap the horizon-crowding lines to avoid massive overdraw near the vanishing line
   ctx.strokeStyle = `hsla(315, 100%, 60%, ${(0.35 + F.kickTick * 0.3) * E})`
   ctx.lineWidth = 1.5
   ctx.beginPath()
@@ -1186,10 +1233,13 @@ function drawSynthwave(
     ctx.moveTo(W / 2 + i * 10, horizon)
     ctx.lineTo(W / 2 + i * (W / 8), H)
   }
-  for (let i = 1; i <= 14; i++) {
-    const p = i / 14
+  for (let i = 1; i <= 12; i++) {
+    const p = i / 12
     const scroll = (p + F.t * 0.18 * (1 + F.energy / 90)) % 1
+    // bias lines toward the viewer; skip the ones that would pile up in the
+    // first couple of pixels below the horizon (invisible but still rasterized)
     const y = horizon + scroll * scroll * (H - horizon)
+    if (y - horizon < 3) continue
     ctx.moveTo(0, y)
     ctx.lineTo(W, y)
   }

@@ -165,7 +165,13 @@ export class AudioEngine {
   }
 
   setVolume(v: number): void {
-    this.volumeGain.gain.value = Math.min(1, Math.max(0, v))
+    const target = Math.min(1, Math.max(0, v))
+    // Ramp briefly instead of a hard jump — avoids audible clicks/zipper noise
+    // when dragging the slider, and is cheaper than reacting per-sample.
+    const g = this.volumeGain.gain
+    const now = this.ctx.currentTime
+    g.cancelScheduledValues(now)
+    g.setTargetAtTime(target, now, 0.015)
   }
 
   setEqGains(gainsDb: number[]): void {

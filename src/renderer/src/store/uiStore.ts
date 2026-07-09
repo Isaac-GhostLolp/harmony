@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persistSettingDebounced } from '@/utils/persistSetting'
 import type { ThemeName } from '@/types'
 
 export type BackgroundMode = 'none' | 'cover'
@@ -38,7 +39,7 @@ export const useUiStore = create<UiState>((set) => ({
     set({ lyricsMode })
   },
   setCrossfade: (crossfade) => {
-    window.harmony.settings.set('crossfade', crossfade)
+    persistSettingDebounced('crossfade', crossfade)
     set({ crossfade })
   },
   setBackground: (background) => {

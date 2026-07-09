@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persistSettingDebounced } from '@/utils/persistSetting'
 
 export const EQ_PRESETS: Record<string, number[]> = {
   Flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -20,7 +21,8 @@ interface EqState {
 }
 
 function persist(state: Pick<EqState, 'enabled' | 'preset' | 'gains'>): void {
-  window.harmony.settings.set('eq', state)
+  // debounced: dragging an EQ band shouldn't hit SQLite on every pixel
+  persistSettingDebounced('eq', state)
 }
 
 export const useEqStore = create<EqState>((set, get) => ({

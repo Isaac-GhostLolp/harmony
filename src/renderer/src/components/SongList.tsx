@@ -5,6 +5,7 @@ import type { Song, Playlist } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
 import { formatDuration, mediaUrl } from '@/utils/format'
 import { api } from '@/services/api'
+import { ConfirmDialog } from '@/components/InputDialog'
 
 interface Props {
   songs: Song[]
@@ -25,6 +26,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
   const [menuFor, setMenuFor] = useState<number | null>(null)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ song: Song; fromDisk: boolean } | null>(null)
 
   const handleDrop = (target: number): void => {
     if (!onReorder || dragIndex === null || dragIndex === target) return setDragIndex(null)
@@ -57,11 +59,14 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
     onChanged?.()
   }
 
-  const deleteSong = async (song: Song, fromDisk: boolean): Promise<void> => {
-    const msg = fromDisk
-      ? `Enviar "${song.title}" para a lixeira e remover da biblioteca?`
-      : `Remover "${song.title}" da biblioteca? (o arquivo permanece no disco)`
-    if (!confirm(msg)) return
+  const deleteSong = (song: Song, fromDisk: boolean): void => {
+    setPendingDelete({ song, fromDisk })
+  }
+
+  const performDelete = async (): Promise<void> => {
+    if (!pendingDelete) return
+    const { song, fromDisk } = pendingDelete
+    setPendingDelete(null)
     const ok = await api.library.deleteSong(song.id, fromDisk)
     if (ok) {
       usePlayerStore.getState().removeSongById(song.id)
@@ -76,6 +81,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
   }
 
   return (
+    <>
     <div className="flex flex-col">
       {songs.map((song, i) => {
         const active = song.id === currentId
@@ -209,6 +215,22 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
         )
       })}
     </div>
+    <ConfirmDialog
+      open={pendingDelete !== null}
+      title={pendingDelete?.fromDisk ? 'Enviar para a lixeira' : 'Remover da biblioteca'}
+      message={
+        pendingDelete
+          ? pendingDelete.fromDisk
+            ? `Enviar "${pendingDelete.song.title}" para a lixeira e remover da biblioteca?`
+            : `Remover "${pendingDelete.song.title}" da biblioteca? (o arquivo permanece no disco)`
+          : ''
+      }
+      confirmLabel={pendingDelete?.fromDisk ? 'Enviar à lixeira' : 'Remover'}
+      danger
+      onConfirm={performDelete}
+      onCancel={() => setPendingDelete(null)}
+    />
+    </>
   )
 }
 

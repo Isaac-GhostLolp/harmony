@@ -6,6 +6,12 @@ import { initDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initDiscord, updatePresence, type PresenceState } from './services/discord'
 
+// Pin the app name so the userData folder is ALWAYS "harmony" — in dev it
+// would otherwise default to "Electron", putting the database (library,
+// stats, playlists, favorites) in a different folder than the packaged app.
+// This keeps user data stable across dev, updates and reinstalls.
+app.setName('Harmony')
+
 // NOTE (Linux dev): Ubuntu 23.10+ restricts unprivileged user namespaces,
 // so Electron needs the SUID chrome-sandbox helper — which can't be
 // root-owned inside a user's node_modules. The Chromium zygote spawns

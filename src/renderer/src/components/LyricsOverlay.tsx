@@ -247,12 +247,11 @@ function Ghost({
 
 /** Transition (exit+enter) lasts ~0.6s, so we look ahead by that amount:
  *  the phrase finishes materializing right when the singer starts it. */
-const EDIT_LOOKAHEAD_S = 0.65
-
 function EditView({ lines, cover }: { lines: LrcLine[]; cover?: string }): JSX.Element {
   const time = useSmoothTime()
-  const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const active = activeLineIndex(lines, time + EDIT_LOOKAHEAD_S)
+  // Follow the song's real time — no fixed lookahead (that made some songs
+  // feel ahead and others behind depending on their tempo).
+  const active = activeLineIndex(lines, time)
   const line = lines[active]
 
   return (
@@ -288,13 +287,13 @@ function EditView({ lines, cover }: { lines: LrcLine[]; cover?: string }): JSX.E
           </p>
         </div>
 
-        {/* Translucent CD */}
+        {/* Translucent CD — rotation is driven by playback time (≈6 rpm),
+            so it's identical on every platform and can't run away. */}
         <div className="gentle-float relative shrink-0">
           <div
-            className={`vinyl relative grid h-72 w-72 place-items-center overflow-hidden rounded-full ${
-              isPlaying ? '' : 'paused'
-            }`}
+            className="relative grid h-72 w-72 place-items-center overflow-hidden rounded-full"
             style={{
+              transform: `rotate(${(time * 36) % 360}deg)`,
               boxShadow:
                 '0 24px 80px rgb(0 0 0 / 0.65), 0 0 0 1px rgb(255 255 255 / 0.10), inset 0 0 60px rgb(0 0 0 / 0.45)'
             }}

@@ -53,11 +53,15 @@ export function parseLrc(raw: string): LrcLine[] {
   return lines.sort((a, b) => a.time - b.time)
 }
 
-/** Finds the active line index for a given playback time. */
+/**
+ * Finds the active line index for a given playback time. Uses the exact line
+ * timestamp — no fixed lead/offset, which previously made lines feel early on
+ * slow songs and late on fast ones (the timing drift bug).
+ */
 export function activeLineIndex(lines: LrcLine[], time: number): number {
   let idx = -1
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].time <= time + 0.2) idx = i
+    if (lines[i].time <= time) idx = i
     else break
   }
   return idx

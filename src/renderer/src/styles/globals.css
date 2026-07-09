@@ -171,10 +171,6 @@ input[type='range']:hover::-webkit-slider-thumb {
 }
 
 /* ---------- Lyrics: Edit mode ---------- */
-@keyframes vinyl-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 @keyframes gentle-float {
   0%, 100% { transform: translateY(0) rotate(-0.4deg); }
   50% { transform: translateY(-10px) rotate(0.4deg); }
@@ -183,12 +179,6 @@ input[type='range']:hover::-webkit-slider-thumb {
   0%, 100% { transform: translateY(0); }
   33% { transform: translateY(-6px); }
   66% { transform: translateY(3px); }
-}
-.vinyl {
-  animation: vinyl-spin 22s linear infinite;
-}
-.vinyl.paused {
-  animation-play-state: paused;
 }
 .gentle-float {
   animation: gentle-float 9s ease-in-out infinite;
