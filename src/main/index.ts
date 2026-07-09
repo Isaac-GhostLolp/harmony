@@ -13,12 +13,18 @@ import { initAutoUpdate } from './services/updater'
 // This keeps user data stable across dev, updates and reinstalls.
 app.setName('Harmony')
 
-// NOTE (Linux dev): Ubuntu 23.10+ restricts unprivileged user namespaces,
-// so Electron needs the SUID chrome-sandbox helper — which can't be
-// root-owned inside a user's node_modules. The Chromium zygote spawns
-// BEFORE this script runs, so the fix cannot live here: the dev script
-// passes --no-sandbox on the CLI instead (see package.json). Packaged
-// builds keep full sandboxing.
+// Linux: modern distros (Ubuntu 23.10+, Debian 12+, Arch…) restrict
+// unprivileged user namespaces, so Chromium's SUID sandbox helper can't
+// configure itself and the app aborts ("chrome-sandbox ... mode 4755").
+// Requiring each user to chmod the helper as root is a terrible UX, so we
+// disable the setuid sandbox on Linux — standard practice for Electron apps
+// (VS Code, Discord, Slack do the same). Harmony is a local music player with
+// no untrusted web content, so this doesn't meaningfully change its exposure.
+// macOS/Windows keep their normal sandbox.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+}
 
 protocol.registerSchemesAsPrivileged([
   {

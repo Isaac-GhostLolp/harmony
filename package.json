@@ -1,6 +1,6 @@
 {
   "name": "harmony",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Modern offline music player \u2014 Spotify-grade experience for your local library",
   "main": "out/main/index.js",
   "author": {
@@ -26,8 +26,7 @@
     "audio"
   ],
   "scripts": {
-    "dev": "electron-vite dev -- --no-sandbox",
-    "dev:sandboxed": "electron-vite dev",
+    "dev": "electron-vite dev",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "package": "electron-vite build && electron-builder",
@@ -99,7 +98,10 @@
       "category": "AudioVideo",
       "synopsis": "Modern offline music player with a cinematic visualizer",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-      "maintainer": "Isaac (Aisaac) <Isaac-GhostLolp@users.noreply.github.com>"
+      "maintainer": "Isaac (Aisaac) <Isaac-GhostLolp@users.noreply.github.com>",
+      "executableArgs": [
+        "--no-sandbox"
+      ]
     },
     "mac": {
       "target": "dmg",

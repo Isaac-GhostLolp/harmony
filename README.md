@@ -210,6 +210,9 @@ src/
 **Patch 0.10.1 — animation speed fix**
 - Fixed the spinning sync arrow and the floating disc/lyrics running absurdly fast (a "everything is vibrating" look) on some displays. The Chromium compositor's CSS-animation clock can run fast on certain setups (e.g. high-refresh monitors), so all these motions are now driven from JavaScript on the real wall-clock (`requestAnimationFrame` + `performance.now()` for spinners; the song's own time for the disc/lyric float). They now always run at the correct, steady speed everywhere.
 
+**Patch 0.10.2 — Linux AppImage launch fix**
+- Fixed the AppImage aborting on modern Linux distros with `chrome-sandbox ... is not configured correctly` / `mode 4755`. Recent kernels (Ubuntu 23.10+, Debian 12+, etc.) restrict unprivileged user namespaces, so Chromium's SUID sandbox helper can't set itself up. Harmony now disables the setuid sandbox on Linux (standard for Electron apps like VS Code/Discord; it's a local music player with no untrusted web content), so the AppImage runs without any `sudo`/`chmod` steps.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")
