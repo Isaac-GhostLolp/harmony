@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FolderPlus, RefreshCw, Loader2 } from 'lucide-react'
+import { FolderPlus, RefreshCw } from 'lucide-react'
+import { Spinner } from '@/components/Spinner'
 import type { Song } from '@/types'
 import { api } from '@/services/api'
 import { SongList } from '@/components/SongList'
@@ -93,14 +94,14 @@ export function Library(): JSX.Element {
             title="Procura músicas novas nas pastas já importadas e remove as que sumiram do disco"
             className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-semibold text-ink transition-transform hover:scale-[1.03] disabled:opacity-60"
           >
-            <RefreshCw size={14} className={scanning ? 'animate-spin' : ''} /> Atualizar
+            {scanning ? <Spinner size={14} icon="rotate" /> : <RefreshCw size={14} />} Atualizar
           </button>
           <button
             onClick={importFolder}
             disabled={scanning}
             className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition-transform hover:scale-[1.03] disabled:opacity-60"
           >
-            {scanning ? <Loader2 size={14} className="animate-spin" /> : <FolderPlus size={14} />}
+            {scanning ? <Spinner size={14} /> : <FolderPlus size={14} />}
             {scanning
               ? progress
                 ? `Analisando ${progress.processed}/${progress.total}`

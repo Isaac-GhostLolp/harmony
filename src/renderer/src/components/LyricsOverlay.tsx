@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, MicVocal, Loader2, Music2, RotateCw } from 'lucide-react'
+import { X, MicVocal, Music2, RotateCw } from 'lucide-react'
+import { Spinner } from '@/components/Spinner'
 import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore, type LyricsMode } from '@/store/uiStore'
 import { api } from '@/services/api'
@@ -72,7 +73,7 @@ export function LyricsOverlay(): JSX.Element {
                 title="Buscar letra novamente online"
                 aria-label="Buscar letra novamente"
               >
-                <RotateCw size={15} className={loading ? 'animate-spin' : ''} />
+                {loading ? <Spinner size={15} icon="rotate" /> : <RotateCw size={15} />}
               </button>
               <div className="flex rounded-full bg-[var(--bg-raised)] p-1">
                 {MODES.map((m) => (
@@ -96,7 +97,7 @@ export function LyricsOverlay(): JSX.Element {
           <div className="min-h-0 flex-1">
             {loading && (
               <div className="flex h-full items-center justify-center gap-2 text-sm text-muted">
-                <Loader2 size={16} className="animate-spin" /> Procurando letra…
+                <Spinner size={16} /> Procurando letra…
               </div>
             )}
 
@@ -268,8 +269,13 @@ function EditView({ lines, cover }: { lines: LrcLine[]; cover?: string }): JSX.E
       />
 
       <div className="relative flex h-full items-center justify-center gap-20 px-12">
-        {/* Drifting phrase (left, like the reference) */}
-        <div className="lyric-wave flex w-[26rem] flex-col items-end gap-3 text-right">
+        {/* Drifting phrase — float driven by the same time clock as the disc,
+            not a CSS animation (the CSS compositor clock was running fast on
+            some machines, making everything vibrate). */}
+        <div
+          className="flex w-[26rem] flex-col items-end gap-3 text-right"
+          style={{ transform: `translateY(${Math.sin(time * 0.8) * 5}px)` }}
+        >
           <AnimatePresence mode="wait">
             <motion.p
               key={active}
@@ -287,9 +293,12 @@ function EditView({ lines, cover }: { lines: LrcLine[]; cover?: string }): JSX.E
           </p>
         </div>
 
-        {/* Translucent CD — rotation is driven by playback time (≈6 rpm),
-            so it's identical on every platform and can't run away. */}
-        <div className="gentle-float relative shrink-0">
+        {/* Translucent CD — rotation AND float driven by playback time, so
+            they're identical on every platform and can't run away. */}
+        <div
+          className="relative shrink-0"
+          style={{ transform: `translateY(${Math.sin(time * 0.7 + 1) * 8}px)` }}
+        >
           <div
             className="relative grid h-72 w-72 place-items-center overflow-hidden rounded-full"
             style={{

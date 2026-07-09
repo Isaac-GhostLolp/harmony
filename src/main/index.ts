@@ -5,6 +5,7 @@ import { join, extname } from 'path'
 import { initDatabase } from './db/database'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initDiscord, updatePresence, type PresenceState } from './services/discord'
+import { initAutoUpdate } from './services/updater'
 
 // Pin the app name so the userData folder is ALWAYS "harmony" — in dev it
 // would otherwise default to "Electron", putting the database (library,
@@ -156,6 +157,7 @@ function createWindow(): void {
 
   loadRenderer(mainWindow)
   registerIpcHandlers(mainWindow)
+  initAutoUpdate(mainWindow)
 }
 
 function toggleMiniPlayer(): void {

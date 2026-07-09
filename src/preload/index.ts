@@ -89,6 +89,18 @@ const api = {
   settings: {
     get: () => invoke('settings:get'),
     set: (key: string, value: unknown) => invoke('settings:set', key, value)
+  },
+  updater: {
+    get: () => invoke('updater:get'),
+    check: () => invoke('updater:check'),
+    install: () => invoke('updater:install'),
+    onStatus: (cb: (status: unknown) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, status: unknown): void => cb(status)
+      ipcRenderer.on('updater:status', listener)
+      return () => {
+        ipcRenderer.removeListener('updater:status', listener)
+      }
+    }
   }
 }
 

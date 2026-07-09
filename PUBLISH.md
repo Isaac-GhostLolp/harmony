@@ -65,3 +65,24 @@ Os arquivos aparecem em `release/`. Observações:
 - Adicione uns **screenshots/GIFs** do Visualizer no topo do README — vende o projeto sozinho.
 - Preencha a descrição e os _topics_ do repositório (ex.: `music-player`, `electron`, `visualizer`, `typescript`).
 - Se quiser, ative **Discussions** para receber feedback da comunidade.
+
+
+## Sobre o auto-update
+
+A partir da v0.10.0 o app se atualiza sozinho. Para lançar uma atualização que
+chega automaticamente nos usuários, o fluxo é o mesmo de sempre:
+
+```bash
+# suba o novo código, então crie a tag da nova versão
+git tag v0.10.1
+git push origin v0.10.1
+```
+
+O workflow de Release compila e publica os instaladores **e** os arquivos de
+metadados (`latest.yml`, `latest-linux.yml`) que o auto-updater lê. Os usuários
+no **instalador do Windows** e no **AppImage do Linux** recebem a atualização
+automaticamente na próxima vez que abrirem o app. Nada mais é necessário.
+
+> Importante: sempre **incremente a versão** no `package.json` antes de criar a
+> tag — o updater compara a versão publicada com a instalada. A tag deve bater
+> com a versão (tag `v0.10.1` ↔ `"version": "0.10.1"`).

@@ -171,21 +171,6 @@ input[type='range']:hover::-webkit-slider-thumb {
 }
 
 /* ---------- Lyrics: Edit mode ---------- */
-@keyframes gentle-float {
-  0%, 100% { transform: translateY(0) rotate(-0.4deg); }
-  50% { transform: translateY(-10px) rotate(0.4deg); }
-}
-@keyframes lyric-wave {
-  0%, 100% { transform: translateY(0); }
-  33% { transform: translateY(-6px); }
-  66% { transform: translateY(3px); }
-}
-.gentle-float {
-  animation: gentle-float 9s ease-in-out infinite;
-}
-.lyric-wave {
-  animation: lyric-wave 8s ease-in-out infinite;
-}
 
 /* Edit mode typography: soft serif with a breathing glow */
 .font-lyrics {

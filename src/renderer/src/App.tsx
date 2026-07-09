@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { PlayerBar } from '@/components/PlayerBar'
 import { QueuePanel } from '@/components/QueuePanel'
 import { LyricsOverlay } from '@/components/LyricsOverlay'
+import { UpdateNotice } from '@/components/UpdateNotice'
 import { Library } from '@/pages/Library'
 import { Albums } from '@/pages/Albums'
 import { Artists } from '@/pages/Artists'
@@ -111,6 +112,7 @@ export function App(): JSX.Element {
           <LyricsOverlay />
         </div>
         <PlayerBar />
+        <UpdateNotice />
       </div>
     </HashRouter>
   )

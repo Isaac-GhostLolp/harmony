@@ -1,6 +1,6 @@
 {
   "name": "harmony",
-  "version": "0.9.2",
+  "version": "0.10.1",
   "description": "Modern offline music player \u2014 Spotify-grade experience for your local library",
   "main": "out/main/index.js",
   "author": {
@@ -36,6 +36,7 @@
   "dependencies": {
     "@xhayper/discord-rpc": "^1.2.1",
     "better-sqlite3": "^11.8.0",
+    "electron-updater": "^6.8.9",
     "music-metadata": "^10.6.0"
   },
   "devDependencies": {
@@ -111,6 +112,8 @@
     "publish": [
       {
         "provider": "github",
+        "owner": "Isaac-GhostLolp",
+        "repo": "harmony",
         "timeout": 600000
       }
     ]

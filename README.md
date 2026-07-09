@@ -203,6 +203,13 @@ src/
 - **Volume slider no longer freezes the app.** Dragging it was writing to the database on every single change event (dozens per second over IPC). The volume now applies to the audio instantly, while the *saved* value is debounced (~250ms after you stop). The same debounce was applied to the crossfade and EQ sliders, and the volume change now ramps smoothly to avoid clicks.
 - **User data is stable across updates.** The library, stats, playlists, favorites and settings live in a SQLite database inside the OS user-data folder (`%APPDATA%/Harmony` on Windows, `~/.config/Harmony` on Linux) — *outside* the app, so reinstalling or updating never touches it. The schema only ever adds tables/columns (never drops), so updates preserve everything. The app name is now pinned so this folder is always `Harmony`.
 
+**Phase 10 (v0.10.0) — Auto-update**
+- The app now **updates itself** from the GitHub Releases it already publishes. On launch (and hourly) it checks for a newer version, downloads it quietly in the background, and shows a gentle prompt with a **"Restart to update"** button — the user chooses when. User data is always preserved.
+- Works for the **Windows installer (NSIS)** and the **Linux AppImage**. The `.deb` and the Windows portable build can't self-update (a limitation of those formats), so those users update by downloading the new file — everything else updates automatically.
+
+**Patch 0.10.1 — animation speed fix**
+- Fixed the spinning sync arrow and the floating disc/lyrics running absurdly fast (a "everything is vibrating" look) on some displays. The Chromium compositor's CSS-animation clock can run fast on certain setups (e.g. high-refresh monitors), so all these motions are now driven from JavaScript on the real wall-clock (`requestAnimationFrame` + `performance.now()` for spinners; the song's own time for the disc/lyric float). They now always run at the correct, steady speed everywhere.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")
