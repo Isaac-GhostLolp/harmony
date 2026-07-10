@@ -316,15 +316,6 @@ input[type='range']:hover::-webkit-slider-thumb {
   transform: scale(0.97);
 }
 
-/* Slow breathing glow — for a "now playing" accent, hero art, etc. */
-@keyframes breathe {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.015); }
-}
-.breathe {
-  animation: breathe 5.5s ease-in-out infinite;
-}
-
 /* Content entrance: soft fade + rise. Stagger via inline animation-delay. */
 @keyframes fade-rise {
   from { opacity: 0; transform: translateY(8px); }

@@ -6,6 +6,7 @@ import { useProfileStore } from '@/store/profileStore'
 import { PageHeader } from '@/components/PageHeader'
 import { InputDialog } from '@/components/InputDialog'
 import { humanizedStats, harmonyMoments, harmonyJourney } from '@/utils/musicStory'
+import { BreathingEmoji } from '@/hooks/useBreathe'
 
 export function MyWorld(): JSX.Element {
   const [profile, setProfile] = useState<MusicProfile | null>(null)
@@ -140,7 +141,7 @@ export function MyWorld(): JSX.Element {
             }`}
             style={{ animationDelay: `${i * 40}ms` }}
           >
-            <span className={`text-2xl ${m.reached ? 'breathe' : 'grayscale'}`}>{m.emoji}</span>
+            <BreathingEmoji emoji={m.emoji} active={m.reached} className="text-2xl" />
             <div className="min-w-0">
               <p className="text-sm font-semibold">{m.title}</p>
               <p className="truncate text-xs text-muted">{m.detail}</p>

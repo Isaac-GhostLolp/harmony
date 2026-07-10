@@ -4,6 +4,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore } from '@/store/uiStore'
 import { CoverArt } from '@/components/CoverArt'
 import { SeekBar } from '@/components/SeekBar'
+import { useBreathe } from '@/hooks/useBreathe'
 
 /**
  * DJ Mode — a fully immersive, near-empty stage meant to be left running on a
@@ -22,6 +23,7 @@ export function DjMode(): JSX.Element | null {
 
   const [idle, setIdle] = useState(false)
   const idleTimer = useRef<number | undefined>(undefined)
+  const breatheRef = useBreathe<HTMLDivElement>()
 
   // Hide controls after 3s of no mouse movement; reveal on move.
   useEffect(() => {
@@ -93,7 +95,7 @@ export function DjMode(): JSX.Element | null {
 
       {/* center stage */}
       <div className="relative flex h-full flex-col items-center justify-center gap-8 px-8">
-        <div className="breathe">
+        <div ref={breatheRef}>
           <CoverArt
             src={cover}
             title={song?.title}

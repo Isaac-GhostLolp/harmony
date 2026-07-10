@@ -258,6 +258,9 @@ src/
 - Confirmation and editor modals now render through a **portal to `document.body`**, so they always center on screen. Previously, an ancestor with a CSS transform (the page fade-in animations) trapped the fixed overlay, making the delete-confirmation appear at the top of the page and forcing a scroll to reach it.
 - Artists with **zero songs are now removed on startup** (and after deletions), clearing out the old composite "A feat. B" entries left behind by the multi-artist migration.
 
+**Patch 0.11.9 — DJ Mode breathing animation fix**
+- The DJ Mode cover's breathing (grow/shrink) animation could run absurdly fast on some Windows setups — the same high-refresh CSS-clock issue we fixed earlier for the spinning disc and lyrics. It's now driven from JavaScript on the real wall-clock (`requestAnimationFrame` + `performance.now()`), so it breathes at a correct, steady pace everywhere. The milestone emojis in "Meu Mundo Musical" use the same reliable timing.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")
