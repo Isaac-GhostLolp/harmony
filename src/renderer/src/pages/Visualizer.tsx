@@ -179,12 +179,13 @@ export function Visualizer(): JSX.Element {
 
   return (
     <div className="relative flex h-full flex-col">
+      <div className="relative z-50">
       <PageHeader
         title="Visualizer"
         subtitle="Um palco virtual que transforma qualquer música em espetáculo"
         actions={
           <div className="flex items-center gap-2">
-            <div className="relative">
+            <div className="relative z-50">
               <button
                 onClick={() => setPickerOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-[var(--accent-soft)]"
@@ -194,7 +195,7 @@ export function Visualizer(): JSX.Element {
                 <ChevronDown size={13} className={pickerOpen ? 'rotate-180' : ''} />
               </button>
               {pickerOpen && (
-                <div className="glass absolute right-0 top-11 z-40 w-60 rounded-2xl p-1.5">
+                <div className="glass absolute right-0 top-11 z-50 w-60 rounded-2xl p-1.5">
                   {SHOW_PACKS.map((p) => (
                     <button
                       key={p.id}
@@ -225,6 +226,7 @@ export function Visualizer(): JSX.Element {
           </div>
         }
       />
+      </div>
       <div
         ref={containerRef}
         className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/5 bg-black"

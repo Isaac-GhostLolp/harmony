@@ -1,4 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+
+/**
+ * Renders modal content into document.body via a portal. Without this, an
+ * ancestor with a CSS transform (our fade-in/fade-rise animations) becomes the
+ * containing block for `position: fixed`, so the overlay anchored to the top of
+ * that animated container instead of the viewport — which is why the delete
+ * confirmation used to appear at the top of the page.
+ */
+function ModalPortal({ children }: { children: React.ReactNode }): JSX.Element {
+  return createPortal(children, document.body)
+}
 
 /**
  * A small in-app modal to replace window.prompt()/confirm(), which Electron
@@ -42,6 +54,7 @@ export function InputDialog({
   }
 
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-[100] grid place-items-center bg-black/60 backdrop-blur-sm"
       onMouseDown={onCancel}
@@ -80,6 +93,7 @@ export function InputDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
 
@@ -103,6 +117,7 @@ export function ConfirmDialog({
 }): JSX.Element | null {
   if (!open) return null
   return (
+    <ModalPortal>
     <div
       className="fixed inset-0 z-[100] grid place-items-center bg-black/60 backdrop-blur-sm"
       onMouseDown={onCancel}
@@ -131,5 +146,6 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }

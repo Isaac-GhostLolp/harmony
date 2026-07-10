@@ -3,6 +3,7 @@ import { join, extname } from 'path'
 import { createHash } from 'crypto'
 import type * as MusicMetadata from 'music-metadata'
 import { getDb, coversDir } from '../db/database'
+import { splitArtists } from './artistNames'
 
 const SUPPORTED = new Set(['.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a'])
 
@@ -40,12 +41,23 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc
 }
 
+/**
+ * Resolves all artists from a raw tag into individual artist rows and returns
+ * their ids (main artist first). See splitArtists for the parsing rules.
+ */
 function upsertArtist(name: string | undefined): number | null {
   if (!name) return null
   const db = getDb()
   db.prepare('INSERT OR IGNORE INTO artists (name) VALUES (?)').run(name)
   const row = db.prepare('SELECT id FROM artists WHERE name = ?').get(name) as { id: number }
   return row.id
+}
+
+/** Resolves all artists from a raw tag, returns their ids (main first). */
+function upsertArtists(raw: string | undefined): number[] {
+  return splitArtists(raw)
+    .map((n) => upsertArtist(n))
+    .filter((id): id is number => id !== null)
 }
 
 function saveCover(albumKey: string, data: Uint8Array, format: string): string {
@@ -88,26 +100,35 @@ async function processFile(path: string): Promise<'added' | 'skipped'> {
     const meta = await parseFile(path, { duration: true })
     const c = meta.common
     const picture = c.picture?.[0]
-    const artistId = upsertArtist(c.artist ?? c.albumartist)
+    const artistIds = upsertArtists(c.artist ?? c.albumartist)
+    const artistId = artistIds[0] ?? null
     const albumId = upsertAlbum(
       c.album,
-      upsertArtist(c.albumartist ?? c.artist),
+      upsertArtist(splitArtists(c.albumartist ?? c.artist)[0]),
       c.year,
       picture ? { data: picture.data, format: picture.format } : null
     )
-    db.prepare(`
-      INSERT INTO songs (path, title, artist_id, album_id, genre, year, duration, track_no)
-      VALUES (@path, @title, @artist_id, @album_id, @genre, @year, @duration, @track_no)
-    `).run({
-      path,
-      title: c.title ?? path.split(/[\\/]/).pop()!.replace(extname(path), ''),
-      artist_id: artistId,
-      album_id: albumId,
-      genre: c.genre?.[0] ?? null,
-      year: c.year ?? null,
-      duration: meta.format.duration ?? 0,
-      track_no: c.track.no ?? null
-    })
+    const info = db
+      .prepare(
+        `INSERT INTO songs (path, title, artist_id, album_id, genre, year, duration, track_no)
+      VALUES (@path, @title, @artist_id, @album_id, @genre, @year, @duration, @track_no)`
+      )
+      .run({
+        path,
+        title: c.title ?? path.split(/[\\/]/).pop()!.replace(extname(path), ''),
+        artist_id: artistId,
+        album_id: albumId,
+        genre: c.genre?.[0] ?? null,
+        year: c.year ?? null,
+        duration: meta.format.duration ?? 0,
+        track_no: c.track.no ?? null
+      })
+    // link every credited artist to the song (feat. included)
+    const songId = Number(info.lastInsertRowid)
+    const link = db.prepare(
+      'INSERT OR IGNORE INTO song_artists (song_id, artist_id, position) VALUES (?, ?, ?)'
+    )
+    artistIds.forEach((aid, i) => link.run(songId, aid, i))
     return 'added'
   } catch {
     return 'skipped'

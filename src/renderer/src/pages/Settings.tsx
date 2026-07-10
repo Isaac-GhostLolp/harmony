@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react'
 import { useUiStore, type BackgroundMode } from '@/store/uiStore'
 import { api } from '@/services/api'
 import { PageHeader } from '@/components/PageHeader'
-import { EqualizerPanel } from '@/components/EqualizerPanel'
 import type { ThemeName } from '@/types'
 
 const THEMES: { id: ThemeName; label: string }[] = [
   { id: 'dark', label: 'Dark' },
+  { id: 'darkpro', label: 'Dark Pro' },
   { id: 'light', label: 'Light' },
   { id: 'amoled', label: 'AMOLED' },
+  { id: 'glass', label: 'Glass' },
+  { id: 'synthwave', label: 'Synthwave' },
+  { id: 'nature', label: 'Nature' },
   { id: 'cyberpunk', label: 'Cyberpunk' },
   { id: 'ghostguard', label: 'GhostGuard' },
   { id: 'pixel', label: 'Pixel Art' }
@@ -122,7 +125,18 @@ export function Settings(): JSX.Element {
         </div>
       </section>
 
-      <EqualizerPanel />
+      <section className="glass mb-4 flex items-center justify-between rounded-2xl p-5">
+        <div>
+          <h2 className="text-sm font-semibold">Equalizador</h2>
+          <p className="mt-0.5 text-xs text-muted">10 bandas, presets e gráfico em tempo real</p>
+        </div>
+        <a
+          href="#/equalizer"
+          className="press rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white"
+        >
+          Abrir equalizador
+        </a>
+      </section>
 
       <section className="glass mb-4 rounded-2xl p-5">
         <h2 className="text-sm font-semibold">Crossfade</h2>

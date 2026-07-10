@@ -12,12 +12,14 @@ interface UiState {
   lyricsMode: LyricsMode
   crossfade: number
   background: BackgroundMode
+  djMode: boolean
   setTheme: (t: ThemeName) => void
   toggleQueue: () => void
   toggleLyrics: () => void
   setLyricsMode: (mode: LyricsMode) => void
   setCrossfade: (seconds: number) => void
   setBackground: (mode: BackgroundMode) => void
+  setDjMode: (on: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -27,6 +29,7 @@ export const useUiStore = create<UiState>((set) => ({
   lyricsMode: 'synced',
   crossfade: 0,
   background: 'cover',
+  djMode: false,
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)
     window.harmony.settings.set('theme', theme)
@@ -45,5 +48,6 @@ export const useUiStore = create<UiState>((set) => ({
   setBackground: (background) => {
     window.harmony.settings.set('background', background)
     set({ background })
-  }
+  },
+  setDjMode: (djMode) => set({ djMode })
 }))

@@ -13,6 +13,8 @@ export interface Song {
   trackNo: number | null
   addedAt: number
   favorite: 0 | 1
+  playCount: number
+  lastPlayed: number | null
 }
 
 export interface Album {
@@ -28,6 +30,7 @@ export interface Artist {
   id: number
   name: string
   songCount: number
+  imagePath: string | null
 }
 
 export interface Playlist {
@@ -35,6 +38,10 @@ export interface Playlist {
   name: string
   createdAt: number
   songCount: number
+  description: string | null
+  emoji: string | null
+  image: string | null
+  color: string | null
 }
 
 export interface SearchResults {
@@ -53,6 +60,29 @@ export interface Stats {
   avgDailyMinutes: number
 }
 
+export interface MusicProfile {
+  topArtist: { name: string; plays: number } | null
+  topAlbum: { title: string; plays: number } | null
+  topGenre: { genre: string; plays: number } | null
+  topSong: { title: string; artist: string | null; plays: number; seconds: number } | null
+  topPlaylist: { name: string; count: number } | null
+  firstSong: { title: string; artist: string | null; addedAt: number } | null
+  lastSong: { title: string; artist: string | null; playedAt: number } | null
+  totalSongs: number
+  totalArtists: number
+  totalAlbums: number
+  hoursPlayed: number
+  totalPlays: number
+  activeDays: number
+  firstPlay: number | null
+  lastPlay: number | null
+  firstAdded: number | null
+  newThisMonth: number
+  nightPlay: number | null
+  mostPlayedCount: number
+  topArtistShare: number
+}
+
 export interface LyricsResult {
   source: string
   synced: string | null
@@ -60,4 +90,14 @@ export interface LyricsResult {
 }
 
 export type RepeatMode = 'off' | 'all' | 'one'
-export type ThemeName = 'dark' | 'light' | 'amoled' | 'cyberpunk' | 'ghostguard' | 'pixel'
+export type ThemeName =
+  | 'dark'
+  | 'light'
+  | 'amoled'
+  | 'cyberpunk'
+  | 'ghostguard'
+  | 'pixel'
+  | 'synthwave'
+  | 'nature'
+  | 'glass'
+  | 'darkpro'

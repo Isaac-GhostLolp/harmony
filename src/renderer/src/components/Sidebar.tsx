@@ -9,11 +9,14 @@ import {
   Clapperboard,
   Settings,
   BarChart3,
-  Search
+  Search,
+  SlidersHorizontal,
+  Globe2
 } from 'lucide-react'
 
 const items = [
   { to: '/', label: 'Biblioteca', icon: Library },
+  { to: '/my-world', label: 'Meu Mundo', icon: Globe2 },
   { to: '/search', label: 'Pesquisar', icon: Search },
   { to: '/playlists', label: 'Playlists', icon: ListMusic },
   { to: '/artists', label: 'Artistas', icon: MicVocal },
@@ -22,6 +25,7 @@ const items = [
   { to: '/visualizer', label: 'Visualizer', icon: Clapperboard },
   { to: '/history', label: 'Histórico', icon: Clock },
   { to: '/stats', label: 'Estatísticas', icon: BarChart3 },
+  { to: '/equalizer', label: 'Equalizador', icon: SlidersHorizontal },
   { to: '/settings', label: 'Configurações', icon: Settings }
 ]
 

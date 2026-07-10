@@ -69,7 +69,7 @@ export function Albums(): JSX.Element {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.4) }}
                 onClick={() => open(album)}
-                className="glass group rounded-2xl p-3 text-left transition-transform hover:-translate-y-0.5"
+                className="glass lift press group rounded-2xl p-3 text-left"
               >
                 <div className="mb-2 grid aspect-square place-items-center overflow-hidden rounded-xl bg-[var(--bg-raised)]">
                   {cover ? (

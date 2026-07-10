@@ -504,3 +504,27 @@ export function applyCoverToSong(songId: number, result: CoverResult): string | 
     .get(albumId) as { cover: string | null }
   return row.cover
 }
+
+/**
+ * Fetches an artist photo via Deezer's artist search (which exposes picture_*
+ * URLs), downloads it into the covers cache and returns the local path.
+ * Returns null when the artist can't be matched or has no usable picture.
+ */
+export async function fetchArtistPhoto(artistName: string): Promise<string | null> {
+  const name = artistName.trim()
+  if (!name) return null
+  const data = await getJson(
+    `https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=5`
+  )
+  if (!data?.data?.length) return null
+  // prefer an exact (case-insensitive) name match, else the top result
+  const lower = name.toLowerCase()
+  const match =
+    data.data.find((a: any) => (a.name ?? '').toLowerCase() === lower) ?? data.data[0]
+  const pic: string | undefined =
+    match.picture_xl || match.picture_big || match.picture_medium || match.picture
+  // Deezer returns a placeholder silhouette when it has no real photo; those
+  // URLs contain no artist id path segment we can rely on, so guard on size.
+  if (!pic || pic.includes('/artist//')) return null
+  return downloadImage(pic, `artist-${lower}`)
+}

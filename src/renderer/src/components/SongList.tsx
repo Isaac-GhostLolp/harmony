@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Play, Heart, MoreHorizontal, Music2 } from 'lucide-react'
+import { Play, Heart, MoreHorizontal } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { Song, Playlist } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
-import { formatDuration, mediaUrl } from '@/utils/format'
+import { formatDuration } from '@/utils/format'
+import { CoverArt } from '@/components/CoverArt'
 import { api } from '@/services/api'
 import { ConfirmDialog } from '@/components/InputDialog'
 
@@ -85,7 +86,6 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
     <div className="flex flex-col">
       {songs.map((song, i) => {
         const active = song.id === currentId
-        const cover = mediaUrl(song.coverPath)
         return (
           <motion.div
             key={song.id}
@@ -103,14 +103,10 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
           >
             <button
               onClick={() => playQueue(songs, i)}
-              className="grid h-9 w-9 place-items-center overflow-hidden rounded-md bg-[var(--bg-raised)]"
+              className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-md"
               aria-label={`Tocar ${song.title}`}
             >
-              {cover ? (
-                <img src={cover} alt="" className="h-full w-full object-cover" loading="lazy" />
-              ) : (
-                <Music2 size={14} className="text-muted" />
-              )}
+              <CoverArt src={song.coverPath} title={song.title} size="sm" rounded="lg" />
               <Play
                 size={14}
                 className="absolute hidden group-hover:block"

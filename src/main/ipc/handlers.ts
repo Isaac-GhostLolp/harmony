@@ -7,6 +7,7 @@ import {
   fetchLyricsOnline,
   fetchCoverOnline,
   applyCoverToSong,
+  fetchArtistPhoto,
   EFFECTIVE_COVER_SQL
 } from '../services/online'
 
@@ -15,11 +16,17 @@ const SONG_SELECT = `
          s.added_at as addedAt,
          ar.name as artist, ar.id as artistId,
          al.title as album, al.id as albumId, ${EFFECTIVE_COVER_SQL} as coverPath,
-         (f.song_id IS NOT NULL) as favorite
+         (f.song_id IS NOT NULL) as favorite,
+         COALESCE(hc.plays, 0) as playCount,
+         hc.lastPlayed as lastPlayed
   FROM songs s
   LEFT JOIN artists ar ON ar.id = s.artist_id
   LEFT JOIN albums al ON al.id = s.album_id
   LEFT JOIN favorites f ON f.song_id = s.id
+  LEFT JOIN (
+    SELECT song_id, COUNT(*) as plays, MAX(played_at) as lastPlayed
+    FROM history GROUP BY song_id
+  ) hc ON hc.song_id = s.id
 `
 
 export function registerIpcHandlers(win: BrowserWindow): void {
@@ -49,7 +56,10 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   const pruneOrphans = (): void => {
     db().exec(`
       DELETE FROM albums WHERE id NOT IN (SELECT DISTINCT album_id FROM songs WHERE album_id IS NOT NULL);
-      DELETE FROM artists WHERE id NOT IN (SELECT DISTINCT artist_id FROM songs WHERE artist_id IS NOT NULL);
+      DELETE FROM artists
+        WHERE id NOT IN (SELECT DISTINCT artist_id FROM song_artists)
+          AND id NOT IN (SELECT DISTINCT artist_id FROM songs WHERE artist_id IS NOT NULL)
+          AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL);
     `)
   }
 
@@ -164,26 +174,58 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   ipcMain.handle('artists:getAll', () =>
     db()
       .prepare(
-        `SELECT ar.id, ar.name, COUNT(s.id) as songCount
-         FROM artists ar LEFT JOIN songs s ON s.artist_id = ar.id
+        `SELECT ar.id, ar.name, ar.image_path as imagePath,
+                COUNT(DISTINCT sa.song_id) as songCount
+         FROM artists ar LEFT JOIN song_artists sa ON sa.artist_id = ar.id
          GROUP BY ar.id ORDER BY ar.name`
       )
       .all()
   )
 
   ipcMain.handle('artists:getSongs', (_e, artistId: number) =>
-    db().prepare(`${SONG_SELECT} WHERE s.artist_id = ? ORDER BY s.title`).all(artistId)
+    db()
+      .prepare(
+        `${SONG_SELECT} JOIN song_artists sa ON sa.song_id = s.id
+         WHERE sa.artist_id = ? ORDER BY s.title`
+      )
+      .all(artistId)
   )
 
   // ---------- Playlists ----------
   ipcMain.handle('playlists:getAll', () =>
     db()
       .prepare(
-        `SELECT p.id, p.name, p.created_at as createdAt, COUNT(ps.song_id) as songCount
+        `SELECT p.id, p.name, p.created_at as createdAt,
+                p.description, p.emoji, p.image, p.color,
+                COUNT(ps.song_id) as songCount
          FROM playlists p LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
          GROUP BY p.id ORDER BY p.created_at DESC`
       )
       .all()
+  )
+
+  ipcMain.handle(
+    'playlists:updateMeta',
+    (
+      _e,
+      id: number,
+      meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string }
+    ) => {
+      const fields: string[] = []
+      const values: unknown[] = []
+      for (const key of ['name', 'description', 'emoji', 'image', 'color'] as const) {
+        if (meta[key] !== undefined) {
+          fields.push(`${key} = ?`)
+          values.push(meta[key])
+        }
+      }
+      if (fields.length === 0) return false
+      values.push(id)
+      db()
+        .prepare(`UPDATE playlists SET ${fields.join(', ')} WHERE id = ?`)
+        .run(...values)
+      return true
+    }
   )
 
   ipcMain.handle('playlists:create', (_e, name: string) => {
@@ -276,6 +318,117 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       )
       .all()
   )
+
+  ipcMain.handle('stats:profile', () => {
+    const q = <T>(sql: string): T => db().prepare(sql).get() as T
+    const qAll = <T>(sql: string): T[] => db().prepare(sql).all() as T[]
+
+    const topArtist = q<{ name: string; plays: number } | undefined>(
+      `SELECT ar.name, COUNT(*) as plays FROM history h
+       JOIN songs s ON s.id = h.song_id JOIN artists ar ON ar.id = s.artist_id
+       GROUP BY ar.id ORDER BY plays DESC LIMIT 1`
+    )
+    const topAlbum = q<{ title: string; plays: number } | undefined>(
+      `SELECT al.title, COUNT(*) as plays FROM history h
+       JOIN songs s ON s.id = h.song_id JOIN albums al ON al.id = s.album_id
+       GROUP BY al.id ORDER BY plays DESC LIMIT 1`
+    )
+    const topGenre = q<{ genre: string; plays: number } | undefined>(
+      `SELECT s.genre as genre, COUNT(*) as plays FROM history h
+       JOIN songs s ON s.id = h.song_id WHERE s.genre IS NOT NULL AND s.genre != ''
+       GROUP BY s.genre ORDER BY plays DESC LIMIT 1`
+    )
+    const topSong = q<{ title: string; artist: string | null; plays: number; seconds: number } | undefined>(
+      `SELECT s.title, ar.name as artist, COUNT(*) as plays, SUM(s.duration) as seconds
+       FROM history h JOIN songs s ON s.id = h.song_id
+       LEFT JOIN artists ar ON ar.id = s.artist_id
+       GROUP BY s.id ORDER BY plays DESC LIMIT 1`
+    )
+    const topPlaylist = q<{ name: string; count: number } | undefined>(
+      `SELECT p.name, COUNT(ps.song_id) as count FROM playlists p
+       LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
+       GROUP BY p.id ORDER BY count DESC LIMIT 1`
+    )
+    const totals = q<{
+      songs: number
+      artists: number
+      albums: number
+      secondsPlayed: number
+      totalPlays: number
+      activeDays: number
+      firstPlay: number | null
+      lastPlay: number | null
+      firstAdded: number | null
+    }>(
+      `SELECT
+        (SELECT COUNT(*) FROM songs) as songs,
+        (SELECT COUNT(*) FROM artists) as artists,
+        (SELECT COUNT(*) FROM albums) as albums,
+        (SELECT COALESCE(SUM(s.duration),0) FROM history h JOIN songs s ON s.id=h.song_id) as secondsPlayed,
+        (SELECT COUNT(*) FROM history) as totalPlays,
+        (SELECT COUNT(DISTINCT date(played_at,'unixepoch')) FROM history) as activeDays,
+        (SELECT MIN(played_at) FROM history) as firstPlay,
+        (SELECT MAX(played_at) FROM history) as lastPlay,
+        (SELECT MIN(added_at) FROM songs) as firstAdded`
+    )
+    // first song ever added (for the journey)
+    const firstSong = q<{ title: string; artist: string | null; addedAt: number } | undefined>(
+      `SELECT s.title, ar.name as artist, s.added_at as addedAt FROM songs s
+       LEFT JOIN artists ar ON ar.id = s.artist_id ORDER BY s.added_at ASC LIMIT 1`
+    )
+    // most recently played
+    const lastSong = q<{ title: string; artist: string | null; playedAt: number } | undefined>(
+      `SELECT s.title, ar.name as artist, h.played_at as playedAt FROM history h
+       JOIN songs s ON s.id = h.song_id LEFT JOIN artists ar ON ar.id = s.artist_id
+       ORDER BY h.played_at DESC LIMIT 1`
+    )
+    // songs discovered this month (first play within current month)
+    const now = Math.floor(Date.now() / 1000)
+    const monthAgo = now - 30 * 86400
+    const newThisMonth = q<{ n: number }>(
+      `SELECT COUNT(*) as n FROM (
+         SELECT song_id, MIN(played_at) as first FROM history GROUP BY song_id
+       ) WHERE first >= ${monthAgo}`
+    ).n
+    // late-night play (00:00–05:00 local-ish, using UTC hour as approximation)
+    const nightPlay = q<{ playedAt: number } | undefined>(
+      `SELECT played_at as playedAt FROM history
+       WHERE CAST(strftime('%H', played_at, 'unixepoch') AS INTEGER) BETWEEN 0 AND 4
+       ORDER BY played_at ASC LIMIT 1`
+    )
+    const mostPlayedCount = topSong?.plays ?? 0
+
+    return {
+      topArtist: topArtist ?? null,
+      topAlbum: topAlbum ?? null,
+      topGenre: topGenre ?? null,
+      topSong: topSong ?? null,
+      topPlaylist: topPlaylist ?? null,
+      firstSong: firstSong ?? null,
+      lastSong: lastSong ?? null,
+      totalSongs: totals.songs,
+      totalArtists: totals.artists,
+      totalAlbums: totals.albums,
+      hoursPlayed: totals.secondsPlayed / 3600,
+      totalPlays: totals.totalPlays,
+      activeDays: totals.activeDays,
+      firstPlay: totals.firstPlay,
+      lastPlay: totals.lastPlay,
+      firstAdded: totals.firstAdded,
+      newThisMonth,
+      nightPlay: nightPlay?.playedAt ?? null,
+      mostPlayedCount,
+      // library share of the top artist (for humanized stat)
+      topArtistShare: (() => {
+        if (!topArtist) return 0
+        const row = q<{ n: number }>(
+          `SELECT COUNT(*) as n FROM songs s JOIN artists ar ON ar.id = s.artist_id
+           WHERE ar.name = '${topArtist.name.replace(/'/g, "''")}'`
+        )
+        return totals.songs ? row.n / totals.songs : 0
+      })()
+    }
+  })
 
   ipcMain.handle('stats:get', () => {
     const topArtist = db()
@@ -422,6 +575,77 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     })
     if (!result) return song.coverPath ?? null
     return applyCoverToSong(songId, result)
+  })
+
+  // Bulk metadata refresh: artist photos + missing covers + genres, with
+  // progress events. Never overwrites data the user already has.
+  ipcMain.handle('metadata:refresh', async () => {
+    const send = (done: number, total: number, label: string): void =>
+      win.webContents.send('metadata:progress', { done, total, label })
+
+    // 1) artist photos for artists without one
+    const artists = db()
+      .prepare(`SELECT id, name FROM artists WHERE image_path IS NULL OR image_path = ''`)
+      .all() as { id: number; name: string }[]
+    // 2) songs whose effective cover is missing
+    const songs = db()
+      .prepare(
+        `SELECT s.id, s.title, s.duration, ar.name as artist, al.title as album,
+                ${EFFECTIVE_COVER_SQL} as coverPath
+         FROM songs s
+         LEFT JOIN artists ar ON ar.id = s.artist_id
+         LEFT JOIN albums al ON al.id = s.album_id`
+      )
+      .all() as {
+      id: number
+      title: string
+      duration: number
+      artist: string | null
+      album: string | null
+      coverPath: string | null
+    }[]
+    const missingCovers = songs.filter((s) => !s.coverPath)
+
+    const total = artists.length + missingCovers.length
+    let done = 0
+    let artistsUpdated = 0
+    let coversUpdated = 0
+
+    for (const ar of artists) {
+      send(done, total, `Artista: ${ar.name}`)
+      try {
+        const photo = await fetchArtistPhoto(ar.name)
+        if (photo) {
+          db().prepare('UPDATE artists SET image_path = ? WHERE id = ?').run(photo, ar.id)
+          artistsUpdated++
+        }
+      } catch {
+        /* network hiccup — skip this artist */
+      }
+      done++
+    }
+
+    for (const s of missingCovers) {
+      send(done, total, `Capa: ${s.title}`)
+      try {
+        const result = await fetchCoverOnline({
+          title: s.title,
+          artist: s.artist,
+          album: s.album,
+          duration: s.duration
+        })
+        if (result) {
+          applyCoverToSong(s.id, result)
+          coversUpdated++
+        }
+      } catch {
+        /* skip */
+      }
+      done++
+    }
+
+    send(total, total, 'Concluído')
+    return { artistsUpdated, coversUpdated, total }
   })
 
   // ---------- Settings ----------

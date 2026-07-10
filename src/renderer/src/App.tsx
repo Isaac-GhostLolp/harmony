@@ -5,6 +5,7 @@ import { PlayerBar } from '@/components/PlayerBar'
 import { QueuePanel } from '@/components/QueuePanel'
 import { LyricsOverlay } from '@/components/LyricsOverlay'
 import { UpdateNotice } from '@/components/UpdateNotice'
+import { DjMode } from '@/components/DjMode'
 import { Library } from '@/pages/Library'
 import { Albums } from '@/pages/Albums'
 import { Artists } from '@/pages/Artists'
@@ -15,10 +16,13 @@ import { Search } from '@/pages/Search'
 import { Stats } from '@/pages/Stats'
 import { Visualizer } from '@/pages/Visualizer'
 import { Settings } from '@/pages/Settings'
+import { Equalizer } from '@/pages/Equalizer'
+import { MyWorld } from '@/pages/MyWorld'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useUiStore, type BackgroundMode, type LyricsMode } from '@/store/uiStore'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
+import { useProfileStore } from '@/store/profileStore'
 import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
 import type { ThemeName } from '@/types'
@@ -46,6 +50,10 @@ export function App(): JSX.Element {
           .getState()
           .hydrate(s.eq as { enabled: boolean; preset: string; gains: number[] })
       }
+      useProfileStore.getState().hydrate({
+        name: typeof s.profileName === 'string' ? s.profileName : undefined,
+        photo: typeof s.profilePhoto === 'string' ? s.profilePhoto : null
+      })
       const discordEnabled = s.discordEnabled === true
       const discordClientId = typeof s.discordClientId === 'string' ? s.discordClientId : ''
       api.player.configureDiscord(discordEnabled, discordClientId)
@@ -106,6 +114,8 @@ export function App(): JSX.Element {
               <Route path="/visualizer" element={<Visualizer />} />
               <Route path="/cinema" element={<Visualizer />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/equalizer" element={<Equalizer />} />
+              <Route path="/my-world" element={<MyWorld />} />
             </Routes>
           </main>
           <QueuePanel />
@@ -113,6 +123,7 @@ export function App(): JSX.Element {
         </div>
         <PlayerBar />
         <UpdateNotice />
+        <DjMode />
       </div>
     </HashRouter>
   )

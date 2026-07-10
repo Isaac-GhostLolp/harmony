@@ -213,6 +213,51 @@ src/
 **Patch 0.10.2 — Linux AppImage launch fix**
 - Fixed the AppImage aborting on modern Linux distros with `chrome-sandbox ... is not configured correctly` / `mode 4755`. Recent kernels (Ubuntu 23.10+, Debian 12+, etc.) restrict unprivileged user namespaces, so Chromium's SUID sandbox helper can't set itself up. Harmony now disables the setuid sandbox on Linux (standard for Electron apps like VS Code/Discord; it's a local music player with no untrusted web content), so the AppImage runs without any `sudo`/`chmod` steps.
 
+**Phase 11 (v0.11.0) — Delight, part 1: premium interactions**
+- **Premium seek bar**: hovering shows a floating time bubble at the cursor with a ghost fill; the thumb grows on hover; click or drag anywhere to scrub — all pointer-driven and fluid.
+- **Scroll-to-adjust volume**: hovering the volume control and scrolling nudges it (up = louder), a small percentage bubble fades in while adjusting, and it never scrolls the page. Mute remembers your last level.
+- **Micro-animations**: gentle content entrance (fade + rise), card lift on hover, pressable feedback, a breathing glow and shimmer utilities — subtle throughout, never loud.
+
+**Phase 11.1 — Delight, part 2: smart library**
+- **Spotify-style filter chips** with a sliding highlight that glides between filters: Todas, Adicionadas recentemente, Mais reproduzidas, Nunca reproduzidas, Última reprodução, Favoritas, plus a chip per genre in your library. Switching filters cross-fades the list.
+- Backend now returns **play count** and **last-played** per song (joined from history), powering those filters efficiently.
+- **Elegant cover placeholders**: songs without art get a soft two-tone gradient derived from the title (each keeps its own colors) with its initial — used across the song list and player, replacing the flat generic icon.
+
+**Phase 11.2 — Delight, part 3: redesigned Equalizer**
+- The equalizer is now a **full page** (not a cramped panel): a live **response-curve graph** that draws the EQ shape with the real-time spectrum behind it and a dashed **Flat reference** for comparison, **large vertical sliders** with instant feedback and a scaling thumb, modern presets, and a quick **Reset**. Settings links to it.
+
+**Phase 11.3 — Delight, part 4: personal identity**
+- Fixed the equalizer's vertical sliders (they rendered as tiny broken controls with `writing-mode: vertical`; now a horizontal range rotated upright, dragging works properly).
+- **🎵 Meu Mundo Musical**: a personal panel with a custom photo + name (saved locally), favorite artist/album/genre, totals, hours listened and days using Harmony, plus your latest track.
+- **Humanized stats**: warm sentences instead of bare numbers — "Você já passou mais de X dias inteiros ouvindo música", "Fulano está presente em Y% da sua biblioteca", etc.
+- **Harmony Moments**: gentle milestone cards (first song, 100 songs, 100 hours, late-night listener, favorite playlist…) — reached ones glow, locked ones show how far you are. No invasive popups.
+- **Harmony Journey**: a diary-style timeline of your musical history (when you started, your first song, your favorite artist, discoveries this month, hours listened, last played).
+- New backend `stats:profile` computes all of this from the play history.
+
+**Phase 11.4 — Delight, part 5: personalized playlists**
+- Playlists can now have a **custom cover image**, **description**, and **emoji**. Picking an image extracts its **dominant color**, which tints the card and the playlist header for a cohesive look.
+- Redesigned playlist cards (cover/emoji/color + description) and a rich detail header. New `playlists.updateMeta` backend and additive DB columns (image, description, emoji, color) keep existing playlists intact.
+
+**Phase 11.5 — Delight, part 6: themes with personality + DJ Mode**
+- Fixed the equalizer's sideways overflow: the rotated sliders now sit in fixed-width cells (absolutely positioned), so all 10 bands fit without horizontal scrolling.
+- **Dynamic Themes**: four new themes with real personality on top of the existing set — **Synthwave** (neon glow, vibrant gradients, glowing headings), **Nature** (organic greens, soft rounded panels), **Glass** (heavy blur + transparency, elegant), and **Dark Pro** (deep black, high-contrast, minimal). Pixel now also uses a retro monospace font and crisp edges.
+- **DJ Mode**: a fully immersive stage (button in the player bar, Esc to exit) that hides the app chrome and shows just the artwork, track and minimal controls — which fade away after a few seconds of no mouse movement. Ideal to leave running on a second screen.
+
+**Phase 11.6 — Delight, part 7: artist photos + metadata + fixes**
+- **Artist photos**: artists now show a real photo (fetched from Deezer, cached locally) with an elegant placeholder when none exists. Redesigned artist cards (circular photos) and a rich detail header.
+- **✨ Atualizar Metadados** button (on the Artists page): fetches artist photos and any missing album/song covers online, with a live progress bar — and never overwrites data you already have.
+- Fixes: volume scroll/click hitbox now aligns exactly with the bar (no more clicking above it); DJ Mode's broken minimize button removed (exit with F11 or Esc); the Visualizer stage-picker dropdown now sits above the canvas so you can actually pick a stage; and playlists gained sorting (custom drag order, recently added, oldest, duration, title).
+
+**Phase 11.7 — Delight, part 8: multi-artist model + final polish**
+- **Artists with feat./multiple names no longer duplicate.** Harmony now has a proper many-to-many artist model: an artist tag like "Skillet feat. Lacey Sturm" is split into individual artists ("Skillet", "Lacey Sturm"), each stored once. A song with multiple artists now shows up on *each* artist's page individually.
+- A one-time, safe migration re-links your existing library to the new model and cleans up the old composite "A feat. B" entries — your songs, history and playlists are untouched.
+- Splitting handles feat./ft./featuring, &, commas, x, vs. and parentheses. The main artist (first credited) drives the song's primary attribution.
+- Long artist names now truncate cleanly instead of overlapping neighbouring cards, and a general consistency pass across spacing, empty states and truncation.
+
+**Patch 0.11.8 — modal centering + empty-artist cleanup**
+- Confirmation and editor modals now render through a **portal to `document.body`**, so they always center on screen. Previously, an ancestor with a CSS transform (the page fade-in animations) trapped the fixed overlay, making the delete-confirmation appear at the top of the page and forcing a scroll to reach it.
+- Artists with **zero songs are now removed on startup** (and after deletions), clearing out the old composite "A feat. B" entries left behind by the multi-artist migration.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")

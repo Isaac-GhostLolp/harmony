@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FolderPlus, RefreshCw } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import type { Song } from '@/types'
@@ -6,6 +6,40 @@ import { api } from '@/services/api'
 import { SongList } from '@/components/SongList'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
+import { FilterChips, type FilterChip } from '@/components/FilterChips'
+
+type LibFilter =
+  | 'all'
+  | 'recent'
+  | 'most'
+  | 'never'
+  | 'lastPlayed'
+  | 'favorites'
+  | `genre:${string}`
+
+/** Applies the active filter (sort/subset) to the song list. */
+function applyFilter(songs: Song[], filter: LibFilter): Song[] {
+  switch (filter) {
+    case 'recent':
+      return [...songs].sort((a, b) => b.addedAt - a.addedAt)
+    case 'most':
+      return songs.filter((s) => s.playCount > 0).sort((a, b) => b.playCount - a.playCount)
+    case 'never':
+      return songs.filter((s) => s.playCount === 0)
+    case 'lastPlayed':
+      return songs
+        .filter((s) => s.lastPlayed)
+        .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
+    case 'favorites':
+      return songs.filter((s) => s.favorite)
+    default:
+      if (filter.startsWith('genre:')) {
+        const g = filter.slice(6)
+        return songs.filter((s) => (s.genre ?? 'Sem gênero') === g)
+      }
+      return songs
+  }
+}
 
 export function Library(): JSX.Element {
   const [songs, setSongs] = useState<Song[]>([])
@@ -13,6 +47,25 @@ export function Library(): JSX.Element {
   const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
+  const [filter, setFilter] = useState<LibFilter>('all')
+
+  // Build the chip list: fixed filters + a chip per genre present in the library.
+  const chips = useMemo<FilterChip<LibFilter>[]>(() => {
+    const genres = Array.from(
+      new Set(songs.map((s) => s.genre).filter((g): g is string => Boolean(g)))
+    ).sort()
+    const base: FilterChip<LibFilter>[] = [
+      { id: 'all', label: 'Todas' },
+      { id: 'recent', label: 'Adicionadas recentemente' },
+      { id: 'most', label: 'Mais reproduzidas' },
+      { id: 'never', label: 'Nunca reproduzidas' },
+      { id: 'lastPlayed', label: 'Última reprodução' },
+      { id: 'favorites', label: 'Favoritas' }
+    ]
+    return [...base, ...genres.map((g) => ({ id: `genre:${g}` as LibFilter, label: g }))]
+  }, [songs])
+
+  const filtered = useMemo(() => applyFilter(songs, filter), [songs, filter])
 
   const load = useCallback(async () => {
     setSongs((await api.library.getSongs()) as Song[])
@@ -118,7 +171,35 @@ export function Library(): JSX.Element {
           hint="Clique em Importar pasta ou arraste seus arquivos MP3, FLAC, WAV, OGG, AAC ou M4A para cá."
         />
       ) : (
-        <SongList songs={songs} onChanged={load} />
+        <>
+          {songs.length > 0 && (
+            <FilterChips chips={chips} active={filter} onChange={setFilter} />
+          )}
+          {filtered.length === 0 ? (
+            <div className="fade-in">
+              <EmptyState
+                title={
+                  filter === 'never'
+                    ? 'Você já ouviu tudo!'
+                    : filter === 'favorites'
+                      ? 'Nenhuma favorita ainda'
+                      : 'Nada por aqui'
+                }
+                hint={
+                  filter === 'never'
+                    ? 'Não há músicas sem reprodução — sua biblioteca está bem aproveitada.'
+                    : filter === 'favorites'
+                      ? 'Toque no coração de uma música para guardá-la aqui.'
+                      : 'Nenhuma música corresponde a este filtro.'
+                }
+              />
+            </div>
+          ) : (
+            <div key={filter} className="fade-in">
+              <SongList songs={filtered} onChanged={load} />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -40,6 +40,10 @@ const api = {
     rename: (id: number, name: string) => invoke('playlists:rename', id, name),
     remove: (id: number) => invoke('playlists:delete', id),
     duplicate: (id: number) => invoke('playlists:duplicate', id),
+    updateMeta: (
+      id: number,
+      meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string }
+    ) => invoke('playlists:updateMeta', id, meta),
     getSongs: (id: number) => invoke('playlists:getSongs', id),
     addSong: (playlistId: number, songId: number) =>
       invoke('playlists:addSong', playlistId, songId),
@@ -57,7 +61,17 @@ const api = {
     getRecent: () => invoke('history:getRecent')
   },
   stats: {
-    get: () => invoke('stats:get')
+    get: () => invoke('stats:get'),
+    profile: () => invoke('stats:profile')
+  },
+  metadata: {
+    refresh: () => invoke('metadata:refresh'),
+    onProgress: (cb: (p: { done: number; total: number; label: string }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, p: { done: number; total: number; label: string }): void =>
+        cb(p)
+      ipcRenderer.on('metadata:progress', listener)
+      return () => ipcRenderer.removeListener('metadata:progress', listener)
+    }
   },
   lyrics: {
     resolve: (songId: number, force = false) => invoke('lyrics:resolve', songId, force)
