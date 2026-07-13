@@ -7,10 +7,12 @@ import {
   Wrench,
   Music4,
   Sparkles,
-  HandHeart
+  HandHeart,
+  Crown
 } from 'lucide-react'
 import type { MusicProfile } from '@/types'
 import { api } from '@/services/api'
+import { CP405_PHOTO } from '@/assets/supporterCP405'
 
 // ---- Configure your real links here -------------------------------------
 // Empty strings hide the card, so you can enable each channel when it's ready.
@@ -247,10 +249,49 @@ export function Support(): JSX.Element {
       </section>
 
       {/* Supporters */}
-      <section className="glass rounded-2xl p-6 text-center">
-        <h2 className="mb-2 text-sm font-semibold">Apoiadores</h2>
-        <p className="text-sm text-muted">
-          Talvez você seja a primeira pessoa a apoiar oficialmente o Harmony ❤️
+      <section className="glass fade-rise rounded-2xl p-6 text-center">
+        <h2 className="mb-1 text-sm font-semibold">Apoiadores</h2>
+        <p className="mb-6 text-xs text-muted">
+          As pessoas que decidiram apoiar oficialmente o Harmony. 💛
+        </p>
+
+        <div className="flex flex-wrap items-start justify-center gap-6">
+          {/* First supporter — CP-405, crowned */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              {/* crown */}
+              <Crown
+                size={30}
+                className="absolute -top-4 left-1/2 z-10 -translate-x-1/2 -rotate-[8deg] drop-shadow"
+                style={{ color: '#f5c542', fill: '#f5c542' }}
+              />
+              {/* glowing ring */}
+              <div
+                className="grid h-24 w-24 place-items-center rounded-full p-[3px]"
+                style={{
+                  background: 'linear-gradient(135deg, #f5c542, #ff8c42)',
+                  boxShadow: '0 0 24px rgba(245,197,66,0.45)'
+                }}
+              >
+                <img
+                  src={CP405_PHOTO}
+                  alt="CP-405"
+                  className="h-full w-full rounded-full object-cover"
+                />
+              </div>
+            </div>
+            <p className="mt-3 text-sm font-semibold">CP-405</p>
+            <span
+              className="mt-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-black"
+              style={{ background: 'linear-gradient(135deg, #f5c542, #ff8c42)' }}
+            >
+              1º apoiador
+            </span>
+          </div>
+        </div>
+
+        <p className="mt-6 text-xs text-muted">
+          Obrigado, CP-405, por ser o primeiro a acreditar no projeto. ✨
         </p>
       </section>
     </div>

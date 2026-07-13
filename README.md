@@ -268,6 +268,10 @@ src/
 - Currently enabled: **Ko-fi** (ko-fi.com/isaacghostlolp). Other channels (PIX, Buy Me a Coffee, GitHub Sponsors) stay hidden until a link is added in `SUPPORT_LINKS` / `PIX_KEY` at the top of `src/renderer/src/pages/Support.tsx`.
 - The sidebar navigation now scrolls when the window is short, and **Apoie o Harmony** is pinned to the bottom so it's always reachable.
 
+**Patch 0.12.1 — first supporter + online genres**
+- 🎉 Added the Harmony's **first official supporter, CP-405**, to the support page — with a golden crown, glowing ring and a "1º apoiador" badge. Thank you, CP-405!
+- **Genres are now fetched online**: "✨ Atualizar Metadados" now also fills in each song's genre via the iTunes catalog when the file's tag is empty or the useless "Music" catch-all — so "top genre" and the genre filters become meaningful. Stats ignore the generic "Music" value.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")

@@ -8,6 +8,7 @@ import {
   fetchCoverOnline,
   applyCoverToSong,
   fetchArtistPhoto,
+  fetchGenre,
   EFFECTIVE_COVER_SQL
 } from '../services/online'
 
@@ -346,7 +347,8 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     )
     const topGenre = q<{ genre: string; plays: number } | undefined>(
       `SELECT s.genre as genre, COUNT(*) as plays FROM history h
-       JOIN songs s ON s.id = h.song_id WHERE s.genre IS NOT NULL AND s.genre != ''
+       JOIN songs s ON s.id = h.song_id
+       WHERE s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
        GROUP BY s.genre ORDER BY plays DESC LIMIT 1`
     )
     const topSong = q<{ title: string; artist: string | null; plays: number; seconds: number } | undefined>(
@@ -617,10 +619,20 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }[]
     const missingCovers = songs.filter((s) => !s.coverPath)
 
-    const total = artists.length + missingCovers.length
+    // 3) songs missing a usable genre (empty or the useless "Music" catch-all)
+    const missingGenre = db()
+      .prepare(
+        `SELECT s.id, s.title, ar.name as artist
+         FROM songs s LEFT JOIN artists ar ON ar.id = s.artist_id
+         WHERE s.genre IS NULL OR TRIM(s.genre) = '' OR LOWER(s.genre) = 'music'`
+      )
+      .all() as { id: number; title: string; artist: string | null }[]
+
+    const total = artists.length + missingCovers.length + missingGenre.length
     let done = 0
     let artistsUpdated = 0
     let coversUpdated = 0
+    let genresUpdated = 0
 
     for (const ar of artists) {
       send(done, total, `Artista: ${ar.name}`)
@@ -655,8 +667,22 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       done++
     }
 
+    for (const s of missingGenre) {
+      send(done, total, `Gênero: ${s.title}`)
+      try {
+        const genre = await fetchGenre(s.title, s.artist)
+        if (genre) {
+          db().prepare('UPDATE songs SET genre = ? WHERE id = ?').run(genre, s.id)
+          genresUpdated++
+        }
+      } catch {
+        /* skip */
+      }
+      done++
+    }
+
     send(total, total, 'Concluído')
-    return { artistsUpdated, coversUpdated, total }
+    return { artistsUpdated, coversUpdated, genresUpdated, total }
   })
 
   // ---------- Settings ----------

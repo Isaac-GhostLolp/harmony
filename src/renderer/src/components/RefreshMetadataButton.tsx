@@ -29,12 +29,13 @@ export function RefreshMetadataButton({ onDone }: { onDone?: () => void }): JSX.
       const r = (await api.metadata.refresh()) as {
         artistsUpdated: number
         coversUpdated: number
+        genresUpdated: number
         total: number
       }
       setResult(
         r.total === 0
           ? 'Tudo já estava atualizado!'
-          : `${r.artistsUpdated} fotos e ${r.coversUpdated} capas atualizadas.`
+          : `${r.artistsUpdated} fotos, ${r.coversUpdated} capas e ${r.genresUpdated} gêneros atualizados.`
       )
       onDone?.()
     } catch {

@@ -528,3 +528,29 @@ export async function fetchArtistPhoto(artistName: string): Promise<string | nul
   if (!pic || pic.includes('/artist//')) return null
   return downloadImage(pic, `artist-${lower}`)
 }
+
+/**
+ * Looks up a song's genre via the iTunes Search API (primaryGenreName), which
+ * has good coverage for mainstream music. Returns null if nothing solid is
+ * found. Used to fill in genres for files whose tags only say "Music" or are
+ * empty, so stats like "top genre" become meaningful.
+ */
+export async function fetchGenre(
+  title: string,
+  artist: string | null
+): Promise<string | null> {
+  const term = [artist, title].filter(Boolean).join(' ').trim()
+  if (!term) return null
+  const data = await getJson(
+    `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=5`
+  )
+  if (!data?.results?.length) return null
+  // prefer a result whose track/artist roughly matches
+  const lowerTitle = title.toLowerCase()
+  const best =
+    data.results.find((r: any) => (r.trackName ?? '').toLowerCase().includes(lowerTitle)) ??
+    data.results[0]
+  const genre: string | undefined = best.primaryGenreName
+  if (!genre || genre.toLowerCase() === 'music') return null // "Music" is the useless catch-all
+  return genre
+}
