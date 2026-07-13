@@ -18,6 +18,7 @@ import { Visualizer } from '@/pages/Visualizer'
 import { Settings } from '@/pages/Settings'
 import { Equalizer } from '@/pages/Equalizer'
 import { MyWorld } from '@/pages/MyWorld'
+import { Support } from '@/pages/Support'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useUiStore, type BackgroundMode, type LyricsMode } from '@/store/uiStore'
 import { usePlayerStore } from '@/store/playerStore'
@@ -116,6 +117,7 @@ export function App(): JSX.Element {
               <Route path="/settings" element={<Settings />} />
               <Route path="/equalizer" element={<Equalizer />} />
               <Route path="/my-world" element={<MyWorld />} />
+              <Route path="/support" element={<Support />} />
             </Routes>
           </main>
           <QueuePanel />

@@ -104,6 +104,9 @@ const api = {
     get: () => invoke('settings:get'),
     set: (key: string, value: unknown) => invoke('settings:set', key, value)
   },
+  app: {
+    openExternal: (url: string) => ipcRenderer.send('app:openExternal', url)
+  },
   updater: {
     get: () => invoke('updater:get'),
     check: () => invoke('updater:check'),

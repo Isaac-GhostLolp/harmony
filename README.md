@@ -261,6 +261,13 @@ src/
 **Patch 0.11.9 — DJ Mode breathing animation fix**
 - The DJ Mode cover's breathing (grow/shrink) animation could run absurdly fast on some Windows setups — the same high-refresh CSS-clock issue we fixed earlier for the spinning disc and lyrics. It's now driven from JavaScript on the real wall-clock (`requestAnimationFrame` + `performance.now()`), so it breathes at a correct, steady pace everywhere. The milestone emojis in "Meu Mundo Musical" use the same reliable timing.
 
+**Phase 12 (v0.12.0) — "❤️ Apoie o Harmony" page**
+- A new, heartfelt support page (in the sidebar) that fortifies the connection with the community rather than asking for money. Sections: a warm header, "how it started", a transparent "why support", support cards (PIX, Ko-fi, Buy Me a Coffee, GitHub Sponsors — each configurable, hidden until you add a link), a roadmap timeline, a thank-you note, and a supporters area.
+- A gentle counter shows **the user's own** hours listened and library size (real data), so it feels personal — "the Harmony is growing with its community".
+- Support is always optional; nothing pressures the user. External links open safely in the system browser (http/https only).
+- Currently enabled: **Ko-fi** (ko-fi.com/isaacghostlolp). Other channels (PIX, Buy Me a Coffee, GitHub Sponsors) stay hidden until a link is added in `SUPPORT_LINKS` / `PIX_KEY` at the top of `src/renderer/src/pages/Support.tsx`.
+- The sidebar navigation now scrolls when the window is short, and **Apoie o Harmony** is pinned to the bottom so it's always reachable.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")

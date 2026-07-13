@@ -30,6 +30,17 @@ const SONG_SELECT = `
 `
 
 export function registerIpcHandlers(win: BrowserWindow): void {
+  // Open an external URL in the system browser. Only http/https is allowed,
+  // so a malicious string can't trigger file:// or other schemes.
+  ipcMain.on('app:openExternal', (_e, url: string) => {
+    try {
+      const u = new URL(url)
+      if (u.protocol === 'http:' || u.protocol === 'https:') void shell.openExternal(url)
+    } catch {
+      /* ignore invalid URLs */
+    }
+  })
+
   const db = () => getDb()
 
   // ---------- Library ----------
