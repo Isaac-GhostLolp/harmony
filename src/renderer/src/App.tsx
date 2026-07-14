@@ -6,6 +6,7 @@ import { QueuePanel } from '@/components/QueuePanel'
 import { LyricsOverlay } from '@/components/LyricsOverlay'
 import { UpdateNotice } from '@/components/UpdateNotice'
 import { DjMode } from '@/components/DjMode'
+import { WorldLayer } from '@/components/WorldLayer'
 import { Library } from '@/pages/Library'
 import { Albums } from '@/pages/Albums'
 import { Artists } from '@/pages/Artists'
@@ -40,6 +41,11 @@ export function App(): JSX.Element {
     api.settings.get().then((raw) => {
       const s = raw as Record<string, unknown>
       if (typeof s.theme === 'string') useUiStore.getState().setTheme(s.theme as ThemeName)
+      if (typeof s.world === 'string' || s.world === null)
+        useUiStore.getState().setWorld((s.world as string | null) ?? null)
+      if (typeof s.worldOpacity === 'number')
+        useUiStore.getState().setWorldOpacity(s.worldOpacity)
+      if (typeof s.worldBlur === 'number') useUiStore.getState().setWorldBlur(s.worldBlur)
       if (typeof s.volume === 'number') usePlayerStore.getState().setVolume(s.volume)
       if (typeof s.crossfade === 'number') useUiStore.setState({ crossfade: s.crossfade })
       if (typeof s.background === 'string')
@@ -86,10 +92,12 @@ export function App(): JSX.Element {
     }
   }, [])
 
-  const bgCover = backgroundMode === 'cover' ? mediaUrl(coverPath) : undefined
+  const world = useUiStore((s) => s.world)
+  const bgCover = backgroundMode === 'cover' && !world ? mediaUrl(coverPath) : undefined
 
   return (
     <HashRouter>
+      <WorldLayer />
       <div className="ambient relative flex h-full flex-col">
         {/* Dynamic blurred-cover background */}
         {bgCover && (

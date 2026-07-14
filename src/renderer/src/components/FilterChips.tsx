@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useState } from 'react'
+import { useRef, useLayoutEffect, useEffect, useState } from 'react'
 
 export interface FilterChip<T extends string> {
   id: T
@@ -32,6 +32,22 @@ export function FilterChips<T extends string>({
       setHighlight({ left: bRect.left - cRect.left + container.scrollLeft, width: bRect.width })
     }
   }, [active, chips])
+
+  // Translate a vertical wheel into horizontal scroll — and crucially, stop the
+  // page from scrolling underneath. React's onWheel is passive (preventDefault
+  // is ignored), so we attach a non-passive native listener instead.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent): void => {
+      if (el.scrollWidth <= el.clientWidth) return // nothing to scroll sideways
+      if (e.deltaY === 0) return
+      e.preventDefault() // block the page from scrolling
+      el.scrollLeft += e.deltaY
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
 
   return (
     <div

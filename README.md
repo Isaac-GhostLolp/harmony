@@ -272,6 +272,47 @@ src/
 - 🎉 Added the Harmony's **first official supporter, CP-405**, to the support page — with a golden crown, glowing ring and a "1º apoiador" badge. Thank you, CP-405!
 - **Genres are now fetched online**: "✨ Atualizar Metadados" now also fills in each song's genre via the iTunes catalog when the file's tag is empty or the useless "Music" catch-all — so "top genre" and the genre filters become meaningful. Stats ignore the generic "Music" value.
 
+**Phase 13 (v0.13.0) — Worlds: the theme engine + Black Hole**
+- New **Theme Director** engine and **World SDK**: themes can now be living, immersive *worlds* rendered on a full-screen canvas behind a glassy UI, reacting to the music. A World is a small module (`mount`/`frame`/`unmount`) that receives a live context — spectrum, kick, bass, energy, impact, progress, accent, cover, day phase — the exact same contract a community developer would implement. Worlds lazy-load (only the active world's code runs) and share one rAF loop with particle pooling.
+- First world: **🕳️ Black Hole** (Signature) — a living cosmos with a rotating accretion disc (speeds up with bass), gravitational lensing bending nearby stars, an event horizon that pulses on the kick, slowly orbiting stars, cosmic dust pulled inward, and occasional meteors. Inspired by Interstellar.
+- Pick a world under Settings → "Em qual mundo você quer ouvir hoje?". Classic themes (Dark, Light, AMOLED, …) stay weightless and turn the world off. More worlds — and community-made ones — are on the way.
+
+**Patch 0.13.1 — world transparency fix + 🌧️ Rain world**
+- Fixed Worlds not being visible: the world canvas sat at a negative z-index behind the app's background, so it was hidden. It now renders at z-0 with the UI lifted above it, and the app chrome (sidebar, main, player) goes properly glassy so the living world shows through.
+- New world: **🌧️ Rain** — a cozy window onto a rainy night city. Rain streaks down with wind slant, drops cling and slide on the "glass", amber city-lights twinkle, and lightning flashes occasionally (and on big musical impacts). Rain density rises with the music's energy. Made for lo-fi.
+
+**Patch 0.13.2 — world transparency (real fix) + 🌲 Nature world**
+- **Worlds are now actually visible.** The real culprit was the dynamic blurred-cover background sitting on the same layer as the world canvas and covering it — it's now disabled whenever a world is active, and the `world-active` class is applied reactively so the glassy chrome always kicks in. The living world shows through the panels as intended.
+- New world: **🌲 Nature** — a calm forest that shifts with the time of day (dawn/day/dusk/night palettes). Sun rays filter through swaying trees, leaves drift on the wind, fireflies glow at dusk and night (more with the music's energy), and a soft mist hugs the ground.
+
+**Patch 0.13.3 — worlds render fix (the real one) + 🌃 Cyberpunk world**
+- **Found the true cause worlds weren't visible.** A full audit traced it to the ThemeDirector's render loop, not the CSS: React re-mounting the canvas host (StrictMode / hot-reload) ran attach → detach → attach, and because detach cleared the active world, the setWorld() guard then skipped restarting the loop — leaving a blank, stopped canvas. Now attach resumes the loop when a world is already selected, and detach preserves it. Verified with a unit test of the mount sequence. The living world now shows through the glassy UI as intended.
+- New world: **🌃 Cyberpunk** — a living neon city at night: parallax buildings with flickering neon windows, holographic billboards, thin rain through the glow, wet accent reflections, CRT scanlines, and glitch tears that fire on musical impacts. Inspired by Cyberpunk 2077.
+
+**Patch 0.13.4 — worlds now clearly visible through the panels**
+- The world render loop fix (0.13.3) got worlds drawing again, but a heavy 26px backdrop-blur on the panels flattened the world behind them into a near-uniform haze — visible at the window edges but muddy under the UI. Panels in world mode now use a light blur (6–8px) and much lower opacity (18–28%), so the living world reads clearly through the sidebar, library and player. A soft text-shadow keeps everything readable over the busier backgrounds.
+
+**Phase 14 (v0.14.0) — customizable worlds + your own background**
+- **Tune any world to taste.** With a world active, Settings now shows sliders for panel **transparency** and **blur**, applied live via CSS variables and remembered between sessions. Everyone can dial in exactly how much of the world shows through the UI.
+- **Bring your own background (🖼️ Meu fundo).** A new world lets non-developers import their own **image (PNG/JPG)** or **video (MP4/WebM)** as a living background. Images get a gentle, music-reactive Ken-Burns drift/zoom and a beat bloom; videos play behind the glassy UI via a real `<video>` element. (Heads-up in the UI: very heavy videos can slow the app.)
+- This complements the developer-facing World SDK: creators can code worlds, and everyone else can drop in a photo or clip — both flow through the same Theme Director.
+
+**Phase 15 (v0.15.0) — the full world collection**
+- Added the final seven immersive worlds, completing the collection (12 in total). Each is its own lazy-loaded module reacting to the music through the Theme Director:
+  - **🌊 Ocean** — underwater sun rays, schooling fish, rising bubbles, coral and plankton.
+  - **❄️ Winter** — a snowy night with a waving aurora borealis and drifting flakes.
+  - **☕ Coffee Shop** — cozy amber bokeh, rain on the window, and steam curling off a coffee cup.
+  - **⛩️ Japanese Garden** — a dusk zen garden with cherry-blossom petals, stone lanterns, a rippling pond and a torii gate.
+  - **🌆 Synthwave** — an '80s neon sun, wireframe mountains and an endless perspective grid.
+  - **🛰️ Space Station** — a panoramic window over a turning planet, with satellites, nebulae and meteors.
+  - **🌋 Volcano** — a volcanic night lit by molten lava, rising embers and falling ash.
+- Worlds are organized into Clássicos / Worlds / Signature categories, each still fully tunable (transparency & blur) and usable alongside your own imported background.
+
+**Library workflow additions (part of this release)**
+- **Multi-select, Spotify-style.** Hover a row and a checkbox appears where the "⋯" used to be; click it (or the row) to select, Shift-click to select a range from the anchor, Ctrl/Cmd-click to toggle, Ctrl/Cmd+A to select all, and Esc to clear. A selection bar lets you play, add many songs to a playlist at once, bulk-sync covers/lyrics, or bulk-remove.
+- **Genre chips scroll with the mouse wheel** (a vertical wheel scrolls them sideways) without scrolling the page underneath.
+- **The "⋯" menu opens upward** when a row is near the bottom of the screen, so it never clips off-screen.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")

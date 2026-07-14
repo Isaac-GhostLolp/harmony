@@ -212,6 +212,33 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* ---------- World mode: the living-theme canvas shows through ---------- */
+/* When a World is active, the app chrome becomes glass so the world behind it
+   is visible, and the flat background/ambient glow step aside for the canvas
+   (which sits at z-index 0; the UI is lifted above it). */
+html.world-active body,
+html.world-active #root {
+  background: transparent;
+}
+html.world-active .ambient {
+  position: relative;
+  z-index: 1; /* above the world canvas at z-0 */
+  background: transparent;
+}
+html.world-active .ambient::before {
+  opacity: 0;
+}
+html.world-active .glass {
+  background: rgba(10, 12, 20, var(--world-panel-alpha, 0.28));
+  backdrop-filter: blur(var(--world-panel-blur, 8px)) saturate(1.1);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+html.world-active main.glass {
+  background: rgba(8, 10, 16, calc(var(--world-panel-alpha, 0.28) * 0.65));
+  backdrop-filter: blur(calc(var(--world-panel-blur, 8px) * 0.8)) saturate(1.1);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
   width: 8px;
