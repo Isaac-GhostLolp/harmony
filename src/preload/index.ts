@@ -107,6 +107,11 @@ const api = {
   app: {
     openExternal: (url: string) => ipcRenderer.send('app:openExternal', url)
   },
+  wallpaper: {
+    save: (data: ArrayBuffer, ext: string, type: 'image' | 'video') =>
+      invoke('wallpaper:save', data, ext, type),
+    clear: () => invoke('wallpaper:clear')
+  },
   updater: {
     get: () => invoke('updater:get'),
     check: () => invoke('updater:check'),

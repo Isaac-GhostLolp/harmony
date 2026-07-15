@@ -1,6 +1,7 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
-import { readFileSync, existsSync } from 'fs'
-import { extname } from 'path'
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
+import { extname, join } from 'path'
+import { app } from 'electron'
 import { getDb } from '../db/database'
 import { scanFolder, importFiles } from '../services/scanner'
 import {
@@ -40,6 +41,48 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     } catch {
       /* ignore invalid URLs */
     }
+  })
+
+  // Persist a user-imported wallpaper (image/video) to disk so it survives
+  // restarts. Object URLs from the renderer are session-only; here we copy the
+  // bytes into userData/wallpaper and hand back a stable file path that the
+  // harmony:// media protocol can serve. Only one custom wallpaper is kept, so
+  // we clear any previous file first.
+  const wallpaperDir = (): string => {
+    const dir = join(app.getPath('userData'), 'wallpaper')
+    mkdirSync(dir, { recursive: true })
+    return dir
+  }
+
+  ipcMain.handle(
+    'wallpaper:save',
+    (_e, data: ArrayBuffer, ext: string, type: 'image' | 'video') => {
+      const dir = wallpaperDir()
+      // remove old wallpaper files
+      for (const f of readdirSync(dir)) {
+        try {
+          unlinkSync(join(dir, f))
+        } catch {
+          /* ignore */
+        }
+      }
+      const safeExt = (ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'bin'
+      const filePath = join(dir, `wallpaper.${safeExt}`)
+      writeFileSync(filePath, Buffer.from(data))
+      return { path: filePath, type }
+    }
+  )
+
+  ipcMain.handle('wallpaper:clear', () => {
+    const dir = wallpaperDir()
+    for (const f of readdirSync(dir)) {
+      try {
+        unlinkSync(join(dir, f))
+      } catch {
+        /* ignore */
+      }
+    }
+    return true
   })
 
   const db = () => getDb()

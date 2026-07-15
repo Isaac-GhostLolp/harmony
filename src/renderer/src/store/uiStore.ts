@@ -83,6 +83,10 @@ export const useUiStore = create<UiState>((set) => ({
     set({ worldBlur })
   },
   setCustomMedia: (customMedia) => {
+    // Persist only the stable info (type + the harmony:// url built from the
+    // saved file path). Object URLs would be session-only, but our url now
+    // points at a real file, so it survives restarts.
+    window.harmony.settings.set('customMedia', customMedia)
     set({ customMedia })
   }
 }))

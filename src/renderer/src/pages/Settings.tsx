@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useUiStore, type BackgroundMode } from '@/store/uiStore'
 import { api } from '@/services/api'
+import { mediaUrl } from '@/utils/format'
 import { PageHeader } from '@/components/PageHeader'
 import type { ThemeName } from '@/types'
 import { WORLDS } from '@/worlds/registry'
@@ -179,18 +180,30 @@ export function Settings(): JSX.Element {
                   type="file"
                   accept="image/*,video/mp4,video/webm"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
-                    const url = URL.createObjectURL(file)
                     const type = file.type.startsWith('video') ? 'video' : 'image'
-                    setCustomMedia({ type, url })
+                    const ext = (file.name.split('.').pop() || '').toLowerCase()
+                    // Copy the file into userData so it survives restarts, then
+                    // use a stable harmony:// media URL instead of a session-only
+                    // object URL.
+                    const buf = await file.arrayBuffer()
+                    const saved = (await api.wallpaper.save(buf, ext, type)) as {
+                      path: string
+                      type: 'image' | 'video'
+                    }
+                    setCustomMedia({ type: saved.type, url: mediaUrl(saved.path)! })
+                    e.target.value = '' // allow re-picking the same file
                   }}
                 />
               </label>
               {customMedia && (
                 <button
-                  onClick={() => setCustomMedia(null)}
+                  onClick={() => {
+                    api.wallpaper.clear()
+                    setCustomMedia(null)
+                  }}
                   className="rounded-full bg-[var(--bg-surface)] px-4 py-2 text-xs text-muted hover:text-ink"
                 >
                   Remover

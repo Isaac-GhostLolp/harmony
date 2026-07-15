@@ -46,6 +46,10 @@ export function App(): JSX.Element {
       if (typeof s.worldOpacity === 'number')
         useUiStore.getState().setWorldOpacity(s.worldOpacity)
       if (typeof s.worldBlur === 'number') useUiStore.getState().setWorldBlur(s.worldBlur)
+      if (s.customMedia && typeof s.customMedia === 'object')
+        useUiStore.setState({
+          customMedia: s.customMedia as { type: 'image' | 'video'; url: string }
+        })
       if (typeof s.volume === 'number') usePlayerStore.getState().setVolume(s.volume)
       if (typeof s.crossfade === 'number') useUiStore.setState({ crossfade: s.crossfade })
       if (typeof s.background === 'string')

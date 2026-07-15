@@ -313,6 +313,9 @@ src/
 - **Genre chips scroll with the mouse wheel** (a vertical wheel scrolls them sideways) without scrolling the page underneath.
 - **The "⋯" menu opens upward** when a row is near the bottom of the screen, so it never clips off-screen.
 
+**Patch 0.15.1 — custom wallpaper now persists**
+- Fixed the imported "Meu fundo" wallpaper being lost on restart/reload. It was held only as a session-only object URL; now the chosen image/video is copied into the app's data folder and served from a stable path, so it's remembered across restarts. Removing it clears the saved file too.
+
 ## Discord Rich Presence setup
 
 1. Go to https://discord.com/developers/applications → **New Application** (name it "Harmony")
