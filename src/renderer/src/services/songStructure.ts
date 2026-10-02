@@ -120,6 +120,8 @@ export class SongStructure {
   relLow = 0
   /** How much a steady beat is driving the music right now, 0..1. */
   drive = 0
+  /** Slow memory of drive: is this a beat-driven song at all? */
+  songDrive = 0
   bpm = 0
   /** 0..1 confidence in the tempo estimate. */
   tempoConfidence = 0
@@ -200,6 +202,7 @@ export class SongStructure {
     this.pendingState = null
     this.dropCount = 0
     this.drive = 0
+    this.songDrive = 0
     this.density = 0
     this.tension = 0
     this.songTime = 0
@@ -296,6 +299,8 @@ export class SongStructure {
     this.density = recent / 4
     const driveNow = clamp01(this.density / 1.6) * (0.35 + 0.65 * this.relLow)
     this.drive += (driveNow - this.drive) * ema(dt, 2.5)
+    // rises fast, forgets slowly: a build that removes the kick is still in a beat-driven song
+    this.songDrive += (this.drive - this.songDrive) * ema(dt, this.drive > this.songDrive ? 3 : 30)
 
     // ---- slopes over the last few seconds ----
     this.histTimer += dt
@@ -340,8 +345,12 @@ export class SongStructure {
 
   private runSections(inp: StructureInput, dt: number): void {
     const relF = this.relEnergy
-    const riseNeed = this.drive > 0.3 ? BUILD_RISE : BUILD_RISE_CALM
-    const rising = this.rise > riseNeed && this.highRise >= -0.002 && (this.relLow < 0.55 || this.dipMem > 0.5)
+    const riseNeed = this.songDrive > 0.3 ? BUILD_RISE : BUILD_RISE_CALM
+    const bassHeld = this.relLow < 0.55 || this.dipMem > 0.5
+    // a build: the song swells, or (with the beat removed) risers / snare rolls climb
+    const swelling = this.rise > riseNeed && this.highRise >= -0.002
+    const riser = this.songDrive > 0.3 && this.dipMem > 1 && this.highRise > 0.004 && this.rise > -0.01
+    const rising = (swelling || riser) && bassHeld && inp.progress < 0.92
     this.riseHold = rising ? this.riseHold + dt : Math.max(0, this.riseHold - dt * 2)
     this.fallHold = this.rise < 0.005 ? this.fallHold + dt : 0
     this.loudHold = relF > 0.72 && this.relLow > 0.5 ? this.loudHold + dt : 0
