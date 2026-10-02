@@ -5,7 +5,7 @@
  * narrative states, same impact events, same light groups — but each pack
  * has its own personality, architecture and color language:
  *
- *   🎧 festival   — Tomorrowland/Ultra mainstage: LED wall, lasers, CO₂
+ *   🎧 festival   — Tomorrowland/Ultra mainstage (festival.ts): truss, LED wall, pyro
  *   🔺 pyramid    — Daft Punk visual language (Alive eras) — para o Arthur 🤖
  *   🌌 cyber      — sci-fi arena: holograms, neon lines, data columns
  *   🌲 nature     — organic pulse: auroras, luminous trees, fireflies
@@ -16,8 +16,8 @@
  * silence. Zero per-frame allocations: pools and buffers live in SceneState.
  */
 import type { DirectorFrame } from '@/services/stageDirector'
-import { sampleLed, LED_PATTERNS, type LedPatternId } from './ledPatterns'
 import { createDJState, drawDJ, type DJState, type DJStyle } from './dj'
+import { createFestivalState, drawFestival, type FestivalState } from './festival'
 
 // ---------------------------------------------------------------------------
 // Scene state (allocated once)
@@ -55,6 +55,8 @@ export interface SceneState {
   flies: Float32Array
   // performers (pyramid has two, every other pack uses the first)
   djs: DJState[]
+  // festival mainstage FX pools
+  fest: FestivalState
   // cached static gradients (rebuilt only on resize) — avoids rebuilding
   // full-screen gradients every frame, which is heavy on fill-rate/GPU
   gradW: number
@@ -102,7 +104,8 @@ export function createSceneState(): SceneState {
     fanPhase: 0,
     stars,
     flies,
-    djs: [createDJState(), createDJState()]
+    djs: [createDJState(), createDJState()],
+    fest: createFestivalState()
   }
 }
 
@@ -248,58 +251,6 @@ export function drawLasers(
   ctx.restore()
 }
 
-/** LED panel using the pattern library, with crossfading pattern rotation. */
-function drawLedPanel(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  cols: number,
-  rows: number,
-  baseHue: number,
-  F: DirectorFrame,
-  S: SceneState,
-  E: number,
-  patterns: LedPatternId[]
-): void {
-  S.ledTimer += 1 / 60
-  if (S.ledMix > 0) {
-    S.ledMix = Math.min(1, S.ledMix + 0.02)
-    if (S.ledMix >= 1) {
-      S.ledIdx = (S.ledIdx + 1) % patterns.length
-      S.ledMix = 0
-    }
-  } else if (S.ledTimer > (F.state === 'drop' || F.state === 'climax' ? 9 : 15)) {
-    S.ledTimer = 0
-    S.ledMix = 0.01
-  }
-  const cur = patterns[S.ledIdx % patterns.length]
-  const nxt = patterns[(S.ledIdx + 1) % patterns.length]
-  const cw = w / cols
-  const ch = h / rows
-  for (let c = 0; c < cols; c++) {
-    for (let r = 0; r < rows; r++) {
-      const a = sampleLed(cur, c, r, cols, rows, F)
-      const va = a.v
-      const ha = a.hueShift
-      let v = va
-      let hs = ha
-      if (S.ledMix > 0) {
-        const b = sampleLed(nxt, c, r, cols, rows, F)
-        v = va * (1 - S.ledMix) + b.v * S.ledMix
-        hs = ha * (1 - S.ledMix) + b.hueShift * S.ledMix
-      }
-      v *= E
-      ctx.fillStyle =
-        v > 0.04
-          ? `hsla(${(baseHue + hs) % 360}, 85%, 60%, ${0.08 + v * 0.8})`
-          : 'rgba(255,255,255,0.025)'
-      ctx.fillRect(x + c * cw + 1, y + r * ch + 1, cw - 2, ch - 2)
-    }
-  }
-}
-
 function triggerFloorFx(S: SceneState, F: DirectorFrame, W: number): void {
   if (!F.impactHit) return
   for (let i = 0; i < MAX_RIPPLES; i++) {
@@ -356,227 +307,11 @@ function drawFloor(
 }
 
 // DJ looks per pack (constant objects: no per-frame allocation)
-const DJ_FESTIVAL: DJStyle = { look: 'human', deskHalf: 56, decks: true, booth: false }
 const DJ_PYRAMID_GOLD: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 40, visorSat: 100 }
 const DJ_PYRAMID_SILVER: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 230, visorSat: 15 }
 const DJ_CYBER: DJStyle = { look: 'hologram', deskHalf: 52, decks: true, booth: true }
 const DJ_STAGE: DJStyle = { look: 'human', deskHalf: 52, decks: true, booth: true }
 const DJ_SPACE: DJStyle = { look: 'helmet', deskHalf: 52, decks: true, booth: true }
-
-// ---------------------------------------------------------------------------
-// 🎧 FESTIVAL MAINSTAGE
-// ---------------------------------------------------------------------------
-
-function drawFestival(
-  ctx: CanvasRenderingContext2D,
-  W: number,
-  H: number,
-  F: DirectorFrame,
-  S: SceneState,
-  E: number
-): void {
-  const P = F.palette
-  const stageY = H * 0.78
-  const wallTop = H * 0.12
-  const wallBottom = stageY - H * 0.06
-  const trussY = wallTop - 10
-  triggerFloorFx(S, F, W)
-
-  // haze
-  const hz = ctx.createRadialGradient(
-    W * (0.35 + Math.sin(F.t * 0.3) * 0.1),
-    H * 0.4,
-    0,
-    W * 0.5,
-    H * 0.4,
-    W * 0.7
-  )
-  hz.addColorStop(0, `hsla(${P.a}, 80%, 55%, ${(0.05 + F.breath * 0.02) * E})`)
-  hz.addColorStop(1, 'hsla(0,0%,0%,0)')
-  ctx.fillStyle = hz
-  ctx.fillRect(0, 0, W, H)
-
-  // BACKLIGHTS: rim glow behind the whole rig (sub-bass body)
-  ctx.save()
-  ctx.globalCompositeOperation = 'lighter'
-  for (let i = 0; i < F.backs.length; i++) {
-    const bk = F.backs[i]
-    if (bk.intensity < 0.02) continue
-    const x = W / 2 + bk.aim * W * 0.42
-    const g = ctx.createRadialGradient(x, wallBottom, 0, x, wallBottom, H * 0.32)
-    g.addColorStop(0, `hsla(${P.b}, 85%, 55%, ${bk.intensity * 0.4})`)
-    g.addColorStop(1, 'hsla(0,0%,0%,0)')
-    ctx.fillStyle = g
-    ctx.fillRect(x - H * 0.32, wallBottom - H * 0.32, H * 0.64, H * 0.4)
-  }
-  ctx.restore()
-
-  // giant LED wall — full animation library
-  drawLedPanel(
-    ctx,
-    W * 0.08,
-    wallTop,
-    W * 0.84,
-    wallBottom - wallTop,
-    36,
-    10,
-    P.a,
-    F,
-    S,
-    E,
-    LED_PATTERNS
-  )
-
-  drawFloor(ctx, W, H, stageY, P.a, F, S, E)
-
-  // truss + blinders
-  ctx.strokeStyle = `rgba(140,140,155,${0.22 + E * 0.25})`
-  ctx.lineWidth = 3
-  ctx.strokeRect(W * 0.06, trussY, W * 0.88, 10)
-  for (const tx of [W * 0.06, W * 0.94 - 12]) {
-    ctx.strokeRect(tx, trussY, 12, stageY - trussY)
-    for (let i = 0; i < 4; i++) {
-      const ly = trussY + 30 + i * (stageY - trussY - 60) * 0.3
-      const flash = F.flash * (0.5 + F.snare)
-      ctx.fillStyle = `rgba(255,250,235,${(0.05 + F.breath * 0.03 + flash * 0.85) * E})`
-      ctx.beginPath()
-      ctx.arc(tx + 6, ly, 5 + flash * 4, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  const originYBeam = trussY + 12
-  ctx.save()
-  ctx.globalCompositeOperation = 'lighter'
-
-  // WASH
-  for (let i = 0; i < F.wash.length; i++) {
-    const wl = F.wash[i]
-    if (wl.intensity < 0.02) continue
-    const x = W * 0.16 + (i / (F.wash.length - 1)) * W * 0.68
-    const landX = W / 2 + wl.aim * W * 0.5
-    const grad = ctx.createLinearGradient(x, originYBeam, landX, stageY)
-    grad.addColorStop(0, `hsla(${P.a}, 60%, 62%, ${wl.intensity * 0.5})`)
-    grad.addColorStop(1, 'hsla(0,0%,0%,0)')
-    ctx.fillStyle = grad
-    ctx.beginPath()
-    ctx.moveTo(x - 8, originYBeam)
-    ctx.lineTo(x + 8, originYBeam)
-    ctx.lineTo(landX + W * 0.14, stageY)
-    ctx.lineTo(landX - W * 0.14, stageY)
-    ctx.closePath()
-    ctx.fill()
-  }
-
-  // SPOTS
-  for (let i = 0; i < F.spots.length; i++) {
-    const sp = F.spots[i]
-    if (sp.intensity < 0.03) continue
-    const x = W * 0.3 + (i / (F.spots.length - 1)) * W * 0.4
-    const landX = W / 2 + sp.aim * W * 0.3
-    const landY = stageY - H * 0.02
-    const grad = ctx.createLinearGradient(x, originYBeam, landX, landY)
-    grad.addColorStop(0, `hsla(${P.c}, 30%, 85%, ${sp.intensity * 0.75})`)
-    grad.addColorStop(1, 'hsla(0,0%,0%,0)')
-    ctx.fillStyle = grad
-    ctx.beginPath()
-    ctx.moveTo(x - 2.5, originYBeam)
-    ctx.lineTo(x + 2.5, originYBeam)
-    ctx.lineTo(landX + 22, landY)
-    ctx.lineTo(landX - 22, landY)
-    ctx.closePath()
-    ctx.fill()
-  }
-
-  // BEAMS
-  for (let i = 0; i < F.beams.length; i++) {
-    const fx = F.beams[i]
-    const x = W * 0.1 + (i / (F.beams.length - 1)) * W * 0.8
-    const landX = W / 2 + fx.aim * W * 0.55
-    if (fx.intensity > 0.02) {
-      const hue = (P.b + fx.hueOffset * 0.35 + F.t * 8) % 360
-      const grad = ctx.createLinearGradient(x, originYBeam, landX, stageY + 4)
-      grad.addColorStop(0, `hsla(${hue}, 90%, 62%, ${fx.intensity})`)
-      grad.addColorStop(1, 'hsla(0,0%,0%,0)')
-      ctx.fillStyle = grad
-      ctx.beginPath()
-      ctx.moveTo(x - 3, originYBeam)
-      ctx.lineTo(x + 3, originYBeam)
-      ctx.lineTo(landX + 28, stageY + 4)
-      ctx.lineTo(landX - 28, stageY + 4)
-      ctx.closePath()
-      ctx.fill()
-      ctx.fillStyle = `hsla(${hue}, 90%, 60%, ${fx.intensity * 0.5})`
-      ctx.beginPath()
-      ctx.ellipse(landX, stageY + 6, 32, 7, 0, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.fillStyle = `rgba(200,200,215,${0.3 + E * 0.4})`
-    ctx.fillRect(x - 5, trussY + 2, 10, 12)
-  }
-
-  // FLOOR LIGHTS: uplight cones along the stage front
-  for (let i = 0; i < F.floors.length; i++) {
-    const fl = F.floors[i]
-    if (fl.intensity < 0.02) continue
-    const x = W / 2 + fl.aim * W * 0.42
-    const grad = ctx.createLinearGradient(x, stageY, x, stageY - H * 0.3)
-    grad.addColorStop(0, `hsla(${P.b}, 85%, 60%, ${fl.intensity * 0.55})`)
-    grad.addColorStop(1, 'hsla(0,0%,0%,0)')
-    ctx.fillStyle = grad
-    ctx.beginPath()
-    ctx.moveTo(x - 5, stageY)
-    ctx.lineTo(x + 5, stageY)
-    ctx.lineTo(x + 20, stageY - H * 0.3)
-    ctx.lineTo(x - 20, stageY - H * 0.3)
-    ctx.closePath()
-    ctx.fill()
-  }
-
-  // CO₂ jets on full-spectacle impacts
-  S.co2 *= 0.94
-  if (S.co2 > 0.03) {
-    for (const jx of [W * 0.3, W * 0.7]) {
-      const g = ctx.createLinearGradient(jx, stageY, jx, stageY - H * 0.4 * S.co2)
-      g.addColorStop(0, `rgba(255,255,255,${0.5 * S.co2 * E})`)
-      g.addColorStop(1, 'rgba(255,255,255,0)')
-      ctx.fillStyle = g
-      ctx.beginPath()
-      ctx.moveTo(jx - 8, stageY)
-      ctx.lineTo(jx + 8, stageY)
-      ctx.lineTo(jx + 30 * S.co2, stageY - H * 0.4 * S.co2)
-      ctx.lineTo(jx - 30 * S.co2, stageY - H * 0.4 * S.co2)
-      ctx.closePath()
-      ctx.fill()
-    }
-  }
-  ctx.restore()
-
-  drawLasers(ctx, W, W / 2, stageY - H * 0.12, F)
-
-  // booth + DJ
-  const boothW = W * 0.3
-  const boothH = H * 0.14
-  const boothX = W / 2 - boothW / 2
-  const boothY = stageY - boothH
-  ctx.fillStyle = '#0c0c12'
-  ctx.fillRect(boothX, boothY, boothW, boothH)
-  ctx.strokeStyle = `hsla(${P.a}, 80%, 60%, ${0.3 + E * 0.5 + F.flash * 0.3})`
-  ctx.lineWidth = 2
-  ctx.strokeRect(boothX, boothY, boothW, boothH)
-  const miniBars = 16
-  const miniW = boothW / miniBars
-  for (let i = 0; i < miniBars; i++) {
-    const level = (F.bars[i * 2] ?? 0) * (0.7 + F.impact * 0.5) * E
-    const h = Math.min(boothH - 14, level * (boothH - 14))
-    ctx.fillStyle = `hsla(${P.a}, 85%, 60%, ${0.35 + level * 0.6})`
-    ctx.fillRect(boothX + i * miniW + 2, boothY + boothH - 6 - h, miniW - 4, h)
-  }
-  drawDJ(ctx, S.djs[0], W / 2, boothY, H / 470, P.a, DJ_FESTIVAL, F, E)
-
-  if (F.impactHit) spawnBurst(S, W * 0.34, H * 0.64, 12 + F.impact * 18, P.b, 1)
-  if (F.impactHit) spawnBurst(S, W * 0.66, H * 0.64, 12 + F.impact * 18, P.b, 1)
-}
 
 // ---------------------------------------------------------------------------
 // 🔺 PYRAMID — Daft Punk visual language, Alive color eras. Para o Arthur 🤖
