@@ -50,7 +50,8 @@ const SLAM_REL = 0.62 // bass must come back to ≥62% of the song's bass range
 const SLAM_JUMP = 0.3 // …and jump ≥30% of the range above the recent dip
 const DIP_MEMORY_MIN = 0.35 // seconds of bass dip needed before a slam counts
 const DROP_GAP = 3.5 // minimum seconds between two drops
-const BUILD_RISE = 0.03 // rise (range units / s) that starts a build
+const BUILD_RISE = 0.02 // rise (range units / s) that starts a build in beat-driven music
+const BUILD_RISE_CALM = 0.05 // calm songs need a real crescendo
 const BUILD_MAX = 24
 const PERIOD_MIN = 0.33 // 180 bpm
 const PERIOD_MAX = 0.75 // 80 bpm
@@ -339,30 +340,36 @@ export class SongStructure {
 
   private runSections(inp: StructureInput, dt: number): void {
     const relF = this.relEnergy
-    const rising = this.rise > BUILD_RISE && this.highRise >= -0.002 && (this.relLow < 0.55 || this.dipMem > 0.5)
+    const riseNeed = this.drive > 0.3 ? BUILD_RISE : BUILD_RISE_CALM
+    const rising = this.rise > riseNeed && this.highRise >= -0.002 && (this.relLow < 0.55 || this.dipMem > 0.5)
     this.riseHold = rising ? this.riseHold + dt : Math.max(0, this.riseHold - dt * 2)
     this.fallHold = this.rise < 0.005 ? this.fallHold + dt : 0
     this.loudHold = relF > 0.72 && this.relLow > 0.5 ? this.loudHold + dt : 0
     this.quietHold = relF < 0.32 ? this.quietHold + dt : 0
     this.bodyHold = relF > 0.42 ? this.bodyHold + dt : 0
     const beatDriven = this.drive > 0.35
+    // early in a song its range is still unknown: everything looks "loud",
+    // so climax waits for a drop or for enough of the song to be heard
+    const climaxOk = this.dropCount > 0 || this.songTime > 40
 
     switch (this.state) {
       case 'ambient':
         break
       case 'intro':
-        if (this.stateTime > 4 && this.riseHold > 2) this.requestState('build')
-        else if (this.stateTime > 4 && (beatDriven || this.bodyHold > 3)) this.requestState(this.loudHold > 3 ? 'climax' : 'groove')
+        if (this.stateTime > 4 && this.riseHold > 1.5) this.requestState('build')
+        else if (this.stateTime > 4 && (beatDriven || this.bodyHold > 3)) {
+          this.requestState(climaxOk && this.loudHold > 3 ? 'climax' : 'groove')
+        }
         break
       case 'groove':
-        if (this.riseHold > 2) this.requestState('build')
-        else if (this.loudHold > 4 && this.stateTime > 4) this.requestState('climax')
+        if (this.riseHold > 1.5) this.requestState('build')
+        else if (climaxOk && this.loudHold > 4 && this.stateTime > 4) this.requestState('climax')
         else if (this.quietHold > 2.5 && this.stateTime > 4) this.requestState('break')
         break
       case 'build':
         this.tension = clamp01(Math.max(this.tension, this.stateTime / 12 + this.rise * 6))
         if (this.stateTime > BUILD_MAX || (this.fallHold > 2.5 && this.stateTime > 3)) {
-          this.requestState(this.loudHold > 1 ? 'climax' : relF > 0.4 ? 'groove' : 'break')
+          this.requestState(climaxOk && this.loudHold > 1 ? 'climax' : relF > 0.4 ? 'groove' : 'break')
         }
         break
       case 'drop': {
@@ -380,7 +387,7 @@ export class SongStructure {
         break
       case 'break':
         if (this.riseHold > 1.5) this.requestState('build')
-        else if (this.bodyHold > 2 && this.stateTime > 3) this.requestState(this.loudHold > 1 ? 'climax' : 'groove')
+        else if (this.bodyHold > 2 && this.stateTime > 3) this.requestState(climaxOk && this.loudHold > 1 ? 'climax' : 'groove')
         break
       case 'finale':
         if (this.quietHold > 2) this.requestState('break')
