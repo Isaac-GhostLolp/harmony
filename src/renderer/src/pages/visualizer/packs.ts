@@ -6,7 +6,7 @@
  * has its own personality, architecture and color language:
  *
  *   🎧 festival   — Tomorrowland/Ultra mainstage (festival.ts): truss, LED wall, pyro
- *   🔺 pyramid    — Daft Punk visual language (Alive eras) — para o Arthur 🤖
+ *   🔺 pyramid    — Daft Punk's Alive stage (pyramid.ts) — para o Arthur 🤖
  *   🌌 cyber      — sci-fi arena: holograms, neon lines, data columns
  *   🌲 nature     — organic pulse: auroras, luminous trees, fireflies
  *   🌃 synthwave  — retro horizon: striped sun, perspective grid, skyline
@@ -18,6 +18,7 @@
 import type { DirectorFrame } from '@/services/stageDirector'
 import { createDJState, drawDJ, type DJState, type DJStyle } from './dj'
 import { createFestivalState, drawFestival, type FestivalState } from './festival'
+import { createPyramidState, drawPyramid, lerpHue, type PyramidState } from './pyramid'
 
 // ---------------------------------------------------------------------------
 // Scene state (allocated once)
@@ -45,11 +46,6 @@ export interface SceneState {
   ledIdx: number
   ledMix: number
   ledTimer: number
-  // pyramid (Alive eras)
-  eraIdx: number
-  eraMix: number
-  eraTimer: number
-  fanPhase: number
   // space starfield / nature fireflies (x, y, z|phase triplets)
   stars: Float32Array
   flies: Float32Array
@@ -57,6 +53,8 @@ export interface SceneState {
   djs: DJState[]
   // festival mainstage FX pools
   fest: FestivalState
+  // Alive pyramid panels, wall and marquee
+  pyr: PyramidState
   // cached static gradients (rebuilt only on resize) — avoids rebuilding
   // full-screen gradients every frame, which is heavy on fill-rate/GPU
   gradW: number
@@ -98,14 +96,11 @@ export function createSceneState(): SceneState {
     ledIdx: 0,
     ledMix: 0,
     ledTimer: 0,
-    eraIdx: 0,
-    eraMix: 0,
-    eraTimer: 0,
-    fanPhase: 0,
     stars,
     flies,
     djs: [createDJState(), createDJState()],
-    fest: createFestivalState()
+    fest: createFestivalState(),
+    pyr: createPyramidState()
   }
 }
 
@@ -307,368 +302,9 @@ function drawFloor(
 }
 
 // DJ looks per pack (constant objects: no per-frame allocation)
-const DJ_PYRAMID_GOLD: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 40, visorSat: 100 }
-const DJ_PYRAMID_SILVER: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 230, visorSat: 15 }
 const DJ_CYBER: DJStyle = { look: 'hologram', deskHalf: 52, decks: true, booth: true }
 const DJ_STAGE: DJStyle = { look: 'human', deskHalf: 52, decks: true, booth: true }
 const DJ_SPACE: DJStyle = { look: 'helmet', deskHalf: 52, decks: true, booth: true }
-
-// ---------------------------------------------------------------------------
-// 🔺 PYRAMID — Daft Punk visual language, Alive color eras. Para o Arthur 🤖
-// ---------------------------------------------------------------------------
-
-interface Era {
-  L: [number, number]
-  R: [number, number]
-  beam: number
-  hazeL: number
-  hazeR: number
-  screen: number
-  edge: number
-  strip: number
-  whiteCore: boolean
-  cycle?: boolean
-}
-
-const ERAS: Era[] = [
-  { L: [196, 184], R: [196, 184], beam: 190, hazeL: 196, hazeR: 190, screen: 185, edge: 195, strip: 334, whiteCore: true },
-  { L: [292, 326], R: [292, 326], beam: 18, hazeL: 348, hazeR: 24, screen: 14, edge: 22, strip: 12, whiteCore: false },
-  { L: [322, 236], R: [108, 22], beam: 300, hazeL: 330, hazeR: 120, screen: 170, edge: 200, strip: 55, whiteCore: false, cycle: true },
-  { L: [262, 300], R: [302, 338], beam: 286, hazeL: 286, hazeR: 322, screen: 278, edge: 292, strip: 300, whiteCore: true }
-]
-const ERA_SECONDS = 22
-
-function lerpHue(a: number, b: number, t: number): number {
-  const d = ((b - a + 540) % 360) - 180
-  return (a + d * t + 360) % 360
-}
-
-function resolveEra(S: SceneState): Era {
-  const a = ERAS[S.eraIdx % ERAS.length]
-  if (S.eraMix <= 0) return a
-  const b = ERAS[(S.eraIdx + 1) % ERAS.length]
-  const t = S.eraMix
-  return {
-    L: [lerpHue(a.L[0], b.L[0], t), lerpHue(a.L[1], b.L[1], t)],
-    R: [lerpHue(a.R[0], b.R[0], t), lerpHue(a.R[1], b.R[1], t)],
-    beam: lerpHue(a.beam, b.beam, t),
-    hazeL: lerpHue(a.hazeL, b.hazeL, t),
-    hazeR: lerpHue(a.hazeR, b.hazeR, t),
-    screen: lerpHue(a.screen, b.screen, t),
-    edge: lerpHue(a.edge, b.edge, t),
-    strip: lerpHue(a.strip, b.strip, t),
-    whiteCore: (t < 0.5 ? a : b).whiteCore,
-    cycle: (t < 0.5 ? a : b).cycle
-  }
-}
-
-interface Tri {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-  x3: number
-  y3: number
-  row: number
-  col: number
-}
-
-function buildInvLattice(cx: number, topY: number, tipY: number, halfTop: number, rows: number): Tri[] {
-  const tris: Tri[] = []
-  const rowH = (tipY - topY) / rows
-  for (let r = 0; r < rows; r++) {
-    const yTop = topY + r * rowH
-    const yBot = yTop + rowH
-    const halfT = halfTop * (1 - r / rows)
-    const halfB = halfTop * (1 - (r + 1) / rows)
-    const downCount = rows - r
-    for (let i = 0; i < downCount; i++) {
-      const xTL = cx - halfT + (i / downCount) * halfT * 2
-      const xTR = cx - halfT + ((i + 1) / downCount) * halfT * 2
-      const xB = downCount > 1 ? cx - halfB + (i / (downCount - 1)) * halfB * 2 : cx
-      tris.push({ x1: xTL, y1: yTop, x2: xTR, y2: yTop, x3: xB, y3: yBot, row: r, col: i })
-      if (i < downCount - 1) {
-        const xBR = downCount > 1 ? cx - halfB + ((i + 1) / (downCount - 1)) * halfB * 2 : cx
-        tris.push({ x1: xTR, y1: yTop, x2: xB, y2: yBot, x3: xBR, y3: yBot, row: r, col: i + 0.5 })
-      }
-    }
-  }
-  return tris
-}
-
-const latticeCache = new Map<string, Tri[]>()
-
-function drawPyramid(
-  ctx: CanvasRenderingContext2D,
-  W: number,
-  H: number,
-  F: DirectorFrame,
-  S: SceneState,
-  E: number
-): void {
-  const stageY = H * 0.78
-  S.eraTimer += 1 / 60
-  if (S.eraMix > 0) {
-    S.eraMix = Math.min(1, S.eraMix + 0.01)
-    if (S.eraMix >= 1) {
-      S.eraIdx = (S.eraIdx + 1) % ERAS.length
-      S.eraMix = 0
-    }
-  } else if (S.eraTimer > ERA_SECONDS || (F.state === 'drop' && F.stateJustChanged && S.eraTimer > 8)) {
-    S.eraTimer = 0
-    S.eraMix = 0.01
-  }
-  const era = resolveEra(S)
-  if (F.impactHit) S.fanPhase += 0.5 * (0.5 + F.impact)
-  else if (F.kickTick > 0.35 && F.state === 'climax') S.fanPhase += 0.06
-
-  // backwall lattice
-  ctx.strokeStyle = `hsla(${era.L[0]}, 80%, 60%, ${(0.045 + F.vocals * 0.08) * E})`
-  ctx.lineWidth = 1
-  const cell = 46
-  const wallBot = stageY - 4
-  ctx.beginPath()
-  for (let y = H * 0.04; y < wallBot; y += cell) {
-    ctx.moveTo(0, y)
-    ctx.lineTo(W, y)
-  }
-  for (let x = -H; x < W + H; x += cell) {
-    ctx.moveTo(x, H * 0.04)
-    ctx.lineTo(x + (wallBot - H * 0.04) * 0.577, wallBot)
-    ctx.moveTo(x, H * 0.04)
-    ctx.lineTo(x - (wallBot - H * 0.04) * 0.577, wallBot)
-  }
-  ctx.stroke()
-
-  // haze
-  const hazeL = ctx.createRadialGradient(W * 0.16, H * 0.35, 0, W * 0.16, H * 0.35, W * 0.55)
-  hazeL.addColorStop(0, `hsla(${era.hazeL}, 95%, 55%, ${(0.15 + F.breath * 0.04) * E})`)
-  hazeL.addColorStop(1, 'hsla(0,0%,0%,0)')
-  ctx.fillStyle = hazeL
-  ctx.fillRect(0, 0, W, H)
-  const hazeR = ctx.createRadialGradient(W * 0.84, H * 0.35, 0, W * 0.84, H * 0.35, W * 0.55)
-  hazeR.addColorStop(0, `hsla(${era.hazeR}, 95%, 55%, ${(0.13 + F.breath * 0.04) * E})`)
-  hazeR.addColorStop(1, 'hsla(0,0%,0%,0)')
-  ctx.fillStyle = hazeR
-  ctx.fillRect(0, 0, W, H)
-
-  const apexX = W / 2
-  const apexY = H * 0.18
-  const baseY = stageY
-  const baseHalf = W * 0.155
-
-  // beam fan
-  ctx.save()
-  ctx.globalCompositeOperation = 'lighter'
-  const originX = apexX
-  const originY = apexY + (baseY - apexY) * 0.42
-  const FAN = 14
-  for (let i = 0; i < FAN; i++) {
-    const spread = (i / (FAN - 1)) * Math.PI
-    const wobble = Math.sin(F.t * 0.9 + i * 1.7) * 0.12
-    const a = Math.PI + spread + S.fanPhase * 0.25 * Math.sin(i * 0.9) + wobble
-    const len = H * 1.15
-    const ex = originX + Math.cos(a) * len
-    const ey = originY + Math.sin(a) * len
-    const band = F.bars[Math.floor((i / FAN) * F.bars.length)] ?? 0
-    const hue = era.cycle ? (F.t * 40 + i * 26) % 360 : era.beam
-    const intensity = (0.08 + band * 0.4 + F.flash * 0.25 + F.tension * 0.12) * E
-    if (intensity < 0.02) continue
-    const grad = ctx.createLinearGradient(originX, originY, ex, ey)
-    grad.addColorStop(0, `hsla(${hue}, 95%, 60%, ${intensity})`)
-    grad.addColorStop(1, 'hsla(0,0%,0%,0)')
-    ctx.fillStyle = grad
-    ctx.beginPath()
-    ctx.moveTo(originX - 2, originY)
-    ctx.lineTo(originX + 2, originY)
-    ctx.lineTo(ex + 26, ey)
-    ctx.lineTo(ex - 26, ey)
-    ctx.closePath()
-    ctx.fill()
-    if (era.whiteCore) {
-      const core = ctx.createLinearGradient(originX, originY, ex, ey)
-      core.addColorStop(0, `rgba(255,255,255,${intensity * 0.8})`)
-      core.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = core
-      ctx.beginPath()
-      ctx.moveTo(originX - 1, originY)
-      ctx.lineTo(originX + 1, originY)
-      ctx.lineTo(ex + 5, ey)
-      ctx.lineTo(ex - 5, ey)
-      ctx.closePath()
-      ctx.fill()
-    }
-  }
-
-  // blooms
-  const bloomA = (0.06 + F.hihats * 0.55 + F.flash * 0.35) * E
-  for (const [bx, by, br] of [
-    [W * 0.5, apexY - H * 0.02, H * 0.16],
-    [W * 0.24, H * 0.2, H * 0.11],
-    [W * 0.76, H * 0.2, H * 0.11]
-  ] as [number, number, number][]) {
-    const bloom = ctx.createRadialGradient(bx, by, 0, bx, by, br * (1 + F.hihats))
-    bloom.addColorStop(0, `rgba(255,255,255,${bloomA})`)
-    bloom.addColorStop(0.4, `hsla(${era.beam}, 90%, 70%, ${bloomA * 0.5})`)
-    bloom.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = bloom
-    ctx.fillRect(bx - br * 2, by - br * 2, br * 4, br * 4)
-  }
-  ctx.restore()
-
-  // top LED strips
-  for (const sy of [H * 0.045, H * 0.075]) {
-    const segs = 30
-    const segW = (W * 0.9) / segs
-    for (let i = 0; i < segs; i++) {
-      const flick = Math.sin(F.t * 5 + i * 1.9 + sy) * 0.5 + 0.5
-      ctx.fillStyle = `hsla(${era.strip}, 95%, 62%, ${(0.12 + flick * 0.45 + F.snare * 0.35 + F.flash * 0.2) * E})`
-      ctx.fillRect(W * 0.05 + i * segW + 2, sy, segW - 4, 3)
-    }
-  }
-
-  // inverted lattices
-  const rows = 7
-  const latTopY = H * 0.1
-  const latTipY = stageY - H * 0.03
-  const halfTop = W * 0.2
-  for (const side of [-1, 1]) {
-    const cx = W / 2 + side * W * 0.31
-    const key = `${side}:${W.toFixed(0)}x${H.toFixed(0)}`
-    let tris = latticeCache.get(key)
-    if (!tris) {
-      tris = buildInvLattice(cx, latTopY, latTipY, halfTop, rows)
-      latticeCache.set(key, tris)
-      if (latticeCache.size > 8) latticeCache.clear()
-    }
-    const [hueTop, hueBottom] = side < 0 ? era.L : era.R
-    ctx.lineWidth = 2
-    for (const tri of tris) {
-      const frac = tri.row / rows
-      const hue = lerpHue(hueTop, hueBottom, frac)
-      const band =
-        F.bars[Math.floor(((tri.col / Math.max(1, rows - tri.row)) * 0.5 + frac * 0.5) * F.bars.length)] ?? 0
-      const flick = Math.sin(F.t * 4 + tri.row * 2.1 + tri.col * 3.7) * 0.5 + 0.5
-      const lit = (0.26 + band * 0.5 + flick * 0.2 + F.breath * 0.06 + F.flash * 0.35) * E
-      ctx.strokeStyle = `hsla(${hue}, 100%, ${55 + lit * 20}%, ${Math.min(1, 0.14 + lit)})`
-      ctx.beginPath()
-      ctx.moveTo(tri.x1, tri.y1)
-      ctx.lineTo(tri.x2, tri.y2)
-      ctx.lineTo(tri.x3, tri.y3)
-      ctx.closePath()
-      ctx.stroke()
-    }
-    ctx.save()
-    const midHue = lerpHue(hueTop, hueBottom, 0.5)
-    ctx.shadowColor = `hsla(${midHue}, 100%, 60%, ${0.85 * E})`
-    ctx.shadowBlur = 20 + F.kick * 26
-    ctx.strokeStyle = era.whiteCore
-      ? `rgba(255,255,255,${(0.5 + F.kick * 0.5) * E})`
-      : `hsla(${midHue}, 100%, 66%, ${(0.55 + F.kick * 0.45) * E})`
-    ctx.lineWidth = 3.5
-    ctx.beginPath()
-    ctx.moveTo(cx - halfTop, latTopY)
-    ctx.lineTo(cx + halfTop, latTopY)
-    ctx.lineTo(cx, latTipY)
-    ctx.closePath()
-    ctx.stroke()
-    ctx.restore()
-  }
-
-  // pyramid
-  const glow = 0.35 + F.kick * 0.65
-  const screenTop = apexY + (baseY - apexY) * 0.52
-  const screenHalfTop = ((screenTop - apexY) / (baseY - apexY)) * baseHalf
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(apexX - screenHalfTop, screenTop)
-  ctx.lineTo(apexX + screenHalfTop, screenTop)
-  ctx.lineTo(apexX + baseHalf, baseY)
-  ctx.lineTo(apexX - baseHalf, baseY)
-  ctx.closePath()
-  ctx.clip()
-  ctx.fillStyle = '#0a1013'
-  ctx.fillRect(apexX - baseHalf, screenTop, baseHalf * 2, baseY - screenTop)
-  const gcols = 18
-  const grows = 8
-  const gw = (baseHalf * 2) / gcols
-  const gh = (baseY - screenTop) / grows
-  for (let c = 0; c < gcols; c++) {
-    for (let r = 0; r < grows; r++) {
-      const band = F.bars[Math.floor((c / gcols) * F.bars.length)] ?? 0
-      const scan = Math.sin(F.t * 3 - r * 0.8 + c * 0.3) * 0.5 + 0.5
-      const v = (0.25 + band * 0.5 + scan * 0.25 + F.flash * 0.2) * E
-      ctx.fillStyle = `hsla(${era.screen + Math.sin(c * 0.5 + F.t) * 15}, 85%, ${58 + v * 22}%, ${0.1 + v * 0.75})`
-      ctx.fillRect(apexX - baseHalf + c * gw + 1, screenTop + r * gh + 1, gw - 2, gh - 2)
-    }
-  }
-  ctx.restore()
-
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(apexX, apexY)
-  ctx.lineTo(apexX + screenHalfTop, screenTop)
-  ctx.lineTo(apexX - screenHalfTop, screenTop)
-  ctx.closePath()
-  ctx.clip()
-  ctx.fillStyle = '#050505'
-  ctx.fillRect(apexX - screenHalfTop, apexY, screenHalfTop * 2, screenTop - apexY)
-  for (let i = 0; i < 6; i++) {
-    const phase = (i / 6 + F.t * 0.12) % 1
-    const y = apexY + phase * (screenTop - apexY)
-    ctx.fillStyle = `hsla(${era.edge}, 90%, 75%, ${0.14 * E})`
-    ctx.fillRect(apexX - screenHalfTop, y, screenHalfTop * 2, 1.5)
-  }
-  ctx.restore()
-
-  ctx.save()
-  ctx.shadowColor = `hsla(${era.edge}, 100%, 55%, ${glow * E})`
-  ctx.shadowBlur = 30 + F.kick * 46
-  ctx.strokeStyle = `hsla(${era.edge}, 100%, 58%, ${(0.55 + glow * 0.45) * E + F.flash * 0.25})`
-  ctx.lineWidth = 5 + F.kick * 5 * E
-  ctx.beginPath()
-  ctx.moveTo(apexX, apexY)
-  ctx.lineTo(apexX + baseHalf, baseY)
-  ctx.lineTo(apexX - baseHalf, baseY)
-  ctx.closePath()
-  ctx.stroke()
-  ctx.shadowBlur = 0
-  ctx.strokeStyle = `rgba(255,255,255,${(0.35 + glow * 0.5) * E + F.flash * 0.3})`
-  ctx.lineWidth = 1.6
-  ctx.beginPath()
-  ctx.moveTo(apexX, apexY)
-  ctx.lineTo(apexX + baseHalf, baseY)
-  ctx.lineTo(apexX - baseHalf, baseY)
-  ctx.closePath()
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.moveTo(apexX - screenHalfTop, screenTop)
-  ctx.lineTo(apexX + screenHalfTop, screenTop)
-  ctx.stroke()
-  ctx.restore()
-
-  const mirrorH = (baseY - apexY) * 0.08
-  ctx.fillStyle = `rgba(255,255,255,${(0.25 + F.flash * 0.7) * E})`
-  ctx.beginPath()
-  ctx.moveTo(apexX, apexY)
-  ctx.lineTo(apexX + mirrorH * 0.7, apexY + mirrorH)
-  ctx.lineTo(apexX - mirrorH * 0.7, apexY + mirrorH)
-  ctx.closePath()
-  ctx.fill()
-
-  const consoleY = apexY + (baseY - apexY) * 0.36
-  const consoleW = baseHalf * 0.6
-  ctx.fillStyle = '#000'
-  ctx.fillRect(apexX - consoleW / 2, consoleY, consoleW, 9)
-  // the duo behind the console: gold and silver helmets
-  const duoScale = Math.min(baseHalf * 0.0048, H * 0.0024)
-  drawDJ(ctx, S.djs[0], apexX - consoleW * 0.26, consoleY, duoScale, era.edge, DJ_PYRAMID_GOLD, F, E)
-  drawDJ(ctx, S.djs[1], apexX + consoleW * 0.26, consoleY, duoScale, era.edge, DJ_PYRAMID_SILVER, F, E)
-
-  drawFloor(ctx, W, H, stageY, era.beam, F, S, E)
-  triggerFloorFx(S, F, W)
-  if (F.impactHit) spawnBurst(S, W / 2, originY, 16 + F.impact * 16, era.beam, 1.1)
-}
 
 // ---------------------------------------------------------------------------
 // 🌌 CYBER ARENA — sci-fi: neon architecture, data columns, holograms

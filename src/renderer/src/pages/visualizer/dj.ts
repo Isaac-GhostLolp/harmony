@@ -7,6 +7,8 @@
  *   human    — backlit silhouette with headphones and a rim light
  *   helmet   — robot/astronaut helmet with a glowing visor
  *   hologram — additive, flickering wireframe (no solid fill)
+ *   thomas   — Daft Punk: chrome helmet, black visor with red LED scroller
+ *   guyman   — Daft Punk: gold helmet, black shield visor, rainbow LEDs
  *
  * The body is driven by the same DirectorFrame as everything else: the head
  * nods on kicks, the hands work through routines picked by the narrative
@@ -17,7 +19,7 @@
  */
 import type { DirectorFrame } from '@/services/stageDirector'
 
-export type DJLook = 'human' | 'helmet' | 'hologram'
+export type DJLook = 'human' | 'helmet' | 'hologram' | 'thomas' | 'guyman'
 
 export interface DJStyle {
   look: DJLook
@@ -129,6 +131,150 @@ function pickRoutine(dj: DJState, F: DirectorFrame): void {
   else dj.routine = alt ? ROUTINE_MIX : ROUTINE_CUE
 }
 
+// Helmet shells are lit by gradients in head space; built once per context.
+let shellCtx: CanvasRenderingContext2D | null = null
+let chromeGrad: CanvasGradient | null = null
+let goldGrad: CanvasGradient | null = null
+
+function shellGradients(ctx: CanvasRenderingContext2D): void {
+  if (shellCtx === ctx) return
+  shellCtx = ctx
+  const c = ctx.createLinearGradient(-9, -11, 7, 11)
+  c.addColorStop(0, '#fbfcff')
+  c.addColorStop(0.28, '#a9b1bc')
+  c.addColorStop(0.5, '#eef2f7')
+  c.addColorStop(0.78, '#58606b')
+  c.addColorStop(1, '#b9c1cb')
+  chromeGrad = c
+  const g = ctx.createLinearGradient(-9, -11, 7, 11)
+  g.addColorStop(0, '#fff4c2')
+  g.addColorStop(0.3, '#d9a43a')
+  g.addColorStop(0.52, '#ffe38f')
+  g.addColorStop(0.8, '#8a5c0e')
+  g.addColorStop(1, '#d19b35')
+  goldGrad = g
+}
+
+const RAINBOW = [0, 32, 58, 130, 190, 270]
+
+/**
+ * The two Daft Punk helmets, drawn around the head centre (0,0).
+ * Thomas: chrome dome, wide black visor with a red LED matrix that scans
+ * when calm and turns into a mirrored VU on the hot sections.
+ * Guy-Man: gold dome, big black shield visor glowing with rainbow LED rows
+ * and the stacked rainbow lights on the sides.
+ */
+function drawDaftHelmet(
+  ctx: CanvasRenderingContext2D,
+  thomas: boolean,
+  size: number,
+  hue: number,
+  rim: string,
+  F: DirectorFrame,
+  E: number
+): void {
+  const t = F.t
+  const hot = F.state === 'drop' || F.state === 'climax' || F.state === 'finale'
+  shellGradients(ctx)
+  // the details below are laid out for a 10.1-unit helmet
+  const hr = 10.1
+  ctx.save()
+  ctx.scale(size / hr, size / hr)
+
+  // shell (a slightly taller dome tapering into the chin)
+  ctx.beginPath()
+  ctx.arc(0, 0, hr, Math.PI * 0.92, Math.PI * 2.08)
+  ctx.quadraticCurveTo(hr * 0.98, hr * 0.9, 0, hr * 1.16)
+  ctx.quadraticCurveTo(-hr * 0.98, hr * 0.9, -hr * Math.cos(Math.PI * 0.08), hr * Math.sin(Math.PI * 0.08))
+  ctx.closePath()
+  ctx.fillStyle = (thomas ? chromeGrad : goldGrad) as CanvasGradient
+  ctx.fill()
+  // the stage colour mirrored on the polished shell
+  ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${0.1 + E * 0.08 + F.flash * 0.25})`
+  ctx.fill()
+  ctx.strokeStyle = rim
+  ctx.lineWidth = 1.1
+  ctx.stroke()
+
+  // visor
+  ctx.beginPath()
+  if (thomas) {
+    const vw = hr * 0.9
+    ctx.moveTo(-vw, -3.4)
+    ctx.quadraticCurveTo(0, -4.6, vw, -3.4)
+    ctx.quadraticCurveTo(vw + 0.9, 0, vw - 0.6, 3.6)
+    ctx.quadraticCurveTo(0, 5, -vw + 0.6, 3.6)
+    ctx.quadraticCurveTo(-vw - 0.9, 0, -vw, -3.4)
+  } else {
+    const vw = hr * 0.8
+    ctx.moveTo(-vw, -4.6)
+    ctx.quadraticCurveTo(0, -6, vw, -4.6)
+    ctx.quadraticCurveTo(vw + 0.6, 3, 2.6, hr * 0.98)
+    ctx.quadraticCurveTo(0, hr * 1.08, -2.6, hr * 0.98)
+    ctx.quadraticCurveTo(-vw - 0.6, 3, -vw, -4.6)
+  }
+  ctx.closePath()
+  ctx.fillStyle = '#030305'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(0,0,0,0.9)'
+  ctx.lineWidth = 0.8
+  ctx.stroke()
+
+  if (thomas) {
+    // red LED matrix: 13 x 3 dots
+    const cols = 13
+    const pitch = 1.15
+    const x0 = -((cols - 1) / 2) * pitch
+    const scan = Math.abs(((t * 0.9) % 2) - 1) * (cols - 1)
+    for (let c = 0; c < cols; c++) {
+      const dc = Math.abs(c - (cols - 1) / 2)
+      const band = F.bars[Math.floor((dc / ((cols - 1) / 2)) * (F.bars.length - 1) * 0.6)] ?? 0
+      for (let r = 0; r < 3; r++) {
+        let v: number
+        if (F.impact > 0.6) v = 1
+        else if (hot) v = band * 3.2 + F.kick * 0.8 > 1 + Math.abs(r - 1) * 1.1 ? 1 : 0.08
+        else v = Math.max(0.08, 1 - Math.abs(c - scan) * 0.45) * (r === 1 ? 1 : 0.55)
+        ctx.fillStyle = `rgba(255,${30 + v * 40},${20 + v * 20},${0.12 + v * 0.88})`
+        ctx.fillRect(x0 + c * pitch - 0.38, -1.5 + r * 1.15 - 0.38, 0.76, 0.76)
+      }
+    }
+  } else {
+    // rainbow LED rows inside the shield
+    for (let r = 0; r < 5; r++) {
+      const cols = 9 - (r > 2 ? (r - 2) * 2 : 0)
+      const x0 = -((cols - 1) / 2) * 1.25
+      for (let c = 0; c < cols; c++) {
+        const ph = hot ? t * 4 - c * 0.5 - r * 0.7 : t * 1.4 - r * 0.9
+        const v = hot
+          ? Math.max(0.1, Math.sin(ph) * 0.5 + 0.5) * (0.6 + F.kick * 0.4)
+          : 0.25 + (Math.sin(ph) * 0.5 + 0.5) * 0.45
+        const h = hot ? RAINBOW[(c + r + Math.floor(t * 3)) % RAINBOW.length] : RAINBOW[r % RAINBOW.length]
+        ctx.fillStyle = `hsla(${h}, 100%, ${50 + v * 20}%, ${0.15 + v * 0.8})`
+        ctx.fillRect(x0 + c * 1.25 - 0.42, -2.6 + r * 1.55 - 0.42, 0.84, 0.84)
+      }
+    }
+    // stacked rainbow lights on both sides, a VU on the kick
+    for (let s = -1; s <= 1; s += 2) {
+      const px = s * (hr - 0.6)
+      ctx.fillStyle = '#16120a'
+      ctx.fillRect(px - 1.1, -4, 2.2, 7.6)
+      for (let i = 0; i < 4; i++) {
+        const on = F.kick * 1.3 + E * 0.4 > (3 - i) * 0.3
+        ctx.fillStyle = `hsla(${RAINBOW[i]}, 100%, 58%, ${on ? 0.95 : 0.2})`
+        ctx.fillRect(px - 0.7, -3.4 + i * 1.8, 1.4, 1.3)
+      }
+    }
+  }
+
+  // specular highlight
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+  ctx.lineWidth = 0.9
+  ctx.beginPath()
+  ctx.arc(0, 0, hr * 0.8, Math.PI * 1.12, Math.PI * 1.42)
+  ctx.stroke()
+  ctx.restore()
+}
+
 function smoothstep(v: number): number {
   const x = Math.min(1, Math.max(0, v))
   return x * x * (3 - 2 * x)
@@ -152,6 +298,7 @@ export function drawDJ(
   const D = style.deskHalf
   const t = F.t
   const holo = style.look === 'hologram'
+  const daft = style.look === 'thomas' || style.look === 'guyman'
 
   // --- motion -------------------------------------------------------------
   pickRoutine(dj, F)
@@ -271,6 +418,29 @@ export function drawDJ(
   ctx.stroke()
   ctx.fillStyle = body
   ctx.fill()
+  if (daft) {
+    // leather biker jacket: lapels, off-centre zip and glowing piping
+    ctx.strokeStyle = 'rgba(120,125,140,0.55)'
+    ctx.lineWidth = 0.9
+    ctx.beginPath()
+    ctx.moveTo(-6, -46)
+    ctx.lineTo(-1, -36)
+    ctx.lineTo(-9, -30)
+    ctx.moveTo(6, -46)
+    ctx.lineTo(1, -36)
+    ctx.lineTo(9, -30)
+    ctx.stroke()
+    ctx.strokeStyle = `hsla(${hue}, 100%, 70%, ${0.3 + E * 0.35 + F.kick * 0.3})`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(2, -36)
+    ctx.lineTo(3, 2 - bodyY)
+    ctx.moveTo(-14.5, -38)
+    ctx.quadraticCurveTo(-15, -45, -7, -46)
+    ctx.moveTo(14.5, -38)
+    ctx.quadraticCurveTo(15, -45, 7, -46)
+    ctx.stroke()
+  }
   ctx.restore()
 
   ctx.save()
@@ -278,40 +448,45 @@ export function drawDJ(
   ctx.rotate(tilt)
   ctx.translate(0, -9)
   const helmet = style.look === 'helmet'
-  const hr = helmet ? HEAD_R + 1 : HEAD_R
-  ctx.beginPath()
-  ctx.arc(0, 0, hr, 0, Math.PI * 2)
-  ctx.strokeStyle = rim
-  ctx.lineWidth = holo ? 1.4 : 2.4
-  ctx.stroke()
-  ctx.fillStyle = body
-  ctx.fill()
-  if (helmet) {
-    const vh = style.visorHue ?? hue
-    const vs = style.visorSat ?? 90
-    ctx.fillStyle = `hsla(${vh}, ${vs}%, ${60 + F.kick * 20}%, ${0.55 + F.kick * 0.45})`
-    ctx.fillRect(-hr * 0.8, -2.5, hr * 1.6, 4)
-    ctx.fillStyle = `hsla(${vh}, ${vs}%, 70%, ${(0.12 + F.kick * 0.25) * (0.4 + E)})`
-    ctx.fillRect(-hr * 1.1, -4.5, hr * 2.2, 8)
+  const hr = daft ? HEAD_R + 3 : helmet ? HEAD_R + 1 : HEAD_R
+  if (daft) {
+    drawDaftHelmet(ctx, style.look === 'thomas', hr, hue, rim, F, E)
+    ctx.restore()
   } else {
-    // headphones: band + cups, one cup lifted while cueing
-    ctx.strokeStyle = holo ? rim : '#121218'
-    ctx.lineWidth = 2.6
     ctx.beginPath()
-    ctx.arc(0, -1, hr + 2, Math.PI + 0.35, Math.PI * 2 - 0.35)
+    ctx.arc(0, 0, hr, 0, Math.PI * 2)
+    ctx.strokeStyle = rim
+    ctx.lineWidth = holo ? 1.4 : 2.4
     ctx.stroke()
-    for (let s = -1; s <= 1; s += 2) {
-      const cx = s * (hr + 1.2) + (cueing && s < 0 ? -1.5 : 0)
-      ctx.fillStyle = holo ? body : '#141420'
-      ctx.fillRect(cx - 2.4, -4, 4.8, 8.5)
-      ctx.strokeStyle = rim
-      ctx.lineWidth = 1
-      ctx.strokeRect(cx - 2.4, -4, 4.8, 8.5)
-      ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.4 + F.kick * 0.6})`
-      ctx.fillRect(cx - 0.8, -0.5, 1.6, 1.6)
+    ctx.fillStyle = body
+    ctx.fill()
+    if (helmet) {
+      const vh = style.visorHue ?? hue
+      const vs = style.visorSat ?? 90
+      ctx.fillStyle = `hsla(${vh}, ${vs}%, ${60 + F.kick * 20}%, ${0.55 + F.kick * 0.45})`
+      ctx.fillRect(-hr * 0.8, -2.5, hr * 1.6, 4)
+      ctx.fillStyle = `hsla(${vh}, ${vs}%, 70%, ${(0.12 + F.kick * 0.25) * (0.4 + E)})`
+      ctx.fillRect(-hr * 1.1, -4.5, hr * 2.2, 8)
+    } else {
+      // headphones: band + cups, one cup lifted while cueing
+      ctx.strokeStyle = holo ? rim : '#121218'
+      ctx.lineWidth = 2.6
+      ctx.beginPath()
+      ctx.arc(0, -1, hr + 2, Math.PI + 0.35, Math.PI * 2 - 0.35)
+      ctx.stroke()
+      for (let s = -1; s <= 1; s += 2) {
+        const cx = s * (hr + 1.2) + (cueing && s < 0 ? -1.5 : 0)
+        ctx.fillStyle = holo ? body : '#141420'
+        ctx.fillRect(cx - 2.4, -4, 4.8, 8.5)
+        ctx.strokeStyle = rim
+        ctx.lineWidth = 1
+        ctx.strokeRect(cx - 2.4, -4, 4.8, 8.5)
+        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.4 + F.kick * 0.6})`
+        ctx.fillRect(cx - 0.8, -0.5, 1.6, 1.6)
+      }
     }
+    ctx.restore()
   }
-  ctx.restore()
 
   // --- booth front + desk --------------------------------------------------
   if (style.booth) {
