@@ -17,6 +17,7 @@
  */
 import type { DirectorFrame } from '@/services/stageDirector'
 import { sampleLed, LED_PATTERNS, type LedPatternId } from './ledPatterns'
+import { createDJState, drawDJ, type DJState, type DJStyle } from './dj'
 
 // ---------------------------------------------------------------------------
 // Scene state (allocated once)
@@ -52,6 +53,8 @@ export interface SceneState {
   // space starfield / nature fireflies (x, y, z|phase triplets)
   stars: Float32Array
   flies: Float32Array
+  // performers (pyramid has two, every other pack uses the first)
+  djs: DJState[]
   // cached static gradients (rebuilt only on resize) — avoids rebuilding
   // full-screen gradients every frame, which is heavy on fill-rate/GPU
   gradW: number
@@ -98,7 +101,8 @@ export function createSceneState(): SceneState {
     eraTimer: 0,
     fanPhase: 0,
     stars,
-    flies
+    flies,
+    djs: [createDJState(), createDJState()]
   }
 }
 
@@ -351,6 +355,14 @@ function drawFloor(
   ctx.restore()
 }
 
+// DJ looks per pack (constant objects: no per-frame allocation)
+const DJ_FESTIVAL: DJStyle = { look: 'human', deskHalf: 56, decks: true, booth: false }
+const DJ_PYRAMID_GOLD: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 40, visorSat: 100 }
+const DJ_PYRAMID_SILVER: DJStyle = { look: 'helmet', deskHalf: 30, decks: false, booth: false, visorHue: 230, visorSat: 15 }
+const DJ_CYBER: DJStyle = { look: 'hologram', deskHalf: 52, decks: true, booth: true }
+const DJ_STAGE: DJStyle = { look: 'human', deskHalf: 52, decks: true, booth: true }
+const DJ_SPACE: DJStyle = { look: 'helmet', deskHalf: 52, decks: true, booth: true }
+
 // ---------------------------------------------------------------------------
 // 🎧 FESTIVAL MAINSTAGE
 // ---------------------------------------------------------------------------
@@ -560,12 +572,7 @@ function drawFestival(
     ctx.fillStyle = `hsla(${P.a}, 85%, 60%, ${0.35 + level * 0.6})`
     ctx.fillRect(boothX + i * miniW + 2, boothY + boothH - 6 - h, miniW - 4, h)
   }
-  const bob = F.kickTick * 6
-  ctx.fillStyle = 'rgba(0,0,0,0.95)'
-  ctx.beginPath()
-  ctx.arc(W / 2, boothY - 16 + bob, 11, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillRect(W / 2 - 16, boothY - 8 + bob, 32, 10)
+  drawDJ(ctx, S.djs[0], W / 2, boothY, H / 470, P.a, DJ_FESTIVAL, F, E)
 
   if (F.impactHit) spawnBurst(S, W * 0.34, H * 0.64, 12 + F.impact * 18, P.b, 1)
   if (F.impactHit) spawnBurst(S, W * 0.66, H * 0.64, 12 + F.impact * 18, P.b, 1)
@@ -918,17 +925,10 @@ function drawPyramid(
   const consoleW = baseHalf * 0.6
   ctx.fillStyle = '#000'
   ctx.fillRect(apexX - consoleW / 2, consoleY, consoleW, 9)
-  for (const [dx, color] of [
-    [-consoleW * 0.22, `rgba(255,200,80,${0.5 + F.kick * 0.5})`],
-    [consoleW * 0.22, `rgba(220,220,235,${0.5 + F.kick * 0.5})`]
-  ] as [number, string][]) {
-    ctx.fillStyle = '#000'
-    ctx.beginPath()
-    ctx.arc(apexX + dx, consoleY - 10, 7, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = color
-    ctx.fillRect(apexX + dx - 5, consoleY - 12, 10, 3)
-  }
+  // the duo behind the console: gold and silver helmets
+  const duoScale = Math.min(baseHalf * 0.0048, H * 0.0024)
+  drawDJ(ctx, S.djs[0], apexX - consoleW * 0.26, consoleY, duoScale, era.edge, DJ_PYRAMID_GOLD, F, E)
+  drawDJ(ctx, S.djs[1], apexX + consoleW * 0.26, consoleY, duoScale, era.edge, DJ_PYRAMID_SILVER, F, E)
 
   drawFloor(ctx, W, H, stageY, era.beam, F, S, E)
   triggerFloorFx(S, F, W)
@@ -1017,14 +1017,10 @@ function drawCyber(
     ctx.ellipse(ringCx, ringCy, rr, rr * 0.34, 0, 0, Math.PI * 2)
     ctx.stroke()
   }
-  // hologram figure hint
-  ctx.strokeStyle = `hsla(${hueA}, 100%, 70%, ${(0.1 + F.vocals * 0.5) * E})`
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(ringCx, ringCy - 30 - F.vocals * 20)
-  ctx.lineTo(ringCx, ringCy + 30)
-  ctx.stroke()
   ctx.restore()
+  // holographic DJ projected inside the rings
+  const cyberScale = H / 620
+  drawDJ(ctx, S.djs[0], ringCx, ringCy + 18 * cyberScale, cyberScale, hueA, DJ_CYBER, F, E)
 
   // side neon pillars (backlights personality)
   for (let i = 0; i < F.backs.length; i++) {
@@ -1127,6 +1123,9 @@ function drawNature(
   ctx.restore()
 
   drawFloor(ctx, W, H, stageY, 140, F, S, E)
+  // DJ in the clearing between the trees
+  const natureScale = H / 600
+  drawDJ(ctx, S.djs[0], W / 2, stageY - 34 * natureScale, natureScale, 140, DJ_STAGE, F, E)
   drawParticles(ctx, S)
   if (F.impactHit) {
     for (let i = 0; i < trees; i++) {
@@ -1246,6 +1245,9 @@ function drawSynthwave(
   ctx.stroke()
 
   drawLasers(ctx, W, W / 2, horizon, F, 1.3)
+  // DJ silhouetted against the sun, booth standing on the horizon
+  const swScale = H / 520
+  drawDJ(ctx, S.djs[0], W / 2, horizon - 34 * swScale, swScale, 315, DJ_STAGE, F, E)
   drawParticles(ctx, S)
   if (F.impactHit) spawnBurst(S, sunX, sunY, 10 + F.impact * 14, 330, 1)
 }
@@ -1342,6 +1344,9 @@ function drawSpace(
 
   // cosmic beams from the station (the director's lasers)
   drawLasers(ctx, W, W / 2, stationY, F, 1.2)
+  // astronaut DJ on a pod at the front of the ring
+  const spaceScale = H / 640
+  drawDJ(ctx, S.djs[0], W / 2, stationY + H * 0.05 - 34 * spaceScale, spaceScale, F.palette.a, DJ_SPACE, F, E)
   drawParticles(ctx, S)
   if (F.impactHit) spawnBurst(S, W / 2, cy, 16 + F.impact * 18, F.palette.b, 1.2)
 }
