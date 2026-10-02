@@ -127,7 +127,7 @@ export function Visualizer(): JSX.Element {
       const ps = usePlayerStore.getState()
       const cur = ps.queue[ps.currentIndex]
       const progress = cur && cur.duration > 0 ? ps.currentTime / cur.duration : 0
-      const F = director.update(ps.isPlaying, progress)
+      const F = director.update(ps.isPlaying, progress, cur?.id ?? null)
       const E = F.emotion // dramatic intensity is the master scale
 
       ctx.clearRect(0, 0, W, H)

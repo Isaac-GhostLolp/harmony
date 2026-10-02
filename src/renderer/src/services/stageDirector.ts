@@ -1,11 +1,12 @@
 /**
- * StageDirector v2 — the show has a NARRATIVE now.
+ * StageDirector v3 — the show has a NARRATIVE, read from the song itself.
  *
  * Philosophy change: the stage must not stay constantly active. A show is
  * made of tension, rest, explosion, silence and climax — big moments only
  * feel big because calm exists before them. So the director runs a
- * Show-State machine (ambient → intro → build → drop → climax → break →
- * finale) and publishes an EMOTION value (0..1) that is NOT the volume:
+ * Show-State machine (intro → groove → build → drop → climax → break →
+ * finale), read by SongStructure (per-song calibrated sections, contrast-
+ * based drops, beat tracking — see songStructure.ts), and publishes an EMOTION value (0..1) that is NOT the volume:
  * it is the dramatic intensity of the current moment. Every visual scales
  * by emotion, not by raw energy.
  *
@@ -20,6 +21,7 @@
  * Still draws nothing. Zero per-frame allocations. Android-port friendly.
  */
 import { getEngine } from './audioEngine'
+import { SongStructure, type SectionState } from './songStructure'
 
 // ---------------------------------------------------------------------------
 // Spring
@@ -50,14 +52,7 @@ export class Spring {
 // Published types
 // ---------------------------------------------------------------------------
 
-export type ShowState =
-  | 'ambient'
-  | 'intro'
-  | 'build'
-  | 'drop'
-  | 'climax'
-  | 'break'
-  | 'finale'
+export type ShowState = SectionState
 
 export interface Fixture {
   aim: number // -1..1 across the stage
@@ -88,6 +83,13 @@ export interface DirectorFrame {
   emotion: number
   /** Build tension 0..1 (rises during build states). */
   tension: number
+  /** Loudness relative to the current song's own range, 0..1. */
+  relEnergy: number
+  /** Estimated tempo (0 until known) and the beat clock. */
+  bpm: number
+  beatPhase: number
+  /** ONE-FRAME flag on every beat of the tracked tempo. */
+  beatTick: boolean
 
   // bands (0..1, inertial)
   subBass: number
@@ -136,6 +138,15 @@ export interface DirectorFrame {
   t: number
 }
 
+/** Where the director reads audio from (the app engine, or a test rig). */
+export interface AudioSource {
+  /** Smoothed analyser: drives the visual bands and bars. */
+  getAnalyserNode(): AnalyserNode
+  /** Lightly smoothed analyser for onset / structure detection. */
+  getDetectorNode(): AnalyserNode
+  getSampleRate(): number
+}
+
 export interface DirectorConfig {
   intensity: number
   flashIntensity: number
@@ -172,17 +183,17 @@ interface StateParams {
   spots: number
   laserMode: 'off' | 'converge' | 'show' | 'wave'
   speed: number
-  minDwell: number
 }
 
 const STATE_PARAMS: Record<ShowState, StateParams> = {
-  ambient: { emotionBase: 0.04, beams: 0, wash: 0.12, spots: 0.05, laserMode: 'off', speed: 0.4, minDwell: 0.5 },
-  intro: { emotionBase: 0.16, beams: 0.06, wash: 0.45, spots: 0.5, laserMode: 'off', speed: 0.55, minDwell: 2.5 },
-  build: { emotionBase: 0.32, beams: 0.5, wash: 0.55, spots: 0.4, laserMode: 'converge', speed: 0.85, minDwell: 3 },
-  drop: { emotionBase: 1.0, beams: 1, wash: 1, spots: 1, laserMode: 'show', speed: 1.35, minDwell: 2.6 },
-  climax: { emotionBase: 0.82, beams: 1, wash: 0.85, spots: 0.7, laserMode: 'show', speed: 1.15, minDwell: 4 },
-  break: { emotionBase: 0.2, beams: 0.12, wash: 0.5, spots: 0.6, laserMode: 'off', speed: 0.6, minDwell: 4 },
-  finale: { emotionBase: 0.95, beams: 1, wash: 1, spots: 1, laserMode: 'wave', speed: 1.25, minDwell: 3 }
+  ambient: { emotionBase: 0.04, beams: 0, wash: 0.12, spots: 0.05, laserMode: 'off', speed: 0.4 },
+  intro: { emotionBase: 0.16, beams: 0.06, wash: 0.45, spots: 0.5, laserMode: 'off', speed: 0.55 },
+  groove: { emotionBase: 0.45, beams: 0.55, wash: 0.7, spots: 0.6, laserMode: 'wave', speed: 0.85 },
+  build: { emotionBase: 0.32, beams: 0.5, wash: 0.55, spots: 0.4, laserMode: 'converge', speed: 0.85 },
+  drop: { emotionBase: 1.0, beams: 1, wash: 1, spots: 1, laserMode: 'show', speed: 1.35 },
+  climax: { emotionBase: 0.82, beams: 1, wash: 0.85, spots: 0.7, laserMode: 'show', speed: 1.15 },
+  break: { emotionBase: 0.2, beams: 0.12, wash: 0.5, spots: 0.6, laserMode: 'off', speed: 0.6 },
+  finale: { emotionBase: 0.95, beams: 1, wash: 1, spots: 1, laserMode: 'wave', speed: 1.25 }
 }
 
 // ---------------------------------------------------------------------------
@@ -228,10 +239,14 @@ export class StageDirector {
   }
 
   // audio buffers
+  private source: AudioSource | null
   private freq: Uint8Array<ArrayBuffer> | null = null
-  private prevFreq: Uint8Array<ArrayBuffer> | null = null
+  private det: Uint8Array<ArrayBuffer> | null = null
+  private prevDet: Uint8Array<ArrayBuffer> | null = null
   private binHz = 23.4
+  private detBinHz = 23.4
   private ranges: Record<string, [number, number]> | null = null
+  private detLow: [number, number] = [1, 6]
   private barBins: Int32Array = new Int32Array(BAR_COUNT + 1)
   private barSprings: Spring[] = []
 
@@ -241,31 +256,19 @@ export class StageDirector {
   private zoomSpring = new Spring(40, 9)
   private camYImpulse = 0
 
-  // detectors
+  // song reading
+  readonly structure = new SongStructure()
+  private trackKey: string | number | null = null
   private kickAvg = 0
-  private snareAvg = 0
   private fluxAvg = 0
-  private energySlow = 0
-  private kickCooldown = 0
-  private snareCooldown = 0
   private kickTimes: number[] = []
-
-  // energy slope tracker (8s window, sampled 4x/s)
-  private slopeSamples = new Float32Array(32)
-  private slopeCursor = 0
-  private slopeTimer = 0
 
   // impact scale + combo
   private impactCooldowns = [0, 0, 0, 0, 0, 0] // index = level
   private combo = 0
   private lastKickAt = 0
 
-  // show-state machine
-  private state: ShowState = 'ambient'
-  private stateTime = 0
-  private buildProgress = 0
-  private dropCount = 0
-  private impactCooldown = 0
+  // pre-impact
   private dimCountdown = -1
   private pendingFlash = 0
 
@@ -293,7 +296,8 @@ export class StageDirector {
   private time = 0
   private lastNow = 0
 
-  constructor() {
+  constructor(source?: AudioSource) {
+    this.source = source ?? null
     const mk = (n: number, stiff: number, damp: number, spread: boolean): [Fixture[], FixtureInternal[]] => {
       const pub: Fixture[] = []
       const internal: FixtureInternal[] = []
@@ -333,6 +337,10 @@ export class StageDirector {
       stateTime: 0,
       emotion: 0,
       tension: 0,
+      relEnergy: 0,
+      bpm: 0,
+      beatPhase: 0,
+      beatTick: false,
       subBass: 0,
       kick: 0,
       snare: 0,
@@ -369,12 +377,12 @@ export class StageDirector {
 
   private ensureBuffers(): void {
     if (this.freq) return
-    const engine = getEngine()
-    const analyser = engine.getAnalyserNode()
+    const src = this.source ?? getEngine()
+    this.source = src
+    const analyser = src.getAnalyserNode()
     const n = analyser.frequencyBinCount
     this.freq = new Uint8Array(n)
-    this.prevFreq = new Uint8Array(n)
-    this.binHz = engine.getSampleRate() / (n * 2)
+    this.binHz = src.getSampleRate() / (n * 2)
     const bin = (hz: number): number => Math.max(1, Math.min(n - 1, Math.round(hz / this.binHz)))
     this.ranges = {
       subBass: [bin(20), bin(60)],
@@ -386,6 +394,15 @@ export class StageDirector {
     for (let b = 0; b <= BAR_COUNT; b++) {
       this.barBins[b] = Math.max(1, Math.floor(Math.pow(n, b / BAR_COUNT)))
     }
+    const detector = src.getDetectorNode()
+    const dn = detector.frequencyBinCount
+    this.det = new Uint8Array(dn)
+    this.prevDet = new Uint8Array(dn)
+    this.detBinHz = src.getSampleRate() / (dn * 2)
+    this.detLow = [
+      Math.max(1, Math.round(35 / this.detBinHz)),
+      Math.max(2, Math.round(150 / this.detBinHz))
+    ]
   }
 
   private band(name: string): number {
@@ -396,26 +413,45 @@ export class StageDirector {
     return sum / ((b - a + 1) * 255)
   }
 
-  /** Call once per rendered frame. `progress` = song position 0..1. */
-  update(playing: boolean, progress = 0): DirectorFrame {
+  /**
+   * Call once per rendered frame. `progress` = song position 0..1, `trackKey`
+   * identifies the current song (a change restarts the reading at the intro).
+   * Several callers per frame (stage + theme world) share one update.
+   */
+  update(playing: boolean, progress = 0, trackKey: string | number | null = null, dtOverride?: number): DirectorFrame {
+    const now = performance.now()
+    if (dtOverride === undefined && this.lastNow && now - this.lastNow < 4) return this.frame
+    const dt = dtOverride ?? Math.min(0.05, this.lastNow ? (now - this.lastNow) / 1000 : 1 / 60)
+    this.lastNow = now
+    return this.step(playing, progress, trackKey, dt)
+  }
+
+  private step(playing: boolean, progress: number, trackKey: string | number | null, dt: number): DirectorFrame {
     this.ensureBuffers()
     const F = this.frame
-    const now = performance.now()
-    const dt = Math.min(0.05, this.lastNow ? (now - this.lastNow) / 1000 : 1 / 60)
-    this.lastNow = now
     this.time += dt
     F.t = this.time
     F.playing = playing
     F.stateJustChanged = false
     F.impactHit = false
+    F.beatTick = false
 
-    const analyser = getEngine().getAnalyserNode()
-    const tmp = this.prevFreq!
-    this.prevFreq = this.freq
-    this.freq = tmp
-    analyser.getByteFrequencyData(this.freq!)
+    if (trackKey !== null && trackKey !== this.trackKey) {
+      const first = this.trackKey === null
+      this.trackKey = trackKey
+      this.structure.resetTrack()
+      this.combo = 0
+      if (!first) this.fanOpen.snap(0)
+    }
 
-    // ---- features ----
+    const src = this.source!
+    src.getAnalyserNode().getByteFrequencyData(this.freq!)
+    const tmp = this.prevDet!
+    this.prevDet = this.det
+    this.det = tmp
+    src.getDetectorNode().getByteFrequencyData(this.det!)
+
+    // ---- visual features (smoothed analyser) ----
     const subBass = this.band('subBass')
     const kick = this.band('kick')
     const snareBand = this.band('snare')
@@ -423,16 +459,29 @@ export class StageDirector {
     const hihats = this.band('hihats')
 
     let rms = 0
-    let flux = 0
     const f = this.freq!
-    const pf = this.prevFreq!
-    for (let i = 1; i < f.length; i++) {
-      rms += f[i] * f[i]
-      const d = f[i] - pf[i]
-      if (d > 0) flux += d
-    }
+    for (let i = 1; i < f.length; i++) rms += f[i] * f[i]
     rms = Math.sqrt(rms / f.length) / 255
-    flux = Math.min(1, flux / (f.length * 18))
+
+    // ---- detection features (light smoothing: sharp onsets) ----
+    const d = this.det!
+    const pd = this.prevDet!
+    let low = 0
+    let lowOnset = 0
+    for (let i = this.detLow[0]; i <= this.detLow[1]; i++) {
+      low += d[i]
+      const diff = d[i] - pd[i]
+      if (diff > 0) lowOnset += diff
+    }
+    const lowBins = this.detLow[1] - this.detLow[0] + 1
+    low /= lowBins * 255
+    lowOnset /= lowBins * 255
+    let flux = 0
+    for (let i = 1; i < d.length; i++) {
+      const diff = d[i] - pd[i]
+      if (diff > 0) flux += diff
+    }
+    flux = Math.min(1, flux / (d.length * 18))
 
     const mix = (cur: number, target: number, up: number, down: number): number =>
       cur + (target - cur) * (target > cur ? up : down)
@@ -447,154 +496,86 @@ export class StageDirector {
     const energyTarget = playing ? Math.min(100, (rms * 0.55 + kick * 0.3 + flux * 0.35) * 145) : 0
     F.energy = mix(F.energy, energyTarget, 0.09, 0.012)
 
-    // rolling averages
-    this.kickAvg += (kick - this.kickAvg) * 0.04
-    this.snareAvg += (snareBand - this.snareAvg) * 0.04
-    this.fluxAvg += (flux - this.fluxAvg) * 0.04
-    this.energySlow += (F.energy - this.energySlow) * 0.006
-
-    // energy slope over ~8s
-    this.slopeTimer += dt
-    if (this.slopeTimer > 0.25) {
-      this.slopeTimer = 0
-      this.slopeSamples[this.slopeCursor % 32] = F.energy
-      this.slopeCursor++
-    }
-    let slope = 0
-    if (this.slopeCursor >= 32) {
-      let older = 0
-      let recent = 0
-      for (let i = 0; i < 16; i++) {
-        older += this.slopeSamples[(this.slopeCursor + i) % 32]
-        recent += this.slopeSamples[(this.slopeCursor + 16 + i) % 32]
+    // ---- SONG STRUCTURE: the narrative, read from the music ----
+    const S = this.structure
+    S.update(
+      {
+        playing,
+        dt,
+        progress,
+        low,
+        full: subBass * 0.2 + kick * 0.2 + snareBand * 0.15 + vocals * 0.3 + hihats * 0.15,
+        high: hihats,
+        lowOnset
+      },
+      this.time
+    )
+    if (S.stateJustChanged) {
+      F.stateJustChanged = true
+      if (S.state === 'drop') {
+        this.fireImpact(1, true) // THE moment — pre-impact dim then explosion
+        this.fanOpen.snap(0)
+        this.figureTimer = 0
       }
-      slope = (recent - older) / 16
     }
+    F.state = S.state
+    F.stateTime = S.stateTime
+    F.tension = S.state === 'drop' ? 1 : S.tension
+    F.relEnergy = S.relEnergy
+    F.bpm = S.bpm
+    F.beatPhase = S.beatPhase
+    F.beatTick = S.beatTick
 
-    // ---- kick / snare detection + COMBO tracking ----
-    if (this.kickCooldown > 0) this.kickCooldown -= dt
-    if (this.snareCooldown > 0) this.snareCooldown -= dt
+    // ---- kicks + COMBO tracking ----
     for (let l = 0; l < this.impactCooldowns.length; l++) {
       if (this.impactCooldowns[l] > 0) this.impactCooldowns[l] -= dt
     }
+    this.kickAvg += (kick - this.kickAvg) * 0.04
+    this.fluxAvg += (flux - this.fluxAvg) * 0.04
     F.impactLevel = 0
-    let kickHit = false
-    let kickStrength = 0
-    if (playing && this.kickCooldown <= 0 && kick > 0.28 && kick > this.kickAvg * 1.35) {
-      kickHit = true
-      kickStrength = Math.min(1, kick * 1.4)
-      this.kickCooldown = 0.16
-      F.kickTick = Math.max(F.kickTick, kickStrength * 0.5)
+    const kickHit = playing && S.kickHit
+    const kickStrength = S.kickStrength
+    if (kickHit) {
+      F.kickTick = Math.max(F.kickTick, (0.3 + kickStrength * 0.7) * 0.5)
       this.kickTimes.push(this.time)
       if (this.kickTimes.length > 12) this.kickTimes.shift()
-
-      // combo: consecutive on-beat kicks (interval close to the groove)
+      // combo: consecutive kicks on the tracked beat grid
       const gap = this.time - this.lastKickAt
       this.lastKickAt = this.time
-      if (gap > 0.2 && gap < 1.4) this.combo++
+      const onGrid = S.bpm > 0 && Math.min(S.beatPhase, 1 - S.beatPhase) < 0.2
+      if (gap > 0.2 && gap < 1.4 && (onGrid || S.bpm === 0)) this.combo++
       else this.combo = 1
       F.combo = this.combo
     } else if (playing && this.time - this.lastKickAt > 2.2 && this.combo > 0) {
       this.combo = 0
       F.combo = 0
     }
-    let snareHit = false
-    if (
-      playing &&
-      this.snareCooldown <= 0 &&
-      snareBand > 0.24 &&
-      snareBand > this.snareAvg * 1.4 &&
-      flux > this.fluxAvg * 1.2
-    ) {
-      snareHit = true
-      this.snareCooldown = 0.12
-    }
     F.kickTick *= 0.9
 
-    // ---- SHOW-STATE MACHINE: the narrative ----
-    this.stateTime += dt
-    const dwellOk = this.stateTime > STATE_PARAMS[this.state].minDwell
-    const setState = (next: ShowState): void => {
-      if (next === this.state) return
-      this.state = next
-      this.stateTime = 0
-      F.stateJustChanged = true
-      if (next === 'drop') {
-        this.dropCount++
-        this.fireImpact(1, true) // THE moment — pre-impact dim then explosion
-        this.fanOpen.snap(0)
-        this.figureTimer = 0
-      }
-      if (next === 'build') this.buildProgress = 0
-    }
-
-    if (!playing) {
-      if (this.state !== 'ambient' && F.energy < 4) setState('ambient')
-    } else {
-      switch (this.state) {
-        case 'ambient':
-          if (F.energy > 6) setState('intro')
-          break
-        case 'intro':
-          if (dwellOk && (F.energy > 55 || (F.energy > 30 && slope > 1.2))) setState('build')
-          break
-        case 'build': {
-          // tension accumulates with rising energy and snare rolls
-          this.buildProgress = Math.min(
-            1,
-            this.buildProgress + dt * (0.05 + Math.max(0, slope) * 0.04 + (snareHit ? 0.06 : 0))
-          )
-          const dropReady = this.buildProgress > 0.45 || F.energy > 62
-          if (dwellOk && dropReady && kickHit && kickStrength > 0.55 && F.energy > this.energySlow + 8) {
-            setState('drop')
-          } else if (dwellOk && slope < -1.4 && F.energy < 22) {
-            setState('intro')
-          }
-          break
-        }
-        case 'drop':
-          if (dwellOk) setState('climax')
-          break
-        case 'climax':
-          if (progress > 0.92 && F.energy > 35) setState('finale')
-          else if (dwellOk && (F.energy < 35 || F.energy < this.energySlow * 0.55)) setState('break')
-          break
-        case 'break':
-          if (dwellOk && slope > 0.9 && F.energy > 28) setState('build')
-          else if (dwellOk && F.energy < 10) setState('intro')
-          else if (progress > 0.92 && F.energy > 40) setState('finale')
-          break
-        case 'finale':
-          if (progress < 0.05 || F.energy < 6) setState('ambient')
-          break
-      }
-    }
-    F.state = this.state
-    F.stateTime = this.stateTime
-    F.tension = this.state === 'build' ? this.buildProgress : this.state === 'drop' ? 1 : F.tension * 0.97
-
     // ---- IMPACT SCALE 1..5: not every beat deserves an effect ----
-    // Higher accumulated energy raises the chance of high-level impacts.
     if (kickHit) {
-      const active = this.state === 'drop' || this.state === 'climax' || this.state === 'finale'
+      const active = S.state === 'drop' || S.state === 'climax' || S.state === 'finale'
       const score =
-        kickStrength * 0.55 +
-        (F.energy / 100) * 0.3 +
+        kickStrength * 0.6 +
+        S.relEnergy * 0.25 +
         Math.min(0.12, this.combo * 0.012) +
         (kick > this.kickAvg * 1.7 ? 0.08 : 0)
 
       let level = 1
       if (score > 0.9 && active) level = 5
       else if (score > 0.78 && active) level = 4
-      else if (score > 0.66) level = 3
-      else if (score > 0.5) level = 2
+      else if (score > 0.62) level = 3
+      else if (score > 0.48) level = 2
 
       // COMBO reward: long on-beat streaks force a full spectacle
-      if (this.combo >= 10 && active && this.impactCooldowns[5] <= 0) {
+      if (this.combo >= 16 && active && this.impactCooldowns[5] <= 0) {
         level = 5
         this.combo = 0
         F.combo = 0
       }
+      // calm songs and quiet sections stay subtle
+      const cap = active ? 5 : S.state === 'groove' || S.state === 'build' ? 3 : 2
+      level = Math.min(level, cap, S.drive < 0.25 ? 2 : 5)
 
       const cooldowns = [0, 0, 0.35, 1.1, 2.4, 6]
       while (level > 1 && this.impactCooldowns[level] > 0) level--
@@ -621,22 +602,26 @@ export class StageDirector {
     F.laserBoost *= 0.955
 
     // ---- EMOTION: dramatic intensity, not volume ----
-    const P = STATE_PARAMS[this.state]
-    const dropBoost = Math.min(0.12, this.dropCount * 0.03) // "voltar ainda mais forte"
+    const P = STATE_PARAMS[S.state]
+    const dropBoost = Math.min(0.12, S.dropCount * 0.03) // "voltar ainda mais forte"
     let emotionTarget = P.emotionBase + dropBoost
-    if (this.state === 'build') emotionTarget = 0.3 + this.buildProgress * 0.45
+    if (S.state === 'build') emotionTarget = 0.3 + S.tension * 0.45
+    else if (S.state === 'groove' || S.state === 'climax' || S.state === 'finale' || S.state === 'break') {
+      emotionTarget *= 0.75 + S.relEnergy * 0.35 // sections breathe with the song's own dynamics
+    }
+    if (!playing) emotionTarget = Math.min(emotionTarget, 0.1) // paused: dim, but keep the place
     emotionTarget = Math.min(1, emotionTarget) * this.config.intensity
-    F.emotion = mix(F.emotion, emotionTarget, this.state === 'drop' ? 0.35 : 0.05, 0.012)
+    F.emotion = mix(F.emotion, emotionTarget, S.state === 'drop' ? 0.35 : 0.05, playing ? 0.012 : 0.04)
 
     // ---- camera: tension creeps in, drops punch out ----
     this.camYImpulse *= 0.86
     if (F.impactHit) this.camYImpulse = -3.4 * this.config.motionIntensity
     const zoomTarget =
-      (this.state === 'build'
-        ? this.buildProgress * 0.016
-        : this.state === 'drop'
+      (S.state === 'build'
+        ? S.tension * 0.016
+        : S.state === 'drop'
           ? -0.012
-          : this.state === 'climax'
+          : S.state === 'climax'
             ? 0.006
             : 0) * this.config.motionIntensity
     F.camX = this.camXSpring.update(

@@ -131,7 +131,7 @@ class ThemeDirector {
     const progress = song && song.duration ? Math.min(1, ps.currentTime / song.duration) : 0
 
     const director = getDirector()
-    const F = director.update(playing, progress)
+    const F = director.update(playing, progress, song?.id ?? null)
     const engine = getEngine()
     const bins = this.world?.spectrumBins ?? 32
     const spectrum = engine.getSpectrum(bins)

@@ -29,6 +29,7 @@ export class AudioEngine {
   private filters: BiquadFilterNode[]
   private volumeGain: GainNode
   private analyser: AnalyserNode
+  private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
   private autoNextFired = false
 
@@ -67,6 +68,13 @@ export class AudioEngine {
     this.analyser.fftSize = 2048
     this.analyser.smoothingTimeConstant = 0.82
     this.filters[this.filters.length - 1].connect(this.analyser)
+
+    // A second, lightly smoothed tap for onset / song-structure detection:
+    // the visual analyser's heavy smoothing smears kicks into each other.
+    this.detector = this.ctx.createAnalyser()
+    this.detector.fftSize = 1024
+    this.detector.smoothingTimeConstant = 0.25
+    this.filters[this.filters.length - 1].connect(this.detector)
 
     const eqInput = this.filters[0]
 
@@ -184,6 +192,12 @@ export class AudioEngine {
    *  own preallocated buffers every frame (no per-frame allocations). */
   getAnalyserNode(): AnalyserNode {
     return this.analyser
+  }
+
+  /** Lightly smoothed analyser used by the StageDirector to find kicks and
+   *  song sections (onsets need sharp attacks). */
+  getDetectorNode(): AnalyserNode {
+    return this.detector
   }
 
   getSampleRate(): number {
