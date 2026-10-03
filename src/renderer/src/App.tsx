@@ -29,10 +29,18 @@ import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
 import type { ThemeName } from '@/types'
 
-export function App(): JSX.Element {
-  // Single audio engine for the whole app
+/**
+ * Single audio engine for the whole app. It lives in its own empty component:
+ * the hook subscribes to volume, seeks, play state and EQ gains, and as part
+ * of App every volume tick or EQ drag re-rendered the entire app (the whole
+ * song list included).
+ */
+function AudioBridge(): null {
   useAudioPlayer()
+  return null
+}
 
+export function App(): JSX.Element {
   const backgroundMode = useUiStore((s) => s.background)
   const coverPath = usePlayerStore((s) => s.queue[s.currentIndex]?.coverPath ?? null)
 
@@ -71,10 +79,18 @@ export function App(): JSX.Element {
     })
   }, [])
 
-  // Broadcast playback state (mini player + Discord Rich Presence)
+  // Broadcast playback state (mini player + Discord Rich Presence). The store
+  // changes on every volume tick and seek-bar drag, so only send when the
+  // song or play state changes, or the clock moved by half a second.
   useEffect(() => {
+    let lastKey = ''
+    let lastTime = -1
     const unsub = usePlayerStore.subscribe((s) => {
       const song = s.queue[s.currentIndex] ?? null
+      const key = `${song?.id ?? ''}|${song?.coverPath ?? ''}|${s.isPlaying}|${song?.duration ?? 0}`
+      if (key === lastKey && Math.abs(s.currentTime - lastTime) < 0.5) return
+      lastKey = key
+      lastTime = s.currentTime
       api.player.sendState({
         title: song?.title ?? null,
         artist: song?.artist ?? null,
@@ -101,6 +117,7 @@ export function App(): JSX.Element {
 
   return (
     <HashRouter>
+      <AudioBridge />
       <WorldLayer />
       <div className="ambient relative flex h-full flex-col">
         {/* Dynamic blurred-cover background */}
@@ -114,7 +131,7 @@ export function App(): JSX.Element {
 
         <div className="relative flex min-h-0 flex-1">
           <Sidebar />
-          <main className="glass z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
+          <main className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
             <Routes>
               <Route path="/" element={<Library />} />
               <Route path="/search" element={<Search />} />

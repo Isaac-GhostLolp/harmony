@@ -41,7 +41,7 @@ export function PlayerBar(): JSX.Element {
   }
 
   return (
-    <footer className="glass z-10 m-3 mt-0 flex h-[88px] items-center gap-4 rounded-2xl px-4">
+    <footer className="glass glass-panel z-10 m-3 mt-0 flex h-[88px] items-center gap-4 rounded-2xl px-4">
       {/* Now playing */}
       <div className="flex w-64 min-w-0 items-center gap-3">
         <CoverArt src={song?.coverPath ?? null} title={song?.title} size="md" rounded="lg" />

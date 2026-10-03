@@ -21,7 +21,7 @@ export function QueuePanel(): JSX.Element {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 320, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-          className="glass z-20 m-3 ml-0 flex w-80 shrink-0 flex-col rounded-2xl p-3"
+          className="glass glass-panel z-20 m-3 ml-0 flex w-80 shrink-0 flex-col rounded-2xl p-3"
         >
           <div className="mb-2 flex items-center justify-between px-1">
             <h2 className="text-sm font-semibold">Fila</h2>

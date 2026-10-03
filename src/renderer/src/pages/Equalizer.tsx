@@ -3,6 +3,7 @@ import { RotateCcw, Sparkles } from 'lucide-react'
 import { useEqStore, EQ_PRESETS } from '@/store/eqStore'
 import { EQ_BANDS, getEngine } from '@/services/audioEngine'
 import { PageHeader } from '@/components/PageHeader'
+import { readAccent } from '@/utils/color'
 
 const LABELS = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k']
 const MIN_DB = -12
@@ -31,9 +32,14 @@ export function Equalizer(): JSX.Element {
     const engine = getEngine()
     let raf = 0
 
+    // size cached on resize: reading layout every frame forced a reflow
+    let W = 0
+    let H = 0
     const resize = (): void => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const r = canvas.getBoundingClientRect()
+      W = r.width
+      H = r.height
       canvas.width = Math.max(1, r.width * dpr)
       canvas.height = Math.max(1, r.height * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -42,14 +48,10 @@ export function Equalizer(): JSX.Element {
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
 
-    const accent = (): string =>
-      getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c6cf4'
+    const accent = (): string => readAccent() || '#7c6cf4'
 
     const draw = (): void => {
       raf = requestAnimationFrame(draw)
-      const r = canvas.getBoundingClientRect()
-      const W = r.width
-      const H = r.height
       if (W < 10) return
       ctx.clearRect(0, 0, W, H)
       const g = gainsRef.current

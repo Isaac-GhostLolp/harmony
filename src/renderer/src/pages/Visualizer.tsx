@@ -106,9 +106,14 @@ export function Visualizer(): JSX.Element {
     const director = getDirector()
     let raf = 0
 
+    // size cached on resize: reading layout every frame forced a reflow
+    let W = 0
+    let H = 0
     const resize = (): void => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const rect = canvas.getBoundingClientRect()
+      W = rect.width
+      H = rect.height
       canvas.width = Math.max(1, Math.floor(rect.width * dpr))
       canvas.height = Math.max(1, Math.floor(rect.height * dpr))
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -119,9 +124,6 @@ export function Visualizer(): JSX.Element {
 
     const draw = (): void => {
       raf = requestAnimationFrame(draw)
-      const rect = canvas.getBoundingClientRect()
-      const W = rect.width
-      const H = rect.height
       if (W < 10 || H < 10) return
 
       const ps = usePlayerStore.getState()

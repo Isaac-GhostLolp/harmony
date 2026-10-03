@@ -38,7 +38,7 @@ const linkClass = (isActive: boolean): string =>
 
 export function Sidebar(): JSX.Element {
   return (
-    <aside className="glass z-10 m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
+    <aside className="glass glass-panel z-10 m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
       {/* Brand — fixed at top */}
       <div className="mb-4 flex shrink-0 items-center gap-2 px-2 pt-1">
         <div

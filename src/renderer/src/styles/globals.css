@@ -212,6 +212,20 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Backdrop blur is recomputed on every frame that changes anything on screen
+   (a hover, the seek bar, the clock), for every blurred element. Only blur
+   where it is visible:
+   - the app chrome (.glass-panel: sidebar, main, player bar, queue) sits on a
+     static, already soft background, so it only needs the blur when a living
+     World moves behind it (re-enabled below);
+   - cards laid out inside a panel sit on that panel, so a second blur shows
+     nothing. Floating glass (menus, popovers, sticky bars) keeps its blur,
+     since it covers moving content. */
+html:not(.world-active) .glass.glass-panel,
+.glass-panel .glass:not(.absolute):not(.fixed):not(.sticky) {
+  backdrop-filter: none;
+}
+
 /* ---------- World mode: the living-theme canvas shows through ---------- */
 /* When a World is active, the app chrome becomes glass so the world behind it
    is visible, and the flat background/ambient glow step aside for the canvas

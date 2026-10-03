@@ -2,6 +2,7 @@ import { getDirector } from '@/services/stageDirector'
 import { getEngine } from '@/services/audioEngine'
 import { usePlayerStore } from '@/store/playerStore'
 import { mediaUrl } from '@/utils/format'
+import { readAccent } from '@/utils/color'
 import type { World, WorldContext } from './types'
 
 /**
@@ -22,6 +23,8 @@ class ThemeDirector {
   private ctx: CanvasRenderingContext2D | null = null
   private world: World | null = null
   private raf = 0
+  private accentVar = ''
+  private accent: [number, number, number] = [124, 108, 244]
   private last = 0
   private mountTime = 0
   private coverImg: HTMLImageElement | null = null
@@ -137,10 +140,12 @@ class ThemeDirector {
     const spectrum = engine.getSpectrum(bins)
 
     // accent from CSS var (already tracks the cover)
-    const accentVar = getComputedStyle(document.documentElement)
-      .getPropertyValue('--accent')
-      .trim()
-    const accent = parseAccent(accentVar)
+    const accentVar = readAccent()
+    if (accentVar !== this.accentVar) {
+      this.accentVar = accentVar
+      this.accent = parseAccent(accentVar)
+    }
+    const accent = this.accent
 
     // day phase from local clock
     const now = new Date()

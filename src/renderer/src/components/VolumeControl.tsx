@@ -6,6 +6,10 @@ import { Volume2, Volume1, VolumeX } from 'lucide-react'
  * (up = louder), a small percentage bubble fades in while adjusting, and the
  * mute button remembers the previous level. The wheel handler is non-passive
  * and scoped to this element, so it never scrolls the page.
+ *
+ * Like the seek bar it lives on the blurred glass footer, so the fill and thumb
+ * move with transforms on their own layers: changing the volume never
+ * repaints (and re-blurs) the footer.
  */
 export function VolumeControl({
   volume,
@@ -67,15 +71,17 @@ export function VolumeControl({
         <Icon size={18} />
       </button>
       <div className="group relative flex h-6 w-24 items-center">
-        <div className="relative h-1 w-full rounded-full bg-[var(--bg-raised)]">
+        <div className="relative h-1 w-full overflow-hidden rounded-full bg-[var(--bg-raised)]">
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-[var(--text-primary)] transition-[width] duration-150 group-hover:bg-[var(--accent)]"
-            style={{ width: `${volume * 100}%` }}
+            className="absolute inset-0 origin-left rounded-full bg-[var(--text-primary)] transition-transform duration-100 will-change-transform group-hover:bg-[var(--accent)]"
+            style={{ transform: `scaleX(${volume})` }}
           />
-          <div
-            className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-white shadow transition-transform duration-150 group-hover:scale-100"
-            style={{ left: `${volume * 100}%` }}
-          />
+        </div>
+        <div
+          className="pointer-events-none absolute inset-x-0 top-1/2 h-0 transition-transform duration-100 will-change-transform"
+          style={{ transform: `translateX(${volume * 100}%)` }}
+        >
+          <div className="absolute left-0 top-0 h-3 w-3 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-white shadow transition-transform duration-150 group-hover:scale-100" />
         </div>
         <input
           type="range"

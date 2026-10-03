@@ -23,7 +23,7 @@ export function DjMode(): JSX.Element | null {
 
   const [idle, setIdle] = useState(false)
   const idleTimer = useRef<number | undefined>(undefined)
-  const breatheRef = useBreathe<HTMLDivElement>()
+  const breatheRef = useBreathe<HTMLDivElement>(5.5, 0.015, djMode)
 
   // Hide controls after 3s of no mouse movement; reveal on move.
   useEffect(() => {
