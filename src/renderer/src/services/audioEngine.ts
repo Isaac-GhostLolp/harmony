@@ -31,7 +31,6 @@ export class AudioEngine {
   private analyser: AnalyserNode
   private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
-  private recordDest: MediaStreamAudioDestinationNode | null = null
   private autoNextFired = false
 
   /** Crossfade duration in seconds; 0 disables it. */
@@ -211,14 +210,10 @@ export class AudioEngine {
     return this.slots[this.active].el.currentTime || 0
   }
 
-  /** The mixed music (after the EQ, before the volume), as a MediaStream for
-   *  recording edits: exports keep full level even with the player muted. */
-  getRecordStream(): MediaStream {
-    if (!this.recordDest) {
-      this.recordDest = this.ctx.createMediaStreamDestination()
-      this.filters[this.filters.length - 1].connect(this.recordDest)
-    }
-    return this.recordDest.stream
+  /** The equalizer as it is set now, so an offline render (edit export)
+   *  can rebuild the same filter chain. */
+  getEqSnapshot(): { type: BiquadFilterType; frequency: number; Q: number; gain: number }[] {
+    return this.filters.map((f) => ({ type: f.type, frequency: f.frequency.value, Q: f.Q.value, gain: f.gain.value }))
   }
 
   /** Log-spaced frequency bands, each normalized 0..1. */
