@@ -112,6 +112,14 @@ const api = {
       invoke('wallpaper:save', data, ext, type),
     clear: () => invoke('wallpaper:clear')
   },
+  edit: {
+    /** Asks where to save an exported edit and writes it. Resolves to the path, or null if cancelled. */
+    save: (data: ArrayBuffer, baseName: string, ext: string) =>
+      invoke('edit:save', data, baseName, ext) as Promise<string | null>,
+    reveal: (path: string) => ipcRenderer.send('edit:reveal', path),
+    /** Keeps frames flowing while recording even if the window loses focus. */
+    setBackgroundThrottling: (enabled: boolean) => ipcRenderer.send('edit:throttle', enabled)
+  },
   updater: {
     get: () => invoke('updater:get'),
     check: () => invoke('updater:check'),

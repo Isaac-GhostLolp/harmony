@@ -73,6 +73,32 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
   )
 
+  // ---------- Edit export (Lyrics → Edit mode) ----------
+  ipcMain.handle('edit:save', async (e, data: ArrayBuffer, baseName: string, ext: string) => {
+    const safeExt = (ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4'
+    const safeName =
+      (baseName || 'Harmony edit').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) ||
+      'Harmony edit'
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const options = {
+      title: 'Salvar edit',
+      defaultPath: join(app.getPath('videos'), `${safeName}.${safeExt}`),
+      filters: [{ name: safeExt === 'mp4' ? 'Vídeo MP4' : 'Vídeo WebM', extensions: [safeExt] }]
+    }
+    const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+    if (res.canceled || !res.filePath) return null
+    writeFileSync(res.filePath, Buffer.from(data))
+    return res.filePath
+  })
+
+  ipcMain.on('edit:reveal', (_e, path: string) => {
+    if (typeof path === 'string' && existsSync(path)) shell.showItemInFolder(path)
+  })
+
+  ipcMain.on('edit:throttle', (e, enabled: boolean) => {
+    e.sender.setBackgroundThrottling(Boolean(enabled))
+  })
+
   ipcMain.handle('wallpaper:clear', () => {
     const dir = wallpaperDir()
     for (const f of readdirSync(dir)) {

@@ -31,6 +31,7 @@ export class AudioEngine {
   private analyser: AnalyserNode
   private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
+  private recordDest: MediaStreamAudioDestinationNode | null = null
   private autoNextFired = false
 
   /** Crossfade duration in seconds; 0 disables it. */
@@ -202,6 +203,22 @@ export class AudioEngine {
 
   getSampleRate(): number {
     return this.ctx.sampleRate
+  }
+
+  /** Exact playback position of the active slot, read straight from the
+   *  media element (the store only hears about it ~4x per second). */
+  getCurrentTime(): number {
+    return this.slots[this.active].el.currentTime || 0
+  }
+
+  /** The mixed music (after the EQ, before the volume), as a MediaStream for
+   *  recording edits: exports keep full level even with the player muted. */
+  getRecordStream(): MediaStream {
+    if (!this.recordDest) {
+      this.recordDest = this.ctx.createMediaStreamDestination()
+      this.filters[this.filters.length - 1].connect(this.recordDest)
+    }
+    return this.recordDest.stream
   }
 
   /** Log-spaced frequency bands, each normalized 0..1. */
