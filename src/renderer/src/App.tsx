@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Sidebar } from '@/components/Sidebar'
 import { PlayerBar } from '@/components/PlayerBar'
@@ -7,6 +7,7 @@ import { LyricsOverlay } from '@/components/LyricsOverlay'
 import { UpdateNotice } from '@/components/UpdateNotice'
 import { DjMode } from '@/components/DjMode'
 import { WorldLayer } from '@/components/WorldLayer'
+import { IntroSplash, introEnabled, INTRO_REPLAY_EVENT } from '@/components/IntroSplash'
 import { Library } from '@/pages/Library'
 import { Albums } from '@/pages/Albums'
 import { Artists } from '@/pages/Artists'
@@ -112,50 +113,61 @@ export function App(): JSX.Element {
     }
   }, [])
 
+  // opening animation, over the app while it loads (Settings can replay it)
+  const [intro, setIntro] = useState(introEnabled)
+  useEffect(() => {
+    const replay = (): void => setIntro(true)
+    window.addEventListener(INTRO_REPLAY_EVENT, replay)
+    return () => window.removeEventListener(INTRO_REPLAY_EVENT, replay)
+  }, [])
+
   const world = useUiStore((s) => s.world)
   const bgCover = backgroundMode === 'cover' && !world ? mediaUrl(coverPath) : undefined
 
   return (
-    <HashRouter>
-      <AudioBridge />
-      <WorldLayer />
-      <div className="ambient relative flex h-full flex-col">
-        {/* Dynamic blurred-cover background */}
-        {bgCover && (
-          <div
-            aria-hidden
-            className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-25 transition-[background-image] duration-700"
-            style={{ backgroundImage: `url(${bgCover})`, filter: 'blur(64px) saturate(1.2)' }}
-          />
-        )}
+    <>
+      {intro && <IntroSplash onDone={() => setIntro(false)} />}
+      <HashRouter>
+        <AudioBridge />
+        <WorldLayer />
+        <div className="ambient relative flex h-full flex-col">
+          {/* Dynamic blurred-cover background */}
+          {bgCover && (
+            <div
+              aria-hidden
+              className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-25 transition-[background-image] duration-700"
+              style={{ backgroundImage: `url(${bgCover})`, filter: 'blur(64px) saturate(1.2)' }}
+            />
+          )}
 
-        <div className="relative flex min-h-0 flex-1">
-          <Sidebar />
-          <main className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
-            <Routes>
-              <Route path="/" element={<Library />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/albums" element={<Albums />} />
-              <Route path="/artists" element={<Artists />} />
-              <Route path="/playlists" element={<Playlists />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/stats" element={<Stats />} />
-              <Route path="/visualizer" element={<Visualizer />} />
-              <Route path="/cinema" element={<Visualizer />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/equalizer" element={<Equalizer />} />
-              <Route path="/my-world" element={<MyWorld />} />
-              <Route path="/support" element={<Support />} />
-            </Routes>
-          </main>
-          <QueuePanel />
-          <LyricsOverlay />
+          <div className="relative flex min-h-0 flex-1">
+            <Sidebar />
+            <main className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
+              <Routes>
+                <Route path="/" element={<Library />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/albums" element={<Albums />} />
+                <Route path="/artists" element={<Artists />} />
+                <Route path="/playlists" element={<Playlists />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/stats" element={<Stats />} />
+                <Route path="/visualizer" element={<Visualizer />} />
+                <Route path="/cinema" element={<Visualizer />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/equalizer" element={<Equalizer />} />
+                <Route path="/my-world" element={<MyWorld />} />
+                <Route path="/support" element={<Support />} />
+              </Routes>
+            </main>
+            <QueuePanel />
+            <LyricsOverlay />
+          </div>
+          <PlayerBar />
+          <UpdateNotice />
+          <DjMode />
         </div>
-        <PlayerBar />
-        <UpdateNotice />
-        <DjMode />
-      </div>
-    </HashRouter>
+      </HashRouter>
+    </>
   )
 }

@@ -5,6 +5,7 @@ import { mediaUrl } from '@/utils/format'
 import { PageHeader } from '@/components/PageHeader'
 import type { ThemeName } from '@/types'
 import { WORLDS } from '@/worlds/registry'
+import { INTRO_PREF_KEY, INTRO_REPLAY_EVENT } from '@/components/IntroSplash'
 
 const THEMES: { id: ThemeName; label: string }[] = [
   { id: 'dark', label: 'Dark' },
@@ -40,6 +41,13 @@ export function Settings(): JSX.Element {
   const [discordEnabled, setDiscordEnabled] = useState(false)
   const [discordClientId, setDiscordClientId] = useState('')
   const [onlineEnabled, setOnlineEnabled] = useState(true)
+  const [introOn, setIntroOn] = useState(() => {
+    try {
+      return localStorage.getItem(INTRO_PREF_KEY) !== 'off'
+    } catch {
+      return true
+    }
+  })
 
   useEffect(() => {
     api.settings.get().then((raw) => {
@@ -238,6 +246,48 @@ export function Settings(): JSX.Element {
               {b.label}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="glass mb-4 rounded-2xl p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold">Animação de abertura</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Um pequeno show ao abrir o Harmony. Clique ou aperte qualquer tecla para pular.
+            </p>
+          </div>
+          <div className="ml-4 flex shrink-0 items-center gap-3">
+            <button
+              onClick={() => window.dispatchEvent(new Event(INTRO_REPLAY_EVENT))}
+              className="rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-medium text-muted hover:text-ink"
+            >
+              Ver agora
+            </button>
+            <button
+              onClick={() => {
+                const next = !introOn
+                setIntroOn(next)
+                try {
+                  localStorage.setItem(INTRO_PREF_KEY, next ? 'on' : 'off')
+                } catch {
+                  /* ignore */
+                }
+              }}
+              role="switch"
+              aria-checked={introOn}
+              aria-label="Animação de abertura"
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                introOn ? 'bg-[var(--accent)]' : 'bg-[var(--bg-raised)]'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                  introOn ? 'left-[22px]' : 'left-0.5'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </section>
 
