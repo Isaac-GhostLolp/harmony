@@ -10,10 +10,12 @@ import { useEffect, useRef } from 'react'
  */
 export function useBreathe<T extends HTMLElement>(
   periodSec = 5.5,
-  scaleAmount = 0.015
+  scaleAmount = 0.015,
+  enabled = true
 ): React.RefObject<T> {
   const ref = useRef<T>(null)
   useEffect(() => {
+    if (!enabled) return // no frame loop while the element isn't shown
     let raf = 0
     const tick = (): void => {
       const el = ref.current
@@ -29,7 +31,7 @@ export function useBreathe<T extends HTMLElement>(
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [periodSec, scaleAmount])
+  }, [periodSec, scaleAmount, enabled])
   return ref
 }
 

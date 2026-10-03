@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, MicVocal, Music2, RotateCw } from 'lucide-react'
+import { X, MicVocal, RotateCw } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore, type LyricsMode } from '@/store/uiStore'
@@ -8,6 +8,7 @@ import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
 import { parseLrc, activeLineIndex, lineProgress, type LrcLine } from '@/utils/lrc'
 import { useSmoothTime } from '@/hooks/useSmoothTime'
+import { EditStudio } from '@/components/edit/EditStudio'
 import type { LyricsResult } from '@/types'
 
 const MODES: { id: LyricsMode; label: string }[] = [
@@ -55,7 +56,10 @@ export function LyricsOverlay(): JSX.Element {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
-          className="glass absolute inset-3 bottom-[112px] z-30 flex flex-col rounded-2xl p-6"
+          className={`absolute inset-3 bottom-[112px] z-30 flex flex-col rounded-2xl p-6 ${
+            // the edit studio is a dark room: no app or world showing through
+            mode === 'edit' ? 'border border-white/10 bg-[#07070a] shadow-2xl' : 'glass'
+          }`}
         >
           <div className="mb-4 flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -110,7 +114,12 @@ export function LyricsOverlay(): JSX.Element {
             {!loading && lines && mode === 'synced' && <SyncedView lines={lines} />}
             {!loading && lines && mode === 'karaoke' && <KaraokeView lines={lines} />}
             {!loading && lines && mode === 'edit' && (
-              <EditView lines={lines} cover={mediaUrl(song?.coverPath ?? null)} />
+              <EditStudio
+                lines={lines}
+                cover={mediaUrl(song?.coverPath ?? null)}
+                title={song?.title ?? ''}
+                artist={song?.artist ?? ''}
+              />
             )}
           </div>
         </motion.div>
@@ -236,111 +245,5 @@ function Ghost({
     >
       {line.text}
     </button>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Mode 3: Edit — calm TikTok-edit ambience.
-// Reference: black room, glowing serif phrase on the left drifting in slow
-// waves, a translucent CD on the right spinning gently, everything washed
-// by a soft glow in the album's accent color.
-// ---------------------------------------------------------------------------
-
-/** Transition (exit+enter) lasts ~0.6s, so we look ahead by that amount:
- *  the phrase finishes materializing right when the singer starts it. */
-function EditView({ lines, cover }: { lines: LrcLine[]; cover?: string }): JSX.Element {
-  const time = useSmoothTime()
-  // Follow the song's real time — no fixed lookahead (that made some songs
-  // feel ahead and others behind depending on their tempo).
-  const active = activeLineIndex(lines, time)
-  const line = lines[active]
-
-  return (
-    <div className="relative h-full overflow-hidden">
-      {/* Ambient washes: accent behind the disc, faint white behind the text */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(38% 55% at 72% 50%, var(--accent-soft), transparent 70%),' +
-            'radial-gradient(30% 42% at 24% 52%, rgb(255 255 255 / 0.05), transparent 70%)'
-        }}
-      />
-
-      <div className="relative flex h-full items-center justify-center gap-20 px-12">
-        {/* Drifting phrase — float driven by the same time clock as the disc,
-            not a CSS animation (the CSS compositor clock was running fast on
-            some machines, making everything vibrate). */}
-        <div
-          className="flex w-[26rem] flex-col items-end gap-3 text-right"
-          style={{ transform: `translateY(${Math.sin(time * 0.8) * 5}px)` }}
-        >
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={active}
-              initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -20, filter: 'blur(6px)', transition: { duration: 0.22 } }}
-              transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-              className="font-lyrics text-lyrics-glow text-4xl leading-snug"
-            >
-              {line?.text ?? '♪'}
-            </motion.p>
-          </AnimatePresence>
-          <p className="font-lyrics max-w-sm text-base italic text-white/25 transition-opacity duration-700">
-            {lines[active + 1]?.text ?? ''}
-          </p>
-        </div>
-
-        {/* Translucent CD — rotation AND float driven by playback time, so
-            they're identical on every platform and can't run away. */}
-        <div
-          className="relative shrink-0"
-          style={{ transform: `translateY(${Math.sin(time * 0.7 + 1) * 8}px)` }}
-        >
-          <div
-            className="relative grid h-72 w-72 place-items-center overflow-hidden rounded-full"
-            style={{
-              transform: `rotate(${(time * 36) % 360}deg)`,
-              boxShadow:
-                '0 24px 80px rgb(0 0 0 / 0.65), 0 0 0 1px rgb(255 255 255 / 0.10), inset 0 0 60px rgb(0 0 0 / 0.45)'
-            }}
-          >
-            {cover ? (
-              <img
-                src={cover}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-90"
-              />
-            ) : (
-              <div className="absolute inset-0 grid place-items-center bg-[#111]">
-                <Music2 size={32} className="text-muted" />
-              </div>
-            )}
-            {/* Light sheen sweeping the disc surface */}
-            <div className="cd-sheen absolute inset-0 rounded-full" />
-            {/* Fine radial grooves */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background:
-                  'repeating-radial-gradient(circle, transparent 0 5px, rgb(0 0 0 / 0.07) 5px 6px)'
-              }}
-            />
-            {/* Spindle: transparent hub + hole */}
-            <div className="absolute grid h-24 w-24 place-items-center rounded-full border border-white/25 bg-black/35 backdrop-blur-sm">
-              <div className="h-8 w-8 rounded-full border border-white/30 bg-black/80" />
-            </div>
-          </div>
-          {/* Accent halo */}
-          <div
-            aria-hidden
-            className="absolute -inset-8 -z-10 rounded-full blur-3xl"
-            style={{ background: 'var(--accent-soft)' }}
-          />
-        </div>
-      </div>
-    </div>
   )
 }

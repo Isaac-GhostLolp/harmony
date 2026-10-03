@@ -62,7 +62,8 @@ const api = {
   },
   stats: {
     get: () => invoke('stats:get'),
-    profile: () => invoke('stats:profile')
+    profile: () => invoke('stats:profile'),
+    world: () => invoke('stats:world')
   },
   metadata: {
     refresh: () => invoke('metadata:refresh'),
@@ -111,6 +112,14 @@ const api = {
     save: (data: ArrayBuffer, ext: string, type: 'image' | 'video') =>
       invoke('wallpaper:save', data, ext, type),
     clear: () => invoke('wallpaper:clear')
+  },
+  edit: {
+    /** Asks where to save an exported edit and writes it. Resolves to the path, or null if cancelled. */
+    save: (data: ArrayBuffer, baseName: string, ext: string) =>
+      invoke('edit:save', data, baseName, ext) as Promise<string | null>,
+    reveal: (path: string) => ipcRenderer.send('edit:reveal', path),
+    /** Keeps frames flowing while recording even if the window loses focus. */
+    setBackgroundThrottling: (enabled: boolean) => ipcRenderer.send('edit:throttle', enabled)
   },
   updater: {
     get: () => invoke('updater:get'),

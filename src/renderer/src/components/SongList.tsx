@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Play, Heart, MoreHorizontal, Check } from 'lucide-react'
-import { motion } from 'framer-motion'
 import type { Song, Playlist } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
 import { formatDuration } from '@/utils/format'
@@ -37,6 +36,12 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
   const [lastClicked, setLastClicked] = useState<number | null>(null)
   const [pendingBulkDelete, setPendingBulkDelete] = useState<{ fromDisk: boolean } | null>(null)
   const [addToPlaylistOpen, setAddToPlaylistOpen] = useState(false)
+
+  // Only the rows on screen (plus a margin) are mounted: a library of thousands
+  // of songs used to build every row at once and froze the app on open.
+  const listRef = useRef<HTMLDivElement | null>(null)
+  const range = useVisibleRange(listRef, songs.length)
+  const win = { start: Math.min(range.start, songs.length), end: Math.min(range.end, songs.length) }
 
   const selectMode = selected.size > 0
   const allSelected = songs.length > 0 && selected.size === songs.length
@@ -172,7 +177,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
 
   return (
     <>
-    <div className="flex flex-col">
+    <div ref={listRef} className="flex flex-col">
       {/* Selection action bar — appears once something is selected */}
       {selectMode && (
         <div className="glass fade-rise sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-xl px-3 py-2">
@@ -223,16 +228,15 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
           </div>
         </div>
       )}
-      {songs.map((song, i) => {
+      <div style={{ height: win.start * ROW_H }} aria-hidden />
+      {songs.slice(win.start, win.end).map((song, k) => {
+        const i = win.start + k
         const active = song.id === currentId
         const isSelected = selected.has(song.id)
         return (
-          <motion.div
+          <div
             key={song.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(i * 0.015, 0.3) }}
-            className={`group relative grid grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-raised)] ${
+            className={`group relative grid h-[52px] grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
               isSelected ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent)]' : active ? 'bg-[var(--accent-soft)]' : ''
             }`}
             onDoubleClick={() => playQueue(songs, i)}
@@ -396,9 +400,10 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 )}
               </div>
             )}
-          </motion.div>
+          </div>
         )
       })}
+      <div style={{ height: (songs.length - win.end) * ROW_H }} aria-hidden />
     </div>
     <ConfirmDialog
       open={pendingDelete !== null}
@@ -458,6 +463,64 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
       )}
     </>
   )
+}
+
+/** Fixed row height (h-9 cover + py-2). The window math depends on it. */
+const ROW_H = 52
+const OVERSCAN = 10
+
+/**
+ * Which rows of the list intersect its scrolling ancestor's viewport.
+ * Reads layout once per scroll frame and only re-renders when the range moves.
+ */
+function useVisibleRange(
+  ref: React.RefObject<HTMLElement>,
+  count: number
+): { start: number; end: number } {
+  const initial = Math.ceil(window.innerHeight / ROW_H) + OVERSCAN
+  const [range, setRange] = useState({ start: 0, end: Math.min(count, initial) })
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let scroller: HTMLElement | null = el.parentElement
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
+      scroller = scroller.parentElement
+    }
+    const target: HTMLElement | Window = scroller ?? window
+    let frame = 0
+
+    const update = (): void => {
+      frame = 0
+      const top = el.getBoundingClientRect().top
+      const viewTop = scroller ? scroller.getBoundingClientRect().top : 0
+      const viewH = scroller ? scroller.clientHeight : window.innerHeight
+      // rows start below any sticky bar inside the list; that bar is short
+      // and covered by the overscan, so measuring from the list top is fine
+      const first = Math.floor((viewTop - top) / ROW_H)
+      const last = Math.ceil((viewTop + viewH - top) / ROW_H)
+      const start = Math.max(0, Math.min(count, first - OVERSCAN))
+      const end = Math.max(start, Math.min(count, last + OVERSCAN))
+      setRange((r) => (r.start === start && r.end === end ? r : { start, end }))
+    }
+    const schedule = (): void => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+
+    update()
+    target.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    const ro = new ResizeObserver(schedule)
+    if (scroller) ro.observe(scroller)
+    return () => {
+      cancelAnimationFrame(frame)
+      target.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      ro.disconnect()
+    }
+  }, [ref, count])
+
+  return range
 }
 
 function MenuItem({ label, onClick }: { label: string; onClick: () => void }): JSX.Element {

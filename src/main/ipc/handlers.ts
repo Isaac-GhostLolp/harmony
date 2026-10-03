@@ -73,6 +73,32 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
   )
 
+  // ---------- Edit export (Lyrics → Edit mode) ----------
+  ipcMain.handle('edit:save', async (e, data: ArrayBuffer, baseName: string, ext: string) => {
+    const safeExt = (ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4'
+    const safeName =
+      (baseName || 'Harmony edit').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) ||
+      'Harmony edit'
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const options = {
+      title: 'Salvar edit',
+      defaultPath: join(app.getPath('videos'), `${safeName}.${safeExt}`),
+      filters: [{ name: safeExt === 'mp4' ? 'Vídeo MP4' : 'Vídeo WebM', extensions: [safeExt] }]
+    }
+    const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+    if (res.canceled || !res.filePath) return null
+    writeFileSync(res.filePath, Buffer.from(data))
+    return res.filePath
+  })
+
+  ipcMain.on('edit:reveal', (_e, path: string) => {
+    if (typeof path === 'string' && existsSync(path)) shell.showItemInFolder(path)
+  })
+
+  ipcMain.on('edit:throttle', (e, enabled: boolean) => {
+    e.sender.setBackgroundThrottling(Boolean(enabled))
+  })
+
   ipcMain.handle('wallpaper:clear', () => {
     const dir = wallpaperDir()
     for (const f of readdirSync(dir)) {
@@ -483,6 +509,86 @@ export function registerIpcHandlers(win: BrowserWindow): void {
         )
         return totals.songs ? row.n / totals.songs : 0
       })()
+    }
+  })
+
+  // "Meu Mundo": the personal page. Everything in local time, since it is
+  // about the listener's own day (when they listen, their streaks).
+  ipcMain.handle('stats:world', () => {
+    const all = <T>(sql: string): T[] => db().prepare(sql).all() as T[]
+    const one = <T>(sql: string): T => db().prepare(sql).get() as T
+    const LOCAL = "played_at, 'unixepoch', 'localtime'"
+
+    const topSongs = all(
+      `SELECT s.id, s.title, ar.name as artist, ${EFFECTIVE_COVER_SQL} as coverPath, COUNT(*) as plays
+       FROM history h JOIN songs s ON s.id = h.song_id
+       LEFT JOIN artists ar ON ar.id = s.artist_id LEFT JOIN albums al ON al.id = s.album_id
+       GROUP BY s.id ORDER BY plays DESC LIMIT 5`
+    )
+    const topArtists = all<{ id: number; name: string; plays: number }>(
+      `SELECT ar.id, ar.name, COUNT(*) as plays FROM history h
+       JOIN songs s ON s.id = h.song_id JOIN artists ar ON ar.id = s.artist_id
+       GROUP BY ar.id ORDER BY plays DESC LIMIT 5`
+    ).map((a) => ({
+      ...a,
+      // a cover from the artist's most played album stands in for a photo
+      cover:
+        (
+          one<{ c: string | null } | undefined>(
+            `SELECT ${EFFECTIVE_COVER_SQL} as c FROM history h JOIN songs s ON s.id = h.song_id
+             JOIN albums al ON al.id = s.album_id WHERE s.artist_id = ${Number(a.id)}
+             GROUP BY al.id ORDER BY COUNT(*) DESC LIMIT 1`
+          ) ?? { c: null }
+        ).c ?? null
+    }))
+    const topGenres = all(
+      `SELECT s.genre as genre, COUNT(*) as plays FROM history h JOIN songs s ON s.id = h.song_id
+       WHERE s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
+       GROUP BY s.genre ORDER BY plays DESC LIMIT 6`
+    )
+    const hours = new Array(24).fill(0)
+    for (const r of all<{ h: number; n: number }>(
+      `SELECT CAST(strftime('%H', ${LOCAL}) AS INTEGER) as h, COUNT(*) as n FROM history GROUP BY h`
+    ))
+      hours[r.h] = r.n
+    const weekdays = new Array(7).fill(0)
+    for (const r of all<{ d: number; n: number }>(
+      `SELECT CAST(strftime('%w', ${LOCAL}) AS INTEGER) as d, COUNT(*) as n FROM history GROUP BY d`
+    ))
+      weekdays[r.d] = r.n
+    // listening days → current and best streak of consecutive days
+    const days = all<{ d: string }>(`SELECT DISTINCT date(${LOCAL}) as d FROM history ORDER BY d`).map(
+      (r) => Date.parse(r.d + 'T12:00:00Z') / 86400000
+    )
+    let best = 0
+    let run = 0
+    for (let i = 0; i < days.length; i++) {
+      run = i > 0 && Math.round(days[i] - days[i - 1]) === 1 ? run + 1 : 1
+      best = Math.max(best, run)
+    }
+    const today = Math.round(Date.parse(new Date().toLocaleDateString('sv') + 'T12:00:00Z') / 86400000)
+    const last = days.length ? Math.round(days[days.length - 1]) : -10
+    const current = today - last <= 1 ? run : 0
+    const bestDay = one<{ d: string; plays: number; seconds: number } | undefined>(
+      `SELECT date(${LOCAL}) as d, COUNT(*) as plays, SUM(s.duration) as seconds
+       FROM history h JOIN songs s ON s.id = h.song_id GROUP BY d ORDER BY seconds DESC LIMIT 1`
+    )
+    const counts = one<{ artists: number; playlists: number; favorites: number; songsPlayed: number }>(
+      `SELECT
+        (SELECT COUNT(DISTINCT s.artist_id) FROM history h JOIN songs s ON s.id = h.song_id) as artists,
+        (SELECT COUNT(*) FROM playlists) as playlists,
+        (SELECT COUNT(*) FROM favorites) as favorites,
+        (SELECT COUNT(DISTINCT song_id) FROM history) as songsPlayed`
+    )
+    return {
+      topSongs,
+      topArtists,
+      topGenres,
+      hours,
+      weekdays,
+      streak: { current, best },
+      bestDay: bestDay ?? null,
+      ...counts
     }
   })
 

@@ -29,6 +29,7 @@ export class AudioEngine {
   private filters: BiquadFilterNode[]
   private volumeGain: GainNode
   private analyser: AnalyserNode
+  private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
   private autoNextFired = false
 
@@ -67,6 +68,13 @@ export class AudioEngine {
     this.analyser.fftSize = 2048
     this.analyser.smoothingTimeConstant = 0.82
     this.filters[this.filters.length - 1].connect(this.analyser)
+
+    // A second, lightly smoothed tap for onset / song-structure detection:
+    // the visual analyser's heavy smoothing smears kicks into each other.
+    this.detector = this.ctx.createAnalyser()
+    this.detector.fftSize = 1024
+    this.detector.smoothingTimeConstant = 0.25
+    this.filters[this.filters.length - 1].connect(this.detector)
 
     const eqInput = this.filters[0]
 
@@ -186,8 +194,26 @@ export class AudioEngine {
     return this.analyser
   }
 
+  /** Lightly smoothed analyser used by the StageDirector to find kicks and
+   *  song sections (onsets need sharp attacks). */
+  getDetectorNode(): AnalyserNode {
+    return this.detector
+  }
+
   getSampleRate(): number {
     return this.ctx.sampleRate
+  }
+
+  /** Exact playback position of the active slot, read straight from the
+   *  media element (the store only hears about it ~4x per second). */
+  getCurrentTime(): number {
+    return this.slots[this.active].el.currentTime || 0
+  }
+
+  /** The equalizer as it is set now, so an offline render (edit export)
+   *  can rebuild the same filter chain. */
+  getEqSnapshot(): { type: BiquadFilterType; frequency: number; Q: number; gain: number }[] {
+    return this.filters.map((f) => ({ type: f.type, frequency: f.frequency.value, Q: f.Q.value, gain: f.gain.value }))
   }
 
   /** Log-spaced frequency bands, each normalized 0..1. */

@@ -212,6 +212,20 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Backdrop blur is recomputed on every frame that changes anything on screen
+   (a hover, the seek bar, the clock), for every blurred element. Only blur
+   where it is visible:
+   - the app chrome (.glass-panel: sidebar, main, player bar, queue) sits on a
+     static, already soft background, so it only needs the blur when a living
+     World moves behind it (re-enabled below);
+   - cards laid out inside a panel sit on that panel, so a second blur shows
+     nothing. Floating glass (menus, popovers, sticky bars) keeps its blur,
+     since it covers moving content. */
+html:not(.world-active) .glass.glass-panel,
+.glass-panel .glass:not(.absolute):not(.fixed):not(.sticky) {
+  backdrop-filter: none;
+}
+
 /* ---------- World mode: the living-theme canvas shows through ---------- */
 /* When a World is active, the app chrome becomes glass so the world behind it
    is visible, and the flat background/ambient glow step aside for the canvas
@@ -287,36 +301,6 @@ input[type='range']:hover::-webkit-slider-thumb {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ---------- Lyrics: Edit mode ---------- */
-
-/* Edit mode typography: soft serif with a breathing glow */
-.font-lyrics {
-  font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-  font-style: italic;
-  letter-spacing: 0.01em;
-}
-.text-lyrics-glow {
-  color: rgb(255 255 255 / 0.94);
-  text-shadow:
-    0 0 18px rgb(255 255 255 / 0.28),
-    0 0 70px var(--accent-soft);
-}
-
-/* CD disc: cover + radial sheen + spindle hole */
-.cd-sheen {
-  background:
-    conic-gradient(
-      from 210deg,
-      transparent 0deg,
-      rgb(255 255 255 / 0.22) 40deg,
-      transparent 90deg,
-      transparent 180deg,
-      rgb(255 255 255 / 0.12) 230deg,
-      transparent 290deg
-    );
-  mix-blend-mode: screen;
 }
 
 /* ============================================================

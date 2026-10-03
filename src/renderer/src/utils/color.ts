@@ -44,3 +44,26 @@ export async function applyAccentFromCover(url: string | undefined): Promise<voi
     /* covers are optional; keep the theme accent */
   }
 }
+
+let accentInline: string | null = null
+let accentTheme: string | null = null
+let accentValue = ''
+
+/**
+ * The current --accent value, for canvases that draw with it every frame.
+ * getComputedStyle() forces a full style recalculation whenever anything on
+ * the page has changed (a hover, the seek bar), so calling it per frame made
+ * every mouse move cost a document-wide recalc. The accent only changes when
+ * the cover sets it inline or the theme switches, so we only re-read then.
+ */
+export function readAccent(): string {
+  const root = document.documentElement
+  const inline = root.style.getPropertyValue('--accent')
+  const theme = root.getAttribute('data-theme')
+  if (inline !== accentInline || theme !== accentTheme) {
+    accentInline = inline
+    accentTheme = theme
+    accentValue = (inline || getComputedStyle(root).getPropertyValue('--accent')).trim()
+  }
+  return accentValue
+}
