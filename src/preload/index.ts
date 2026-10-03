@@ -62,7 +62,8 @@ const api = {
   },
   stats: {
     get: () => invoke('stats:get'),
-    profile: () => invoke('stats:profile')
+    profile: () => invoke('stats:profile'),
+    world: () => invoke('stats:world')
   },
   metadata: {
     refresh: () => invoke('metadata:refresh'),
