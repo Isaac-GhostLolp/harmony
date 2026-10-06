@@ -12,6 +12,39 @@ export const WORLD_HUES = [265, 330, 15, 40, 145, 185, 210]
 const AVATARS = ['🎧', '🦊', '🐱', '🐼', '🦄', '👾', '🤖', '🐸', '🌟', '🔥', '🌈', '🍕']
 const NOTES = ['♪', '♫', '♬', '♩']
 
+const PHOTO_SIZE = 320
+
+/**
+ * Center-crops and scales a picked image down to a small square JPEG. The
+ * photo is stored as a data URL in settings, so a raw multi-megabyte camera
+ * picture would bloat the database and slow every settings read.
+ */
+function shrinkPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const side = Math.min(img.naturalWidth, img.naturalHeight)
+      if (!side) return reject(new Error('empty image'))
+      const out = Math.min(PHOTO_SIZE, side)
+      const c = document.createElement('canvas')
+      c.width = out
+      c.height = out
+      const ctx = c.getContext('2d')
+      if (!ctx) return reject(new Error('no canvas'))
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out)
+      resolve(c.toDataURL('image/jpeg', 0.88))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('decode failed'))
+    }
+    img.src = url
+  })
+}
+
 function Aurora({ hue }: { hue: number }): JSX.Element {
   const ref = useRef<HTMLCanvasElement | null>(null)
   const hueRef = useRef(hue)
@@ -140,26 +173,60 @@ export function Hero({
   onHue: (hue: number) => void
 }): JSX.Element {
   const [picker, setPicker] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const pickerRef = useRef<HTMLDivElement | null>(null)
+
+  // close the picker on a click outside it or on Escape
+  useEffect(() => {
+    if (!picker) return
+    const onDown = (e: MouseEvent): void => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPicker(false)
+    }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setPicker(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [picker])
 
   const pickPhoto = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => onPhoto(reader.result as string)
-    reader.readAsDataURL(file)
     e.target.value = ''
-    setPicker(false)
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Esse arquivo não é uma imagem.')
+      return
+    }
+    setPhotoError(null)
+    shrinkPhoto(file)
+      .then((dataUrl) => {
+        onPhoto(dataUrl)
+        setPicker(false)
+      })
+      .catch(() => setPhotoError('Não consegui abrir essa imagem. Tente outra.'))
   }
 
   return (
-    <div className="fade-rise relative mb-6 overflow-hidden rounded-3xl ring-1 ring-white/10">
-      <Aurora hue={hue} />
+    <div className="fade-rise relative z-20 mb-6 rounded-3xl ring-1 ring-white/10">
+      {/* only the background is clipped, so the avatar picker can overflow the card */}
+      <div className="absolute inset-0 overflow-hidden rounded-3xl">
+        <Aurora hue={hue} />
+      </div>
       <div className="relative flex flex-wrap items-center gap-6 p-7">
         {/* avatar with a glowing ring */}
-        <div className="relative">
+        <div ref={pickerRef} className="relative">
           <button
-            onClick={() => setPicker((v) => !v)}
+            onClick={() => {
+              setPhotoError(null)
+              setPicker((v) => !v)
+            }}
+            aria-haspopup="dialog"
+            aria-expanded={picker}
             className="group relative grid h-28 w-28 place-items-center rounded-full p-[3px] transition-transform hover:scale-[1.04]"
             style={{ background: `conic-gradient(from 200deg, hsl(${hue} 95% 65%), hsl(${hue + 60} 95% 65%), hsl(${hue - 40} 95% 65%), hsl(${hue} 95% 65%))` }}
             title="Trocar avatar"
@@ -176,7 +243,11 @@ export function Hero({
             </span>
           </button>
           {picker && (
-            <div className="glass absolute left-0 top-[118px] z-30 w-64 rounded-2xl p-3 text-xs shadow-2xl">
+            <div
+              role="dialog"
+              aria-label="Escolha seu avatar"
+              className="glass absolute left-0 top-[118px] z-50 w-64 rounded-2xl p-3 text-xs shadow-2xl"
+            >
               <p className="mb-2 font-semibold">Escolha seu avatar</p>
               <div className="grid grid-cols-6 gap-1">
                 {AVATARS.map((a) => (
@@ -184,7 +255,7 @@ export function Hero({
                     key={a}
                     onClick={() => {
                       onAvatar(a)
-                      onPhoto(null)
+                      if (photo) onPhoto(null)
                       setPicker(false)
                     }}
                     className={`rounded-lg p-1 text-2xl transition-transform hover:scale-125 ${
@@ -199,8 +270,20 @@ export function Hero({
                 onClick={() => fileRef.current?.click()}
                 className="mt-2 w-full rounded-full bg-[var(--accent)] px-3 py-1.5 font-semibold text-white"
               >
-                Usar uma foto minha
+                {photo ? 'Trocar foto' : 'Usar uma foto minha'}
               </button>
+              {photo && (
+                <button
+                  onClick={() => {
+                    onPhoto(null)
+                    setPicker(false)
+                  }}
+                  className="mt-1.5 w-full rounded-full bg-white/10 px-3 py-1.5 font-semibold hover:bg-white/15"
+                >
+                  Remover foto
+                </button>
+              )}
+              {photoError && <p className="mt-2 text-center text-red-300">{photoError}</p>}
             </div>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickPhoto} />

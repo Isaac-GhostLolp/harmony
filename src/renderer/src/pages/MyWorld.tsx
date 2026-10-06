@@ -59,11 +59,14 @@ export function MyWorld(): JSX.Element {
   const [prefs, setPrefs] = useState<WorldPrefs>(DEFAULT_PREFS)
   const [editingName, setEditingName] = useState(false)
   const [levelUp, setLevelUp] = useState<number | null>(null)
+  const [loadError, setLoadError] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const { name, photo, setName, setPhoto } = useProfileStore()
   const confetti = useRef<ConfettiHandle | null>(null)
 
   useEffect(() => {
     let alive = true
+    setLoadError(false)
     Promise.all([api.stats.profile(), api.stats.world(), api.library.getSongs(), api.settings.get()]).then(
       ([p, w, s, raw]) => {
         if (!alive) return
@@ -83,11 +86,14 @@ export function MyWorld(): JSX.Element {
           level: typeof st['world.level'] === 'number' ? st['world.level'] : 0
         })
       }
-    )
+    ).catch((err) => {
+      console.error('[MyWorld] failed to load', err)
+      if (alive) setLoadError(true)
+    })
     return () => {
       alive = false
     }
-  }, [])
+  }, [reloadKey])
 
   const set = <K extends keyof WorldPrefs>(key: K, value: WorldPrefs[K], delay = 250): void => {
     setPrefs((p) => ({ ...p, [key]: value }))
@@ -119,6 +125,22 @@ export function MyWorld(): JSX.Element {
     }
     return out
   }, [profile, world])
+
+  if (loadError) {
+    return (
+      <div className="grid h-64 place-items-center text-center">
+        <div>
+          <p className="mb-3 text-sm text-muted">Não consegui carregar o seu mundo agora.</p>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-white"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!profile || !world || !level) {
     return (
