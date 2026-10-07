@@ -406,3 +406,33 @@ input[type='range']:hover::-webkit-slider-thumb {
 .dj-root.dj-idle {
   cursor: none;
 }
+
+/* Cápsula do tempo — the seal pops in, the envelope wobbles until it opens */
+@keyframes seal-pop {
+  0% { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.seal-pop {
+  animation: seal-pop 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes capsule-wobble {
+  0%, 100% { transform: rotate(0) scale(1); }
+  25% { transform: rotate(-8deg) scale(1.05); }
+  75% { transform: rotate(8deg) scale(1.05); }
+}
+.capsule-envelope {
+  animation: capsule-wobble 900ms ease-in-out infinite;
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 500ms;
+}
+.capsule-envelope.is-open {
+  animation: none;
+  transform: scale(1.1);
+  box-shadow: 0 0 60px var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .seal-pop,
+  .capsule-envelope {
+    animation: none;
+  }
+}

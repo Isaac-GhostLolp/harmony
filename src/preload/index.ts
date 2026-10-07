@@ -63,7 +63,18 @@ const api = {
   stats: {
     get: () => invoke('stats:get'),
     profile: () => invoke('stats:profile'),
-    world: () => invoke('stats:world')
+    world: () => invoke('stats:world'),
+    /** A year (or 'all') of listening for the Retrospectiva video. */
+    recap: (period: number | 'all') => invoke('stats:recap', period)
+  },
+  capsules: {
+    list: () => invoke('capsules:list'),
+    create: (songId: number, note: string, emoji: string | null, openAt: number) =>
+      invoke('capsules:create', songId, note, emoji, openAt),
+    remove: (id: number) => invoke('capsules:delete', id),
+    /** Sealed capsules on this song whose open date has passed. */
+    due: (songId: number) => invoke('capsules:due', songId),
+    markOpened: (id: number) => invoke('capsules:markOpened', id)
   },
   metadata: {
     refresh: () => invoke('metadata:refresh'),

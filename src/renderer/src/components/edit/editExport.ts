@@ -32,7 +32,7 @@ import { activeLineIndex, type LrcLine } from '@/utils/lrc'
 import { createEditState, drawEdit, EDIT_W, FORMAT_H, type EditOptions } from './editRenderer'
 
 export const EXPORT_FPS = 30
-const SAMPLE_RATE = 48000
+export const SAMPLE_RATE = 48000
 const PREROLL = 6 // seconds of song read before the clip so the director is warmed up
 const STEP = 1 / 60 // director steps (it is tuned for 60 fps)
 
@@ -61,15 +61,31 @@ export interface EditExportResult {
 
 export class ExportCancelled extends Error {}
 
-interface Beat {
+/** Per video frame: what the stage director heard there. */
+export interface Beat {
   kick: Float32Array
   hit: Uint8Array
   level: Uint8Array
 }
 
+export interface ClipAudioJob {
+  /** The encoded song file, or one already decoded at 48 kHz (see decodeSong). */
+  audio: ArrayBuffer | AudioBuffer
+  eq: EditExportJob['eq']
+  start: number
+  end: number
+  duration: number
+  onProgress: (progress: number) => void
+}
+
+/** Decodes a song file at the export sample rate. */
+export function decodeSong(audio: ArrayBuffer): Promise<AudioBuffer> {
+  return new OfflineAudioContext(2, 1, SAMPLE_RATE).decodeAudioData(audio.slice(0))
+}
+
 /** Decodes the song and renders the clip, reading the director along the way. */
-async function renderAudio(job: EditExportJob, frames: number): Promise<{ clip: AudioBuffer; beat: Beat }> {
-  const decoded = await new OfflineAudioContext(2, 1, SAMPLE_RATE).decodeAudioData(job.audio.slice(0))
+export async function renderClipAudio(job: ClipAudioJob, frames: number): Promise<{ clip: AudioBuffer; beat: Beat }> {
+  const decoded = job.audio instanceof AudioBuffer ? job.audio : await decodeSong(job.audio)
   const pre = Math.min(PREROLL, job.start)
   const from = job.start - pre
   const length = Math.ceil((job.end - from) * SAMPLE_RATE)
@@ -126,7 +142,7 @@ async function renderAudio(job: EditExportJob, frames: number): Promise<{ clip: 
         if (F.impactHit) beat.hit[n] = 1
         beat.level[n] = Math.max(beat.level[n], F.impactLevel)
       }
-      if (k % 120 === 0) job.onProgress('audio', at / (job.end - from))
+      if (k % 120 === 0) job.onProgress(at / (job.end - from))
       void ctx.resume()
     })
   }
@@ -139,26 +155,90 @@ async function renderAudio(job: EditExportJob, frames: number): Promise<{ clip: 
   return { clip, beat }
 }
 
+export interface VideoCodecs {
+  video: NonNullable<Awaited<ReturnType<typeof getFirstEncodableVideoCodec>>>
+  audio: NonNullable<Awaited<ReturnType<typeof getFirstEncodableAudioCodec>>>
+}
+
+/**
+ * H.264 + AAC when the system has an H.264 encoder, else VP9/VP8 + Opus.
+ * Throws 'no-encoder' when the machine can't encode video at all.
+ */
+export async function pickCodecs(width: number, height: number, bitrate: number): Promise<VideoCodecs> {
+  const video = await getFirstEncodableVideoCodec(['avc', 'vp9', 'vp8'], { width, height, bitrate })
+  if (!video) throw new Error('no-encoder')
+  const audio = await getFirstEncodableAudioCodec(video === 'avc' ? ['aac', 'opus'] : ['opus'], {
+    numberOfChannels: 2,
+    sampleRate: SAMPLE_RATE,
+    bitrate: 192_000
+  })
+  if (!audio) throw new Error('no-encoder')
+  return { video, audio }
+}
+
+export interface EncodeJob {
+  codecs: VideoCodecs
+  canvas: HTMLCanvasElement
+  bitrate: number
+  frames: number
+  clip: AudioBuffer
+  /** Draws frame `n` onto the canvas. */
+  draw: (n: number) => void
+  onProgress: (progress: number) => void
+  isCancelled: () => boolean
+}
+
+/** Draws every frame at its exact timestamp and muxes it with the clip. */
+export async function encodeFrames(job: EncodeJob): Promise<EditExportResult> {
+  const mp4 = job.codecs.video === 'avc'
+  const output = new Output({
+    format: mp4 ? new Mp4OutputFormat({ fastStart: 'in-memory' }) : new WebMOutputFormat(),
+    target: new BufferTarget()
+  })
+  const video = new CanvasSource(job.canvas, { codec: job.codecs.video, bitrate: job.bitrate, keyFrameInterval: 2 })
+  const audio = new AudioBufferSource({ codec: job.codecs.audio, bitrate: 192_000 })
+  output.addVideoTrack(video, { frameRate: EXPORT_FPS })
+  output.addAudioTrack(audio)
+  await output.start()
+
+  try {
+    await audio.add(job.clip)
+    audio.close()
+
+    let yieldAt = performance.now()
+    for (let n = 0; n < job.frames; n++) {
+      if (job.isCancelled()) throw new ExportCancelled()
+      job.draw(n)
+      await video.add(n / EXPORT_FPS, 1 / EXPORT_FPS)
+      // let the app breathe (input, the progress bar) every ~50 ms
+      if (performance.now() - yieldAt > 50) {
+        job.onProgress(n / job.frames)
+        await new Promise((r) => setTimeout(r, 0))
+        yieldAt = performance.now()
+      }
+    }
+    video.close()
+    await output.finalize()
+  } catch (e) {
+    await output.cancel().catch(() => {})
+    throw e
+  }
+  const data = (output.target as BufferTarget).buffer
+  if (!data) throw new Error('empty')
+  return { data, ext: mp4 ? 'mp4' : 'webm' }
+}
+
 export async function exportEdit(job: EditExportJob): Promise<EditExportResult> {
   const H = FORMAT_H[job.opts.format]
   const scale = job.quality === '720' ? 720 / EDIT_W : 1
   const width = Math.round(EDIT_W * scale)
   const height = Math.round(H * scale)
   const bitrate = job.quality === '720' ? 5_000_000 : 8_000_000
-
-  const videoCodec = await getFirstEncodableVideoCodec(['avc', 'vp9', 'vp8'], { width, height, bitrate })
-  if (!videoCodec) throw new Error('no-encoder')
-  const mp4 = videoCodec === 'avc'
-  const audioCodec = await getFirstEncodableAudioCodec(mp4 ? ['aac', 'opus'] : ['opus'], {
-    numberOfChannels: 2,
-    sampleRate: SAMPLE_RATE,
-    bitrate: 192_000
-  })
-  if (!audioCodec) throw new Error('no-encoder')
+  const codecs = await pickCodecs(width, height, bitrate)
 
   const frames = Math.max(1, Math.round((job.end - job.start) * EXPORT_FPS))
   job.onProgress('audio', 0)
-  const { clip, beat } = await renderAudio(job, frames)
+  const { clip, beat } = await renderClipAudio({ ...job, onProgress: (p) => job.onProgress('audio', p) }, frames)
   if (job.isCancelled()) throw new ExportCancelled()
 
   const canvas = document.createElement('canvas')
@@ -166,26 +246,18 @@ export async function exportEdit(job: EditExportJob): Promise<EditExportResult> 
   canvas.height = height
   const ctx = canvas.getContext('2d')!
   const S = createEditState()
+  // only the fields the edit renderer reads
+  const F = { kickTick: 0, impactHit: false, impactLevel: 0 } as unknown as DirectorFrame
 
-  const output = new Output({
-    format: mp4 ? new Mp4OutputFormat({ fastStart: 'in-memory' }) : new WebMOutputFormat(),
-    target: new BufferTarget()
-  })
-  const video = new CanvasSource(canvas, { codec: videoCodec, bitrate, keyFrameInterval: 2 })
-  const audio = new AudioBufferSource({ codec: audioCodec, bitrate: 192_000 })
-  output.addVideoTrack(video, { frameRate: EXPORT_FPS })
-  output.addAudioTrack(audio)
-  await output.start()
-
-  try {
-    await audio.add(clip)
-    audio.close()
-
-    // only the fields the edit renderer reads
-    const F = { kickTick: 0, impactHit: false, impactLevel: 0 } as unknown as DirectorFrame
-    let yieldAt = performance.now()
-    for (let n = 0; n < frames; n++) {
-      if (job.isCancelled()) throw new ExportCancelled()
+  const result = await encodeFrames({
+    codecs,
+    canvas,
+    bitrate,
+    frames,
+    clip,
+    isCancelled: job.isCancelled,
+    onProgress: (p) => job.onProgress('video', p),
+    draw: (n) => {
       const time = job.start + n / EXPORT_FPS
       F.kickTick = beat.kick[n]
       F.impactHit = beat.hit[n] === 1
@@ -207,22 +279,8 @@ export async function exportEdit(job: EditExportJob): Promise<EditExportResult> 
         },
         scale
       )
-      await video.add(n / EXPORT_FPS, 1 / EXPORT_FPS)
-      // let the app breathe (input, the progress bar) every ~50 ms
-      if (performance.now() - yieldAt > 50) {
-        job.onProgress('video', n / frames)
-        await new Promise((r) => setTimeout(r, 0))
-        yieldAt = performance.now()
-      }
     }
-    video.close()
-    job.onProgress('finish', 1)
-    await output.finalize()
-  } catch (e) {
-    await output.cancel().catch(() => {})
-    throw e
-  }
-  const data = (output.target as BufferTarget).buffer
-  if (!data) throw new Error('empty')
-  return { data, ext: mp4 ? 'mp4' : 'webm' }
+  })
+  job.onProgress('finish', 1)
+  return result
 }

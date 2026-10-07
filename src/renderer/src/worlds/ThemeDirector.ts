@@ -30,6 +30,17 @@ class ThemeDirector {
   private coverImg: HTMLImageElement | null = null
   private coverUrl: string | null = null
   private ro: ResizeObserver | null = null
+  // chorus / drop reaction shared by every world
+  private surgeEnabled = false
+  private surge = 0
+  private shock = 0
+  private reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+
+  /** Turns the drop/chorus bloom and camera punch on or off. */
+  setSurgeEnabled(on: boolean): void {
+    this.surgeEnabled = on
+    if (!on && this.canvas) this.canvas.style.transform = ''
+  }
 
   /** Attach the shared canvas (called once by the host component). */
   attach(canvas: HTMLCanvasElement): void {
@@ -80,6 +91,7 @@ class ThemeDirector {
     if (!world) {
       this.stop()
       if (this.ctx && this.canvas) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+      if (this.canvas) this.canvas.style.transform = ''
       return
     }
     this.mountTime = performance.now() / 1000
@@ -147,6 +159,13 @@ class ThemeDirector {
     }
     const accent = this.accent
 
+    // the chorus envelope: drops slam it up, the climax holds it, the rest lets go
+    const target =
+      F.state === 'drop' ? 1 : F.state === 'climax' ? 0.65 : F.state === 'build' ? 0.2 + F.tension * 0.25 : 0
+    const rate = target > this.surge ? 6 : 0.8
+    this.surge += (target - this.surge) * Math.min(1, dt * rate)
+    if (F.impactLevel >= 4 || (F.stateJustChanged && F.state === 'drop')) this.shock = 1
+
     // day phase from local clock
     const now = new Date()
     const dayPhase = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400
@@ -170,6 +189,8 @@ class ThemeDirector {
       breath: F.breath,
       sway: F.sway,
       spectrum,
+      section: F.state,
+      surge: this.surge,
       accent,
       cover: this.coverImg,
       dayPhase
@@ -184,6 +205,56 @@ class ThemeDirector {
     this.syncCover()
     const context = this.buildContext(dt)
     this.world.frame(context)
+    this.drawSurge(context)
+  }
+
+  /**
+   * The same chorus reaction on top of any world: a bloom in the cover's
+   * colour that swells with the surge, a shockwave ring on big drops and a
+   * small camera punch (a compositor-only CSS scale, so it costs nothing).
+   */
+  private drawSurge(c: WorldContext): void {
+    const canvas = this.canvas!
+    this.shock = Math.max(0, this.shock - c.dt * 1.6)
+    if (!this.surgeEnabled || !c.playing) {
+      if (canvas.style.transform) canvas.style.transform = ''
+      return
+    }
+    const { ctx, width, height } = c
+    const [r, g, b] = c.accent
+    const s = this.surge
+    if (s > 0.02) {
+      ctx.save()
+      ctx.globalCompositeOperation = 'lighter'
+      const R = Math.max(width, height) * (0.55 + 0.15 * c.kick)
+      const bloom = ctx.createRadialGradient(width / 2, height * 0.55, 0, width / 2, height * 0.55, R)
+      bloom.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.34 * s * (0.6 + 0.4 * c.kick)})`)
+      bloom.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+      ctx.fillStyle = bloom
+      ctx.fillRect(0, 0, width, height)
+      ctx.restore()
+    }
+    if (this.shock > 0) {
+      const k = 1 - this.shock
+      ctx.save()
+      ctx.globalCompositeOperation = 'lighter'
+      // sized to the screen so the ring reads the same in a small window or fullscreen
+      const unit = Math.max(width, height) / 1000
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.4 * this.shock})`
+      ctx.lineWidth = unit * (3 + 14 * this.shock)
+      ctx.beginPath()
+      ctx.arc(width / 2, height * 0.55, Math.max(width, height) * (0.08 + 0.75 * k), 0, Math.PI * 2)
+      ctx.stroke()
+      // a quick white flash right on the hit
+      if (this.shock > 0.85) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${(this.shock - 0.85) * 0.6})`
+        ctx.fillRect(0, 0, width, height)
+      }
+      ctx.restore()
+    }
+    const zoom = this.reduceMotion ? 1 : 1 + 0.025 * s + 0.012 * c.kick * s + 0.02 * this.shock * this.shock
+    const tf = zoom > 1.0005 ? `scale(${zoom.toFixed(4)})` : ''
+    if (canvas.style.transform !== tf) canvas.style.transform = tf
   }
 }
 

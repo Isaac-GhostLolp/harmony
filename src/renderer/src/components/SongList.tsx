@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Play, Heart, MoreHorizontal, Check } from 'lucide-react'
 import type { Song, Playlist } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
+import { useCapsuleStore } from '@/store/capsuleStore'
 import { formatDuration } from '@/utils/format'
 import { CoverArt } from '@/components/CoverArt'
 import { api } from '@/services/api'
@@ -348,6 +349,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               >
                 <MenuItem label="Tocar em seguida" onClick={() => { addNext(song); setMenuFor(null) }} />
                 <MenuItem label="Adicionar à fila" onClick={() => { addToQueue(song); setMenuFor(null) }} />
+                <MenuItem label="📮 Criar cápsula do tempo" onClick={() => { useCapsuleStore.getState().openSeal(song); setMenuFor(null) }} />
                 {extraAction && (
                   <MenuItem
                     label={extraAction.label}

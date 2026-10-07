@@ -23,6 +23,9 @@ import { MyWorld } from '@/pages/MyWorld'
 import { Support } from '@/pages/Support'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import { useUiStore, type BackgroundMode, type LyricsMode } from '@/store/uiStore'
+import { themeDirector } from '@/worlds/ThemeDirector'
+import { CapsuleLayer } from '@/components/capsule/CapsuleDialogs'
+import { WhatsNew } from '@/components/WhatsNew'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
 import { useProfileStore } from '@/store/profileStore'
@@ -55,6 +58,10 @@ export function App(): JSX.Element {
       if (typeof s.worldOpacity === 'number')
         useUiStore.getState().setWorldOpacity(s.worldOpacity)
       if (typeof s.worldBlur === 'number') useUiStore.getState().setWorldBlur(s.worldBlur)
+      if (typeof s.worldSurge === 'boolean') {
+        useUiStore.setState({ worldSurge: s.worldSurge })
+        themeDirector.setSurgeEnabled(s.worldSurge)
+      }
       if (s.customMedia && typeof s.customMedia === 'object')
         useUiStore.setState({
           customMedia: s.customMedia as { type: 'image' | 'video'; url: string }
@@ -166,6 +173,8 @@ export function App(): JSX.Element {
           <PlayerBar />
           <UpdateNotice />
           <DjMode />
+          <CapsuleLayer />
+          <WhatsNew ready={!intro} />
         </div>
       </HashRouter>
     </>

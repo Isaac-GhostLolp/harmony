@@ -15,6 +15,8 @@
  * safe to swap.
  */
 
+import type { SectionState } from '@/services/songStructure'
+
 /** Live, per-frame music + environment data handed to a world every frame. */
 export interface WorldContext {
   /** Canvas 2D context to draw into (already sized to the viewport in CSS px). */
@@ -53,6 +55,14 @@ export interface WorldContext {
   sway: number
   /** Frequency spectrum, `spectrumBins` values 0..1 (low → high). */
   spectrum: number[]
+  /** Where we are in the song's form (from SongStructure). */
+  section: SectionState
+  /**
+   * Chorus/drop envelope 0..1: rises on drops and the song's climax, decays
+   * in the groove. The director already adds a bloom and a camera punch on
+   * top of every world; worlds can also read it to go bigger themselves.
+   */
+  surge: number
 
   // ---- Palette / art --------------------------------------------------------
   /** Accent color derived from the current cover, as `r,g,b` triplet 0..255. */

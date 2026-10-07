@@ -86,6 +86,21 @@ CREATE INDEX IF NOT EXISTS idx_history_song ON history(song_id);
 CREATE INDEX IF NOT EXISTS idx_history_played ON history(played_at);
 CREATE INDEX IF NOT EXISTS idx_song_artists_artist ON song_artists(artist_id);
 CREATE INDEX IF NOT EXISTS idx_song_artists_song ON song_artists(song_id);
+
+-- v0.17 — time capsules: a note sealed on a song, opened when it plays again
+-- after open_at. Title/artist are kept so a memory outlives its song.
+CREATE TABLE IF NOT EXISTS capsules (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  song_id INTEGER REFERENCES songs(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  artist TEXT,
+  note TEXT NOT NULL,
+  emoji TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  open_at INTEGER NOT NULL,
+  opened_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_capsules_song ON capsules(song_id);
 `
 
 /** Adds a column if missing — SQLite has no ADD COLUMN IF NOT EXISTS. */

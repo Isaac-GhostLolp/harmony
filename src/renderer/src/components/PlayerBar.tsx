@@ -10,9 +10,11 @@ import {
   Heart,
   MicVocal,
   PictureInPicture2,
-  Disc3
+  Disc3,
+  Hourglass
 } from 'lucide-react'
 import { usePlayerStore } from '@/store/playerStore'
+import { useCapsuleStore } from '@/store/capsuleStore'
 import { useUiStore } from '@/store/uiStore'
 import { api } from '@/services/api'
 import { CoverArt } from '@/components/CoverArt'
@@ -60,6 +62,16 @@ export function PlayerBar(): JSX.Element {
               fill={song.favorite ? 'var(--accent)' : 'none'}
               stroke={song.favorite ? 'var(--accent)' : 'currentColor'}
             />
+          </button>
+        )}
+        {song && (
+          <button
+            onClick={() => useCapsuleStore.getState().openSeal(song)}
+            className="text-muted transition-colors hover:text-[var(--accent)]"
+            aria-label="Cápsula do tempo"
+            title="Guardar uma lembrança nesta música"
+          >
+            <Hourglass size={15} />
           </button>
         )}
       </div>

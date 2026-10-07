@@ -4,8 +4,11 @@ import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
 import { PageHeader } from '@/components/PageHeader'
 import type { ThemeName } from '@/types'
-import { WORLDS } from '@/worlds/registry'
+import { WORLDS, findWorld } from '@/worlds/registry'
+import { getAutoPick, onAutoPick, type AutoPick } from '@/worlds/auto'
 import { INTRO_PREF_KEY, INTRO_REPLAY_EVENT } from '@/components/IntroSplash'
+import { WHATS_NEW_EVENT } from '@/components/WhatsNew'
+import { APP_VERSION } from '@/whatsNew'
 
 const THEMES: { id: ThemeName; label: string }[] = [
   { id: 'dark', label: 'Dark' },
@@ -34,6 +37,8 @@ export function Settings(): JSX.Element {
     setWorldOpacity,
     worldBlur,
     setWorldBlur,
+    worldSurge,
+    setWorldSurge,
     customMedia,
     setCustomMedia
   } = useUiStore()
@@ -140,7 +145,31 @@ export function Settings(): JSX.Element {
         {world && (
           <div className="mt-5 rounded-2xl bg-[var(--bg-raised)] p-4">
             <h3 className="mb-3 text-xs font-semibold">Personalizar este mundo</h3>
+            {world === 'auto' && <AutoWorldStatus />}
             <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs">Explosão no refrão</p>
+                  <p className="text-[11px] text-muted">
+                    O mundo ganha brilho e um leve zoom nos refrões e drops da música.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setWorldSurge(!worldSurge)}
+                  role="switch"
+                  aria-checked={worldSurge}
+                  aria-label="Explosão no refrão"
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    worldSurge ? 'bg-[var(--accent)]' : 'bg-[var(--bg-base)]'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                      worldSurge ? 'left-[22px]' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
               <div>
                 <div className="mb-1 flex justify-between text-[11px] text-muted">
                   <span>Transparência dos painéis</span>
@@ -246,6 +275,21 @@ export function Settings(): JSX.Element {
               {b.label}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="glass mb-4 rounded-2xl p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold">Novidades</h2>
+            <p className="mt-0.5 text-xs text-muted">Você está no Harmony v{APP_VERSION}.</p>
+          </div>
+          <button
+            onClick={() => window.dispatchEvent(new Event(WHATS_NEW_EVENT))}
+            className="shrink-0 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-medium text-muted hover:text-ink"
+          >
+            ✨ Ver novidades
+          </button>
         </div>
       </section>
 
@@ -402,5 +446,37 @@ export function Settings(): JSX.Element {
         </p>
       </section>
     </div>
+  )
+}
+
+const PICK_REASON: Record<AutoPick['reason'], string> = {
+  genre: 'pelo gênero',
+  energy: 'pela energia da música',
+  time: 'pela hora do dia',
+  listening: ''
+}
+
+/** Which world the automatic mode chose for the current song, and why. */
+function AutoWorldStatus(): JSX.Element {
+  const [pick, setPick] = useState<AutoPick | null>(getAutoPick)
+  useEffect(() => onAutoPick(setPick), [])
+  const meta = pick ? findWorld(pick.worldId) : undefined
+  return (
+    <p className="mb-4 rounded-xl bg-black/20 px-3 py-2 text-[11px] text-muted">
+      {meta && pick && pick.reason === 'listening' ? (
+        <>
+          Agora: <span className="font-semibold text-ink">{meta.emoji} {meta.name}</span>. Ouvindo esta música para
+          escolher o mundo dela…
+        </>
+      ) : meta && pick ? (
+        <>
+          Agora: <span className="font-semibold text-ink">{meta.emoji} {meta.name}</span>, escolhido{' '}
+          {PICK_REASON[pick.reason]}
+          {pick.reason === 'genre' && pick.genre ? ` (${pick.genre})` : ''}.
+        </>
+      ) : (
+        'Dê play numa música e o mundo certo aparece.'
+      )}
+    </p>
   )
 }

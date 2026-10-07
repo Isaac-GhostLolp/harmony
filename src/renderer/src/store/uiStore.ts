@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
 import type { ThemeName } from '@/types'
+import { themeDirector } from '@/worlds/ThemeDirector'
 
 export type BackgroundMode = 'none' | 'cover'
 export type LyricsMode = 'synced' | 'karaoke' | 'edit'
@@ -16,6 +17,8 @@ interface UiState {
   world: string | null
   worldOpacity: number
   worldBlur: number
+  /** chorus/drop bloom and camera punch on every world */
+  worldSurge: boolean
   customMedia: { type: 'image' | 'video'; url: string } | null
   setTheme: (t: ThemeName) => void
   toggleQueue: () => void
@@ -27,6 +30,7 @@ interface UiState {
   setWorld: (id: string | null) => void
   setWorldOpacity: (v: number) => void
   setWorldBlur: (v: number) => void
+  setWorldSurge: (on: boolean) => void
   setCustomMedia: (m: { type: 'image' | 'video'; url: string } | null) => void
 }
 
@@ -43,6 +47,7 @@ export const useUiStore = create<UiState>((set) => ({
   // blur 0..30 px. Defaults match the tuned 0.13.4 values.
   worldOpacity: 72,
   worldBlur: 8,
+  worldSurge: false,
   customMedia: null,
   setTheme: (theme) => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -81,6 +86,11 @@ export const useUiStore = create<UiState>((set) => ({
     document.documentElement.style.setProperty('--world-panel-blur', `${worldBlur}px`)
     persistSettingDebounced('worldBlur', worldBlur)
     set({ worldBlur })
+  },
+  setWorldSurge: (worldSurge) => {
+    themeDirector.setSurgeEnabled(worldSurge)
+    window.harmony.settings.set('worldSurge', worldSurge)
+    set({ worldSurge })
   },
   setCustomMedia: (customMedia) => {
     // Persist only the stable info (type + the harmony:// url built from the

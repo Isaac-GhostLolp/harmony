@@ -16,6 +16,14 @@ export interface WorldMeta {
 
 export const WORLDS: WorldMeta[] = [
   {
+    id: 'auto',
+    name: 'Automático',
+    emoji: '🎚️',
+    category: 'signature',
+    blurb: 'Escolhe o mundo certo para cada música pelo gênero, pela energia e pela hora do dia, e troca suavemente entre as faixas.',
+    load: () => import('./auto').then((m) => m.autoWorld)
+  },
+  {
     id: 'blackhole',
     name: 'Black Hole',
     emoji: '🕳️',

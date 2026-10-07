@@ -592,6 +592,154 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
   })
 
+  // Cápsulas do tempo
+  const CAPSULE_SELECT = `
+    SELECT c.id, c.song_id as songId, COALESCE(s.title, c.title) as title, COALESCE(ar.name, c.artist) as artist,
+           ${EFFECTIVE_COVER_SQL} as coverPath, c.note, c.emoji, c.created_at as createdAt,
+           c.open_at as openAt, c.opened_at as openedAt
+    FROM capsules c LEFT JOIN songs s ON s.id = c.song_id
+    LEFT JOIN artists ar ON ar.id = s.artist_id LEFT JOIN albums al ON al.id = s.album_id`
+
+  ipcMain.handle('capsules:list', () => db().prepare(`${CAPSULE_SELECT} ORDER BY c.open_at ASC`).all())
+
+  ipcMain.handle('capsules:create', (_e, songId: number, note: string, emoji: string | null, openAt: number) => {
+    const text = String(note ?? '').trim().slice(0, 500)
+    const when = Math.floor(Number(openAt))
+    if (!text || !Number.isFinite(when)) return null
+    const song = db()
+      .prepare('SELECT s.title, ar.name as artist FROM songs s LEFT JOIN artists ar ON ar.id = s.artist_id WHERE s.id = ?')
+      .get(songId) as { title: string; artist: string | null } | undefined
+    if (!song) return null
+    const r = db()
+      .prepare('INSERT INTO capsules (song_id, title, artist, note, emoji, open_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(songId, song.title, song.artist, text, emoji ? String(emoji).slice(0, 16) : null, when)
+    return db().prepare(`${CAPSULE_SELECT} WHERE c.id = ?`).get(r.lastInsertRowid)
+  })
+
+  ipcMain.handle('capsules:delete', (_e, id: number) => {
+    db().prepare('DELETE FROM capsules WHERE id = ?').run(id)
+    return true
+  })
+
+  /** Sealed capsules on this song whose day has come. */
+  ipcMain.handle('capsules:due', (_e, songId: number) =>
+    db()
+      .prepare(
+        `${CAPSULE_SELECT} WHERE c.song_id = ? AND c.opened_at IS NULL AND c.open_at <= unixepoch()
+         ORDER BY c.created_at ASC`
+      )
+      .all(songId)
+  )
+
+  ipcMain.handle('capsules:markOpened', (_e, id: number) => {
+    db().prepare('UPDATE capsules SET opened_at = unixepoch() WHERE id = ? AND opened_at IS NULL').run(id)
+    return true
+  })
+
+  // Retrospectiva: one year of listening (or all of it), in local time.
+  ipcMain.handle('stats:recap', (_e, period: number | 'all') => {
+    const year = typeof period === 'number' && Number.isInteger(period) ? period : null
+    const range = {
+      from: year ? Math.floor(new Date(year, 0, 1).getTime() / 1000) : 0,
+      to: year ? Math.floor(new Date(year + 1, 0, 1).getTime() / 1000) : 2 ** 31
+    }
+    const all = <T>(sql: string): T[] => db().prepare(sql).all(range) as T[]
+    const one = <T>(sql: string): T => db().prepare(sql).get(range) as T
+    const LOCAL = "h.played_at, 'unixepoch', 'localtime'"
+    const IN = 'h.played_at >= @from AND h.played_at < @to'
+
+    const years = (
+      db()
+        .prepare(
+          `SELECT DISTINCT CAST(strftime('%Y', played_at, 'unixepoch', 'localtime') AS INTEGER) as y
+           FROM history ORDER BY y DESC`
+        )
+        .all() as { y: number }[]
+    ).map((r) => r.y)
+
+    const totals = one<{ plays: number; seconds: number; days: number; songs: number; artists: number }>(
+      `SELECT COUNT(*) as plays, COALESCE(SUM(s.duration), 0) as seconds,
+              COUNT(DISTINCT date(${LOCAL})) as days, COUNT(DISTINCT h.song_id) as songs,
+              COUNT(DISTINCT s.artist_id) as artists
+       FROM history h JOIN songs s ON s.id = h.song_id WHERE ${IN}`
+    )
+    // songs whose very first play falls in the period
+    const newSongs = one<{ n: number }>(
+      `SELECT COUNT(*) as n FROM (SELECT song_id, MIN(played_at) as first FROM history GROUP BY song_id)
+       WHERE first >= @from AND first < @to`
+    ).n
+    const topSongs = all(
+      `SELECT s.id, s.title, s.path, s.duration, ar.name as artist, ${EFFECTIVE_COVER_SQL} as coverPath,
+              COUNT(*) as plays
+       FROM history h JOIN songs s ON s.id = h.song_id
+       LEFT JOIN artists ar ON ar.id = s.artist_id LEFT JOIN albums al ON al.id = s.album_id
+       WHERE ${IN} GROUP BY s.id ORDER BY plays DESC, MAX(h.played_at) DESC LIMIT 5`
+    )
+    const topArtists = all<{ id: number; name: string; plays: number }>(
+      `SELECT ar.id, ar.name, COUNT(*) as plays FROM history h
+       JOIN songs s ON s.id = h.song_id JOIN artists ar ON ar.id = s.artist_id
+       WHERE ${IN} GROUP BY ar.id ORDER BY plays DESC LIMIT 5`
+    ).map((a) => ({
+      ...a,
+      cover:
+        (
+          db()
+            .prepare(
+              `SELECT ${EFFECTIVE_COVER_SQL} as c FROM history h JOIN songs s ON s.id = h.song_id
+               JOIN albums al ON al.id = s.album_id WHERE s.artist_id = @artist AND ${IN}
+               GROUP BY al.id ORDER BY COUNT(*) DESC LIMIT 1`
+            )
+            .get({ ...range, artist: a.id }) as { c: string | null } | undefined
+        )?.c ?? null
+    }))
+    const topGenres = all(
+      `SELECT s.genre as genre, COUNT(*) as plays FROM history h JOIN songs s ON s.id = h.song_id
+       WHERE ${IN} AND s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
+       GROUP BY s.genre ORDER BY plays DESC LIMIT 5`
+    )
+    const hours = new Array(24).fill(0)
+    for (const r of all<{ h: number; n: number }>(
+      `SELECT CAST(strftime('%H', ${LOCAL}) AS INTEGER) as h, COUNT(*) as n FROM history h WHERE ${IN} GROUP BY h`
+    ))
+      hours[r.h] = r.n
+    const months = new Array(12).fill(0)
+    for (const r of all<{ m: number; n: number }>(
+      `SELECT CAST(strftime('%m', ${LOCAL}) AS INTEGER) as m, COUNT(*) as n FROM history h WHERE ${IN} GROUP BY m`
+    ))
+      months[r.m - 1] = r.n
+    const bestDay = one<{ d: string; plays: number; seconds: number } | undefined>(
+      `SELECT date(${LOCAL}) as d, COUNT(*) as plays, SUM(s.duration) as seconds
+       FROM history h JOIN songs s ON s.id = h.song_id WHERE ${IN} GROUP BY d ORDER BY seconds DESC LIMIT 1`
+    )
+    const days = all<{ d: string }>(`SELECT DISTINCT date(${LOCAL}) as d FROM history h WHERE ${IN} ORDER BY d`).map(
+      (r) => Date.parse(r.d + 'T12:00:00Z') / 86400000
+    )
+    let bestStreak = 0
+    let run = 0
+    for (let i = 0; i < days.length; i++) {
+      run = i > 0 && Math.round(days[i] - days[i - 1]) === 1 ? run + 1 : 1
+      bestStreak = Math.max(bestStreak, run)
+    }
+
+    return {
+      period: year ?? 'all',
+      years,
+      totalPlays: totals.plays,
+      seconds: totals.seconds,
+      activeDays: totals.days,
+      songsPlayed: totals.songs,
+      artistsPlayed: totals.artists,
+      newSongs,
+      topSongs,
+      topArtists,
+      topGenres,
+      hours,
+      months,
+      bestDay: bestDay ?? null,
+      bestStreak
+    }
+  })
+
   ipcMain.handle('stats:get', () => {
     const topArtist = db()
       .prepare(
