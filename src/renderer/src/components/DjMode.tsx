@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useUltraFast } from '@/utils/perf'
 import { Play, Pause, SkipBack, SkipForward } from 'lucide-react'
 import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore } from '@/store/uiStore'
@@ -23,7 +24,8 @@ export function DjMode(): JSX.Element | null {
 
   const [idle, setIdle] = useState(false)
   const idleTimer = useRef<number | undefined>(undefined)
-  const breatheRef = useBreathe<HTMLDivElement>(5.5, 0.015, djMode)
+  const ultraFast = useUltraFast()
+  const breatheRef = useBreathe<HTMLDivElement>(5.5, 0.015, djMode && !ultraFast)
 
   // Hide controls after 3s of no mouse movement; reveal on move.
   useEffect(() => {
@@ -67,7 +69,7 @@ export function DjMode(): JSX.Element | null {
     <div className={`dj-root fixed inset-0 z-[120] overflow-hidden bg-black ${idle ? 'dj-idle' : ''}`}>
       {/* blurred cover backdrop tinted by accent */}
       <div className="absolute inset-0">
-        {cover ? (
+        {cover && !ultraFast ? (
           <img
             src={`harmony://${cover}`}
             alt=""

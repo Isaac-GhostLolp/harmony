@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { canvasDpr, frameBudgetMs, onUltraFastChange } from '@/utils/perf'
 import { Maximize, Minimize, Music2, ChevronDown } from 'lucide-react'
 import { usePlayerStore } from '@/store/playerStore'
 import { api } from '@/services/api'
@@ -110,7 +111,7 @@ export function Visualizer(): JSX.Element {
     let W = 0
     let H = 0
     const resize = (): void => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const dpr = canvasDpr()
       const rect = canvas.getBoundingClientRect()
       W = rect.width
       H = rect.height
@@ -121,10 +122,17 @@ export function Visualizer(): JSX.Element {
     resize()
     const observer = new ResizeObserver(resize)
     observer.observe(canvas)
+    // Ultra Fast Mode changes the pixel density
+    const offUltra = onUltraFastChange(resize)
+    let lastFrameMs = 0
 
-    const draw = (): void => {
+    const draw = (now: number): void => {
       raf = requestAnimationFrame(draw)
       if (W < 10 || H < 10) return
+      // Ultra Fast Mode: 30 fps
+      const budget = frameBudgetMs()
+      if (budget && now - lastFrameMs < budget) return
+      lastFrameMs = now
 
       const ps = usePlayerStore.getState()
       const cur = ps.queue[ps.currentIndex]
@@ -173,6 +181,7 @@ export function Visualizer(): JSX.Element {
     return () => {
       cancelAnimationFrame(raf)
       observer.disconnect()
+      offUltra()
     }
   }, [])
 

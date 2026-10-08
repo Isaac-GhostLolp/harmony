@@ -14,6 +14,7 @@ export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_V
 export type WhatsNewAction =
   | { kind: 'route'; label: string; to: string }
   | { kind: 'world'; label: string; world: string }
+  | { kind: 'karaoke'; label: string }
 
 export interface WhatsNewItem {
   emoji: string
@@ -29,6 +30,41 @@ export interface Release {
 }
 
 export const RELEASES: Release[] = [
+  {
+    version: '0.17.5',
+    title: 'Solta a voz!',
+    items: [
+      {
+        emoji: '🎤',
+        title: 'Novo modo karaokê',
+        text: 'Tire a voz original da música em tempo real, acompanhe a letra palavra por palavra com a bolinha pulando e cante no microfone para ganhar uma nota de S a D. Se a letra estiver adiantada ou atrasada, ajuste com − / + (fica salvo para cada música).',
+        action: { kind: 'karaoke', label: 'Abrir o karaokê' }
+      },
+      {
+        emoji: '🌌',
+        title: 'Mundos vivos refeitos',
+        text: 'Todos os mundos ganharam um remake com muito mais detalhe, sem perder a essência: um buraco negro com lente gravitacional de verdade, um planeta que gira com cidades acendendo à noite, a cafeteria, o jardim japonês, o oceano, o inverno, a floresta, a chuva, o vulcão, o synthwave e a cidade cyberpunk. A maioria muda de luz conforme o horário do dia.',
+        action: { kind: 'world', label: 'Ver o Black Hole', world: 'blackhole' }
+      },
+      {
+        emoji: '🎆',
+        title: 'Visualizer: quatro palcos novos',
+        text: 'Cyber Arena, Nature Pulse, Synthwave City e Space Odyssey foram refeitos no nível do Festival e do Pyramid: arena de hologramas com telão de hexágonos, clareira com aurora e arco de árvores, triângulo neon na rodovia dos anos 80 e show no convés de uma estação espacial com warp nos drops.',
+        action: { kind: 'route', label: 'Abrir o Visualizer', to: '/visualizer' }
+      },
+      {
+        emoji: '⚡',
+        title: 'Modo Ultra Rápido',
+        text: 'Computador mais fraco? Ligue nas Configurações e o Harmony fica leve e liso: sem desfoque de vidro, sombras e animações na interface, Worlds e Visualizer a 30 quadros por segundo em resolução normal. O som continua igualzinho.',
+        action: { kind: 'route', label: 'Ir para as Configurações', to: '/settings' }
+      },
+      {
+        emoji: '🧡',
+        title: 'Cara nova',
+        text: 'O Harmony ganhou um ícone novo, que agora aparece também na barra lateral.'
+      }
+    ]
+  },
   {
     version: '0.17.0',
     title: 'Seu ano, seus mundos, suas lembranças',

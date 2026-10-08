@@ -58,7 +58,7 @@ export function parseLrc(raw: string): LrcLine[] {
  * timestamp — no fixed lead/offset, which previously made lines feel early on
  * slow songs and late on fast ones (the timing drift bug).
  */
-export function activeLineIndex(lines: LrcLine[], time: number): number {
+export function activeLineIndex(lines: readonly { time: number }[], time: number): number {
   let idx = -1
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].time <= time) idx = i

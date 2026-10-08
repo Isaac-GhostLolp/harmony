@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useUltraFast } from '@/utils/perf'
 
 /**
  * Drives a gentle "breathing" scale/opacity from real wall-clock time via
@@ -49,7 +50,7 @@ export function BreathingEmoji({
   active: boolean
   className?: string
 }): JSX.Element {
-  const ref = useBreathe<HTMLSpanElement>()
+  const ref = useBreathe<HTMLSpanElement>(5.5, 0.015, !useUltraFast())
   return (
     <span ref={active ? ref : undefined} className={`${className} ${active ? '' : 'opacity-60 grayscale'}`}>
       {emoji}

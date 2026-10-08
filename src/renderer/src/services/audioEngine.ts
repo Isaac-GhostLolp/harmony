@@ -5,12 +5,17 @@
  * (which supports Range requests, so seeking and `ended` are sample-accurate)
  * into a shared Web Audio graph:
  *
- *   slotA ─ gainA ─┐
- *                  ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ output
- *   slotB ─ gainB ─┘
+ *   slotA ─ gainA ─┐            ┌─ dry ──────────────────────┐
+ *                  ├─ mix ──────┤                            ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ output
+ *   slotB ─ gainB ─┘            └─ karaoke (vocal cut) ─ wet ┘
  *
  * The dual-slot design gives us gapless track changes and true crossfade:
  * the next song starts in the idle slot while the old one ramps down.
+ *
+ * Karaoke: vocals are usually mixed dead centre, so L−R ("side") cancels
+ * them while keeping most instruments; bass and kick are centred too, so
+ * they come back from a low-passed L+R ("mid"). The branch is only wired up
+ * while karaoke is on, so it costs nothing the rest of the time.
  */
 
 export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const
@@ -32,6 +37,17 @@ export class AudioEngine {
   private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
   private autoNextFired = false
+  // karaoke branch
+  private mix: GainNode
+  private dry: GainNode
+  private wet: GainNode
+  private splitter: ChannelSplitterNode
+  private midAnalyser: AnalyserNode
+  private sideAnalyser: AnalyserNode
+  private vocalAnalyser: AnalyserNode
+  private karaokeWired = false
+  private karaokeOn = false
+  private karaokeBuf: Float32Array<ArrayBuffer> | null = null
 
   /** Crossfade duration in seconds; 0 disables it. */
   crossfadeSec = 0
@@ -78,6 +94,75 @@ export class AudioEngine {
 
     const eqInput = this.filters[0]
 
+    // Both slots meet here; the karaoke branch taps it as true stereo.
+    this.mix = this.ctx.createGain()
+    this.mix.channelCount = 2
+    this.mix.channelCountMode = 'explicit'
+    this.mix.channelInterpretation = 'speakers'
+    this.dry = this.ctx.createGain()
+    this.wet = this.ctx.createGain()
+    this.wet.gain.value = 0
+    this.mix.connect(this.dry)
+    this.dry.connect(eqInput)
+    this.wet.connect(eqInput)
+
+    this.splitter = this.ctx.createChannelSplitter(2)
+    const half = (v: number): GainNode => {
+      const g = this.ctx.createGain()
+      g.gain.value = v
+      return g
+    }
+    const pass = (type: BiquadFilterType, freq: number): BiquadFilterNode => {
+      const f = this.ctx.createBiquadFilter()
+      f.type = type
+      f.frequency.value = freq
+      f.Q.value = 0.707
+      return f
+    }
+    // side = (L − R) / 2: the centre (voice) cancels; high-passed so the
+    // thin low end of the side doesn't fight the restored bass
+    const side = this.ctx.createGain()
+    const sideL = half(0.5)
+    const sideR = half(-0.5)
+    this.splitter.connect(sideL, 0)
+    this.splitter.connect(sideR, 1)
+    sideL.connect(side)
+    sideR.connect(side)
+    const sideHp1 = pass('highpass', 140)
+    const sideHp2 = pass('highpass', 140)
+    side.connect(sideHp1)
+    sideHp1.connect(sideHp2)
+    sideHp2.connect(this.wet)
+    // mid = (L + R) / 2: low-passed to bring bass and kick back
+    const mid = this.ctx.createGain()
+    const midL = half(0.5)
+    const midR = half(0.5)
+    this.splitter.connect(midL, 0)
+    this.splitter.connect(midR, 1)
+    midL.connect(mid)
+    midR.connect(mid)
+    const midLp1 = pass('lowpass', 140)
+    const midLp2 = pass('lowpass', 140)
+    mid.connect(midLp1)
+    midLp1.connect(midLp2)
+    midLp2.connect(this.wet)
+    // taps: is there any stereo at all (mono songs can't lose their voice),
+    // and the singer's band of the centre, for the pitch the user is scored on
+    this.midAnalyser = this.ctx.createAnalyser()
+    this.midAnalyser.fftSize = 2048
+    this.sideAnalyser = this.ctx.createAnalyser()
+    this.sideAnalyser.fftSize = 2048
+    mid.connect(this.midAnalyser)
+    side.connect(this.sideAnalyser)
+    const voiceBand = this.ctx.createBiquadFilter()
+    voiceBand.type = 'bandpass'
+    voiceBand.frequency.value = 520
+    voiceBand.Q.value = 0.6
+    this.vocalAnalyser = this.ctx.createAnalyser()
+    this.vocalAnalyser.fftSize = 2048
+    mid.connect(voiceBand)
+    voiceBand.connect(this.vocalAnalyser)
+
     this.slots = [0, 1].map((idx) => {
       const el = new Audio()
       el.crossOrigin = 'anonymous' // + CORS headers on harmony:// → Web Audio can read samples
@@ -85,7 +170,7 @@ export class AudioEngine {
       const gain = this.ctx.createGain()
       gain.gain.value = 0
       this.ctx.createMediaElementSource(el).connect(gain)
-      gain.connect(eqInput)
+      gain.connect(this.mix)
 
       el.addEventListener('timeupdate', () => this.handleTime(idx))
       el.addEventListener('ended', () => {
@@ -186,6 +271,52 @@ export class AudioEngine {
     this.filters.forEach((f, i) => {
       f.gain.value = gainsDb[i] ?? 0
     })
+  }
+
+  /**
+   * Karaoke on/off. While on, the stereo split is wired (for the vocal cut
+   * and the pitch/mono taps); `amount` 0..1 is how much of the voice to cut.
+   */
+  setKaraoke(on: boolean, amount = 0): void {
+    this.karaokeOn = on
+    if (on && !this.karaokeWired) {
+      this.mix.connect(this.splitter)
+      this.karaokeWired = true
+    }
+    const a = on ? Math.min(1, Math.max(0, amount)) : 0
+    const now = this.ctx.currentTime
+    this.dry.gain.cancelScheduledValues(now)
+    this.wet.gain.cancelScheduledValues(now)
+    this.dry.gain.setTargetAtTime(1 - a, now, 0.05)
+    this.wet.gain.setTargetAtTime(a, now, 0.05)
+    if (!on && this.karaokeWired) {
+      // let the fade finish before unplugging
+      window.setTimeout(() => {
+        if (!this.karaokeOn && this.karaokeWired) {
+          this.mix.disconnect(this.splitter)
+          this.karaokeWired = false
+        }
+      }, 400)
+    }
+  }
+
+  private rms(a: AnalyserNode): number {
+    if (!this.karaokeBuf || this.karaokeBuf.length !== a.fftSize) this.karaokeBuf = new Float32Array(a.fftSize)
+    a.getFloatTimeDomainData(this.karaokeBuf)
+    let sum = 0
+    for (let i = 0; i < this.karaokeBuf.length; i++) sum += this.karaokeBuf[i] * this.karaokeBuf[i]
+    return Math.sqrt(sum / this.karaokeBuf.length)
+  }
+
+  /** Loudness of the centre and of the sides (only while karaoke is on). */
+  getStereoLevels(): { mid: number; side: number } {
+    if (!this.karaokeWired) return { mid: 0, side: 0 }
+    return { mid: this.rms(this.midAnalyser), side: this.rms(this.sideAnalyser) }
+  }
+
+  /** The centre channel in the singing range, for pitch detection. */
+  getVocalAnalyser(): AnalyserNode | null {
+    return this.karaokeWired ? this.vocalAnalyser : null
   }
 
   /** Direct access for the StageDirector: it reads frequency data into its

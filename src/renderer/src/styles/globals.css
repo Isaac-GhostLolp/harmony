@@ -436,3 +436,36 @@ input[type='range']:hover::-webkit-slider-thumb {
     animation: none;
   }
 }
+
+/* ---------- Ultra Fast Mode (utils/perf.ts) ----------
+   A fast, economical Harmony for weak machines: no backdrop blur (the most
+   expensive thing a GPU-less machine can paint), no shadows, no animations or
+   transitions. Floating glass gets a solid background so it stays readable
+   without the blur, and over a living World the panels get more opaque. */
+html.ultra-fast *,
+html.ultra-fast *::before,
+html.ultra-fast *::after {
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0ms !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+}
+html.ultra-fast .drop-shadow {
+  filter: none !important;
+}
+html.ultra-fast .glass:is(.absolute, .fixed, .sticky) {
+  background: var(--bg-base);
+}
+html.ultra-fast.world-active .glass {
+  background: rgba(10, 12, 20, max(0.6, var(--world-panel-alpha, 0.28)));
+}
+html.ultra-fast.world-active main.glass {
+  background: rgba(8, 10, 16, max(0.5, var(--world-panel-alpha, 0.28)));
+}
+html.ultra-fast .ambient::before {
+  display: none;
+}

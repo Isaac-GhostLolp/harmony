@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isUltraFast, setUltraFast, useUltraFast } from '@/utils/perf'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { Sidebar } from '@/components/Sidebar'
 import { PlayerBar } from '@/components/PlayerBar'
@@ -47,12 +48,14 @@ function AudioBridge(): null {
 export function App(): JSX.Element {
   const backgroundMode = useUiStore((s) => s.background)
   const coverPath = usePlayerStore((s) => s.queue[s.currentIndex]?.coverPath ?? null)
+  const ultraFast = useUltraFast()
 
   // Restore persisted settings on boot
   useEffect(() => {
     api.settings.get().then((raw) => {
       const s = raw as Record<string, unknown>
       if (typeof s.theme === 'string') useUiStore.getState().setTheme(s.theme as ThemeName)
+      if (typeof s.ultraFast === 'boolean') setUltraFast(s.ultraFast)
       if (typeof s.world === 'string' || s.world === null)
         useUiStore.getState().setWorld((s.world as string | null) ?? null)
       if (typeof s.worldOpacity === 'number')
@@ -121,7 +124,7 @@ export function App(): JSX.Element {
   }, [])
 
   // opening animation, over the app while it loads (Settings can replay it)
-  const [intro, setIntro] = useState(introEnabled)
+  const [intro, setIntro] = useState(() => introEnabled() && !isUltraFast())
   useEffect(() => {
     const replay = (): void => setIntro(true)
     window.addEventListener(INTRO_REPLAY_EVENT, replay)
@@ -139,7 +142,7 @@ export function App(): JSX.Element {
         <WorldLayer />
         <div className="ambient relative flex h-full flex-col">
           {/* Dynamic blurred-cover background */}
-          {bgCover && (
+          {bgCover && !ultraFast && (
             <div
               aria-hidden
               className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-25 transition-[background-image] duration-700"

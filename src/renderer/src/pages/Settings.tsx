@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { setUltraFast, useUltraFast } from '@/utils/perf'
 import { useUiStore, type BackgroundMode } from '@/store/uiStore'
 import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
@@ -42,6 +43,7 @@ export function Settings(): JSX.Element {
     customMedia,
     setCustomMedia
   } = useUiStore()
+  const ultraFast = useUltraFast()
   const [libraryFolders, setLibraryFolders] = useState<string[]>([])
   const [discordEnabled, setDiscordEnabled] = useState(false)
   const [discordClientId, setDiscordClientId] = useState('')
@@ -275,6 +277,35 @@ export function Settings(): JSX.Element {
               {b.label}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="glass mb-4 rounded-2xl p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold">⚡ Modo Ultra Rápido</h2>
+            <p className="mt-0.5 text-xs text-muted">
+              Deixa o Harmony leve e liso em computadores mais fracos: tira o desfoque de vidro,
+              as sombras e as animações da interface, desenha os Worlds vivos e o Visualizer em
+              resolução normal a 30 quadros por segundo e pausa os efeitos pequenos, como o LED do
+              logo. O som não muda em nada.
+            </p>
+          </div>
+          <button
+            onClick={() => setUltraFast(!ultraFast)}
+            role="switch"
+            aria-checked={ultraFast}
+            aria-label="Modo Ultra Rápido"
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              ultraFast ? 'bg-[var(--accent)]' : 'bg-[var(--bg-raised)]'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                ultraFast ? 'left-[22px]' : 'left-0.5'
+              }`}
+            />
+          </button>
         </div>
       </section>
 

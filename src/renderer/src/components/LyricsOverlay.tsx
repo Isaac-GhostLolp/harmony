@@ -6,9 +6,9 @@ import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore, type LyricsMode } from '@/store/uiStore'
 import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
-import { parseLrc, activeLineIndex, lineProgress, type LrcLine } from '@/utils/lrc'
-import { useSmoothTime } from '@/hooks/useSmoothTime'
+import { parseLrc, activeLineIndex, type LrcLine } from '@/utils/lrc'
 import { EditStudio } from '@/components/edit/EditStudio'
+import { KaraokeView } from '@/components/karaoke/KaraokeView'
 import type { LyricsResult } from '@/types'
 
 const MODES: { id: LyricsMode; label: string }[] = [
@@ -190,60 +190,3 @@ function SyncedView({ lines }: { lines: LrcLine[] }): JSX.Element {
 // ---------------------------------------------------------------------------
 // Mode 2: karaoke — the active line is painted as it's sung
 // ---------------------------------------------------------------------------
-
-function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
-  const time = useSmoothTime()
-  const seek = usePlayerStore((s) => s.seek)
-  const active = activeLineIndex(lines, time)
-  const progress = active >= 0 ? lineProgress(lines, active, time) : 0
-
-  const prev = lines[active - 1]
-  const line = lines[active]
-  const next = lines[active + 1]
-  const after = lines[active + 2]
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-5 px-8 text-center">
-      <Ghost line={prev} onSeek={seek} />
-      {line ? (
-        <p
-          className="max-w-3xl text-3xl font-bold leading-snug"
-          style={{
-            backgroundImage: `linear-gradient(90deg, var(--accent) ${progress * 100}%, var(--text-muted) ${progress * 100}%)`,
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            color: 'transparent'
-          }}
-        >
-          {line.text}
-        </p>
-      ) : (
-        <p className="text-2xl text-muted">…</p>
-      )}
-      <Ghost line={next} onSeek={seek} />
-      <Ghost line={after} onSeek={seek} dimmer />
-    </div>
-  )
-}
-
-function Ghost({
-  line,
-  onSeek,
-  dimmer
-}: {
-  line?: LrcLine
-  onSeek: (t: number) => void
-  dimmer?: boolean
-}): JSX.Element | null {
-  if (!line) return null
-  return (
-    <button
-      onClick={() => onSeek(line.time)}
-      className={`max-w-2xl text-lg text-muted transition-colors hover:text-ink ${
-        dimmer ? 'opacity-40' : 'opacity-70'
-      }`}
-    >
-      {line.text}
-    </button>
-  )
-}

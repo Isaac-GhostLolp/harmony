@@ -1,253 +1,549 @@
 import type { World, WorldContext } from './types'
-import { ParticlePool } from './types'
+import { BW, BH, fbm, glowSprite, rng, sameView, toBoard, viewFor, type Layer, type View } from './kit'
 
 /**
- * 🕳️ Black Hole — a living cosmos with a rotating accretion disc, gravitational
- * lensing that bends nearby stars, an event horizon that pulses on the kick,
- * drifting cosmic dust and the occasional meteor. Inspired by Interstellar:
- * elegant, never gaudy. All motion derives from the music via WorldContext.
+ * 🕳️ Black Hole — a living cosmos around a giant black hole. Inspired by
+ * Interstellar: elegant, never gaudy.
  *
- * Performance: a fixed starfield (typed arrays), a pooled dust/meteor system,
- * and a single rAF driven by the ThemeDirector. No per-frame allocations.
+ * The shadow sits in the middle of a starfield that is truly lensed: the
+ * stars and the Milky Way behind it are bent around the hole into an
+ * Einstein ring. The accretion disc runs across it nearly edge-on, swirling,
+ * hot white at the inner edge cooling to orange and deep red, brighter on the
+ * side that comes toward us; its far side is bent by gravity into the halo
+ * that arches over the top of the shadow (and thinly under it). A thin photon
+ * ring hugs the horizon. Stars drifting behind the hole stretch into arcs as
+ * they pass, cosmic dust spirals in, and a meteor crosses now and then.
+ *
+ * The music: the event horizon pulses on the kick, the disc spins faster
+ * with the bass and burns brighter with the energy, the nebula takes the
+ * song's colour, and big moments send a ripple out from the hole.
  */
 
-const STAR_COUNT = 520
+// ---------------------------------------------------------------------------
+// geometry (board coordinates)
+// ---------------------------------------------------------------------------
 
-// starfield stored in flat arrays (x, y in [-1,1] space, depth, base brightness)
-let starX = new Float32Array(0)
-let starY = new Float32Array(0)
-let starZ = new Float32Array(0)
-let starB = new Float32Array(0)
-let orbitA = new Float32Array(0) // orbital angle for the closest stars
+const C = { x: 800, y: 440 } // the hole
+const RS = 112 // shadow radius
+const THETA_E = 176 // Einstein radius of the lens
+const LENS_R = 560 // beyond this the lensing is negligible
+const R_IN = RS * 1.3 // disc inner edge
+const R_OUT = RS * 4.4 // disc outer edge
+const SQUASH = 0.115 // the disc is seen almost edge-on
+const TILT = -0.045
+const TEX = 512 // disc texture size
 
-const dust = new ParticlePool(160)
-const meteors = new ParticlePool(8)
-let nextMeteor = 3
+// the disc's buffer: a strip around the disc, at reduced scale
+const DB = { x: C.x - R_OUT - 20, y: C.y - R_OUT * SQUASH - 40, w: (R_OUT + 20) * 2, h: R_OUT * SQUASH * 2 + 80, s: 0.6 }
+// the halo's buffer: a square around the shadow
+const HR = RS * 1.75
+const HB = { x: C.x - HR, y: C.y - HR, w: HR * 2, h: HR * 2, s: 0.7 }
 
-function initStars(): void {
-  starX = new Float32Array(STAR_COUNT)
-  starY = new Float32Array(STAR_COUNT)
-  starZ = new Float32Array(STAR_COUNT)
-  starB = new Float32Array(STAR_COUNT)
-  orbitA = new Float32Array(STAR_COUNT)
-  for (let i = 0; i < STAR_COUNT; i++) {
-    // distribute in a disc-ish field, biased outward
-    const ang = Math.random() * Math.PI * 2
-    const rad = Math.pow(Math.random(), 0.5)
-    starX[i] = Math.cos(ang) * rad
-    starY[i] = Math.sin(ang) * rad * 0.7
-    starZ[i] = 0.2 + Math.random() * 0.8
-    starB[i] = 0.3 + Math.random() * 0.7
-    orbitA[i] = ang
+// ---------------------------------------------------------------------------
+// session caches (independent of screen size)
+// ---------------------------------------------------------------------------
+
+let BG: HTMLCanvasElement | null = null
+let DISC: HTMLCanvasElement | null = null
+let HALO_MASK: HTMLCanvasElement | null = null
+
+/** The sky behind the hole, painted at board resolution and lensed once. */
+function background(): HTMLCanvasElement {
+  if (BG) return BG
+  const c = document.createElement('canvas')
+  c.width = BW
+  c.height = BH
+  const g = c.getContext('2d')!
+  g.fillStyle = '#04050a'
+  g.fillRect(0, 0, BW, BH)
+  const r = rng(91)
+  // the milky way, diagonal through the hole
+  g.save()
+  g.translate(C.x, C.y)
+  g.rotate(-0.42)
+  g.filter = 'blur(26px)'
+  for (let i = 0; i < 46; i++) {
+    g.fillStyle = `rgba(${150 + r() * 60},${150 + r() * 50},${190 + r() * 50},${0.035 + r() * 0.05})`
+    g.beginPath()
+    g.ellipse((r() - 0.5) * 2200, (r() - 0.5) * 130, 120 + r() * 220, 26 + r() * 46, 0, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.filter = 'blur(8px)'
+  for (let i = 0; i < 30; i++) {
+    g.fillStyle = `rgba(0,0,0,${0.18 + r() * 0.22})`
+    g.beginPath()
+    g.ellipse((r() - 0.5) * 2000, (r() - 0.5) * 50, 50 + r() * 150, 5 + r() * 10, (r() - 0.5) * 0.3, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.filter = 'none'
+  for (let i = 0; i < 1400; i++) {
+    const x = (r() - 0.5) * 2200
+    const y = (r() + r() + r() - 1.5) * 110
+    g.fillStyle = `rgba(232,236,255,${0.12 + r() * 0.4})`
+    g.fillRect(x, y, 1, 1)
+  }
+  g.restore()
+  // a faint neutral nebula (the song's colour is added live)
+  g.save()
+  g.filter = 'blur(50px)'
+  for (let i = 0; i < 8; i++) {
+    g.fillStyle = `rgba(${90 + r() * 60},${70 + r() * 40},${140 + r() * 60},${0.05 + r() * 0.05})`
+    g.beginPath()
+    g.ellipse(r() * BW, r() * BH, 160 + r() * 220, 100 + r() * 160, r() * 3, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.restore()
+  // stars
+  for (let i = 0; i < 1100; i++) {
+    const x = r() * BW
+    const y = r() * BH
+    const b = Math.pow(r(), 3)
+    const tint = r()
+    g.fillStyle = `rgba(${tint < 0.2 ? '255,224,196' : tint < 0.35 ? '196,214,255' : '240,244,255'},${0.2 + b * 0.8})`
+    const s = b > 0.75 ? 2 : b > 0.35 ? 1.4 : 1
+    g.fillRect(x, y, s, s)
+  }
+
+  // lensing: every pixel near the hole shows the sky from where its light came
+  const src = g.getImageData(0, 0, BW, BH)
+  const out = g.createImageData(BW, BH)
+  const sd = src.data
+  const od = out.data
+  od.set(sd)
+  const e2 = THETA_E * THETA_E
+  const x0 = Math.max(0, Math.floor(C.x - LENS_R))
+  const x1 = Math.min(BW, Math.ceil(C.x + LENS_R))
+  const y0 = Math.max(0, Math.floor(C.y - LENS_R))
+  const y1 = Math.min(BH, Math.ceil(C.y + LENS_R))
+  for (let y = y0; y < y1; y++)
+    for (let x = x0; x < x1; x++) {
+      const dx = x + 0.5 - C.x
+      const dy = y + 0.5 - C.y
+      const d2 = dx * dx + dy * dy
+      if (d2 > LENS_R * LENS_R) continue
+      const o = (y * BW + x) * 4
+      if (d2 < RS * RS) {
+        od[o] = od[o + 1] = od[o + 2] = 0
+        continue
+      }
+      // fade the effect out toward LENS_R so there is no seam
+      const fade = Math.min(1, (LENS_R * LENS_R - d2) / (LENS_R * LENS_R * 0.35))
+      const k = (e2 / d2) * fade
+      let sx = Math.round(x - dx * k)
+      let sy = Math.round(y - dy * k)
+      if (sx < 0) sx = -sx
+      if (sy < 0) sy = -sy
+      if (sx >= BW) sx = BW * 2 - sx - 1
+      if (sy >= BH) sy = BH * 2 - sy - 1
+      const so = (sy * BW + sx) * 4
+      od[o] = sd[so]
+      od[o + 1] = sd[so + 1]
+      od[o + 2] = sd[so + 2]
+    }
+  g.putImageData(out, 0, 0)
+  BG = c
+  return c
+}
+
+/** The disc seen from above: hot inner edge to cool red rim, streaked. */
+function discTexture(): HTMLCanvasElement {
+  if (DISC) return DISC
+  const c = document.createElement('canvas')
+  c.width = c.height = TEX
+  const g = c.getContext('2d')!
+  const img = g.createImageData(TEX, TEX)
+  const d = img.data
+  const h = TEX / 2
+  const rin = (R_IN / R_OUT) * h
+  for (let y = 0; y < TEX; y++)
+    for (let x = 0; x < TEX; x++) {
+      const dx = x + 0.5 - h
+      const dy = y + 0.5 - h
+      const r = Math.hypot(dx, dy)
+      if (r < rin * 0.92 || r > h) continue
+      const t = (r - rin) / (h - rin) // 0 inner … 1 outer
+      const a = Math.atan2(dy, dx)
+      // streaks: varying fast across the radius, slowly around
+      const n = fbm(Math.cos(a) * 1.4 + 5, Math.sin(a) * 1.4, r * 0.09, 4)
+      const n2 = fbm(Math.cos(a) * 3 + 9, Math.sin(a) * 3, r * 0.03, 3)
+      const streak = 0.45 + 0.9 * (n - 0.5) + 0.5 * (n2 - 0.5)
+      const edgeIn = Math.min(1, Math.max(0, (r - rin * 0.92) / (rin * 0.12)))
+      const prof = edgeIn * Math.pow(1 - Math.max(0, t), 1.6)
+      const b = Math.max(0, prof * (0.55 + streak * 0.75))
+      // temperature: white-yellow → orange → deep red
+      const tt = Math.max(0, t)
+      const R = 255
+      const G = 236 - tt * 170
+      const B = 196 - tt * 180
+      const o = (y * TEX + x) * 4
+      d[o] = R
+      d[o + 1] = Math.max(40, G)
+      d[o + 2] = Math.max(10, B)
+      d[o + 3] = Math.min(255, b * 420)
+    }
+  g.putImageData(img, 0, 0)
+  DISC = c
+  return c
+}
+
+/** Where the halo shows: thick over the top, thin underneath, faint at the sides. */
+function haloMask(): HTMLCanvasElement {
+  if (HALO_MASK) return HALO_MASK
+  const S = 256
+  const c = document.createElement('canvas')
+  c.width = c.height = S
+  const g = c.getContext('2d')!
+  const img = g.createImageData(S, S)
+  const d = img.data
+  for (let y = 0; y < S; y++)
+    for (let x = 0; x < S; x++) {
+      const dx = ((x + 0.5) / S - 0.5) * 2 * HR
+      const dy = ((y + 0.5) / S - 0.5) * 2 * HR
+      const r = Math.hypot(dx, dy)
+      const up = -dy / (r || 1) // 1 at the top, −1 at the bottom
+      const outer = up > 0 ? RS * (1.08 + 0.5 * Math.pow(up, 1.5)) : RS * (1.06 + 0.16 * Math.pow(-up, 2))
+      if (r < RS * 0.99 || r > outer) continue
+      const t = (r - RS) / (outer - RS)
+      const a = Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t * 0.9 + 0.05))), 0.7) * (up > 0 ? 0.6 + up * 0.4 : 0.5 - up * 0.2)
+      d[(y * S + x) * 4 + 3] = Math.max(0, Math.min(255, a * 255))
+    }
+  g.putImageData(img, 0, 0)
+  HALO_MASK = c
+  return c
+}
+
+// ---------------------------------------------------------------------------
+// live state
+// ---------------------------------------------------------------------------
+
+interface Drifter {
+  x: number // source position, relative to the hole
+  y: number
+  vx: number
+  b: number
+}
+
+interface Dust {
+  a: number
+  r: number
+  life: number
+  b: number
+}
+
+interface State {
+  v: View
+  disc: HTMLCanvasElement
+  halo: HTMLCanvasElement
+  spin: number
+  accent: Layer
+  accentKey: string
+  white: Layer
+  warm: Layer
+  drifters: Drifter[]
+  dust: Dust[]
+  meteor: { x: number; y: number; vx: number; vy: number; t: number }
+  nextMeteor: number
+  ripples: number[]
+}
+
+let S: State | null = null
+
+const accentKeyOf = (a: [number, number, number]): string => a.map((x) => Math.round(x / 24)).join(',')
+
+function build(c: WorldContext): State {
+  const v = viewFor(c)
+  background()
+  discTexture()
+  haloMask()
+  const disc = document.createElement('canvas')
+  disc.width = Math.round(DB.w * DB.s)
+  disc.height = Math.round(DB.h * DB.s)
+  const halo = document.createElement('canvas')
+  halo.width = halo.height = Math.round(HB.w * HB.s)
+  const r = rng(4)
+  return {
+    v,
+    disc,
+    halo,
+    spin: 0,
+    accent: glowSprite(c.accent.map((x) => Math.round(x)).join(',')),
+    accentKey: accentKeyOf(c.accent),
+    white: glowSprite('236,242,255', 64),
+    warm: glowSprite('255,190,120', 64),
+    drifters: Array.from({ length: 34 }, () => ({ x: (r() - 0.5) * 1400, y: (r() - 0.5) * 520, vx: (r() < 0.5 ? -1 : 1) * (5 + r() * 9), b: 0.4 + r() * 0.6 })),
+    dust: Array.from({ length: 120 }, () => ({ a: r() * Math.PI * 2, r: R_IN + r() * (R_OUT * 1.4 - R_IN), life: r(), b: 0.2 + r() * 0.5 })),
+    meteor: { x: 0, y: 0, vx: 0, vy: 0, t: -1 },
+    nextMeteor: 6 + r() * 6,
+    ripples: []
   }
 }
 
-function drawNebula(c: WorldContext, cx: number, cy: number): void {
-  const { ctx, width, height } = c
-  // two soft radial clouds tinted by the accent, very subtle
-  const [r, g, b] = c.accent
-  const clouds: [number, number, number, number][] = [
-    [width * 0.25, height * 0.3, width * 0.5, 0.06],
-    [width * 0.8, height * 0.7, width * 0.55, 0.05]
-  ]
-  for (const [x, y, rad, a] of clouds) {
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, rad)
-    grad.addColorStop(0, `rgba(${r},${g},${b},${a})`)
-    grad.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, width, height)
-  }
-  void cx
-  void cy
+/** Paints the swirling disc into its strip buffer, with the approaching side brighter. */
+function paintDisc(st: State, energy: number): void {
+  const g = st.disc.getContext('2d')!
+  const tex = discTexture()
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.globalCompositeOperation = 'source-over'
+  g.clearRect(0, 0, st.disc.width, st.disc.height)
+  g.setTransform(DB.s, 0, 0, DB.s, -DB.x * DB.s, -DB.y * DB.s)
+  g.translate(C.x, C.y)
+  g.rotate(TILT)
+  g.scale(1, SQUASH)
+  g.rotate(st.spin)
+  g.globalAlpha = Math.min(1, 0.8 + energy * 0.3)
+  g.drawImage(tex, -R_OUT, -R_OUT, R_OUT * 2, R_OUT * 2)
+  g.globalAlpha = 1
+  // doppler beaming: the left side comes toward us and shines; the right dims
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.globalCompositeOperation = 'source-atop'
+  const w = st.disc.width
+  const beam = g.createLinearGradient(0, 0, w, 0)
+  beam.addColorStop(0, 'rgba(255,250,235,0.35)')
+  beam.addColorStop(0.35, 'rgba(255,240,220,0.12)')
+  beam.addColorStop(0.5, 'rgba(0,0,0,0)')
+  beam.addColorStop(0.7, 'rgba(20,4,0,0.3)')
+  beam.addColorStop(1, 'rgba(20,4,0,0.55)')
+  g.fillStyle = beam
+  g.fillRect(0, 0, w, st.disc.height)
+  g.globalCompositeOperation = 'source-over'
 }
+
+/** Paints the lensed far side of the disc: the halo over (and under) the shadow. */
+function paintHalo(st: State): void {
+  const g = st.halo.getContext('2d')!
+  const S2 = st.halo.width
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.globalCompositeOperation = 'source-over'
+  g.clearRect(0, 0, S2, S2)
+  g.translate(S2 / 2, S2 / 2)
+  g.rotate(-st.spin * 0.9)
+  const k = S2 / (HR * 2)
+  // scaled so the disc's hot inner edge lands right on the shadow's rim
+  const rr = RS * (R_OUT / R_IN) * 0.97 * k
+  g.drawImage(discTexture(), -rr, -rr, rr * 2, rr * 2)
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.globalCompositeOperation = 'destination-in'
+  g.drawImage(haloMask(), 0, 0, S2, S2)
+  // the same doppler beaming as the disc
+  g.globalCompositeOperation = 'source-atop'
+  const beam = g.createLinearGradient(0, 0, S2, 0)
+  beam.addColorStop(0, 'rgba(255,250,235,0.25)')
+  beam.addColorStop(0.5, 'rgba(0,0,0,0)')
+  beam.addColorStop(1, 'rgba(20,4,0,0.45)')
+  g.fillStyle = beam
+  g.fillRect(0, 0, S2, S2)
+  g.globalCompositeOperation = 'source-over'
+}
+
+// ---------------------------------------------------------------------------
+// the world
+// ---------------------------------------------------------------------------
 
 export const blackHole: World = {
   id: 'blackhole',
   name: 'Black Hole',
   spectrumBins: 32,
 
-  mount(): void {
-    initStars()
-    nextMeteor = 2 + Math.random() * 3
+  mount(c: WorldContext): void {
+    S = build(c)
+  },
+
+  unmount(): void {
+    S = null
   },
 
   frame(c: WorldContext): void {
     const { ctx, width, height, time, dt } = c
-    const cx = width / 2
-    const cy = height / 2
-    const minDim = Math.min(width, height)
-
-    // event horizon radius pulses on the kick; disc speed rises with bass
-    const baseR = minDim * 0.11
-    const horizonR = baseR * (1 + c.kick * 0.18 + c.breath * 0.04)
-    const discSpin = time * (0.25 + c.bass * 0.9)
-
-    // --- background ---
-    ctx.fillStyle = '#05060b'
-    ctx.fillRect(0, 0, width, height)
-    drawNebula(c, cx, cy)
-
-    // --- starfield with gravitational lensing near the hole ---
-    const lensR = horizonR * 4.5
-    for (let i = 0; i < STAR_COUNT; i++) {
-      // closest stars slowly orbit the hole; far stars stay put (parallax)
-      const orbitStrength = Math.max(0, 1 - starZ[i])
-      orbitA[i] += dt * 0.05 * orbitStrength
-      const ox = Math.cos(orbitA[i]) * orbitStrength * 0.04
-      const oy = Math.sin(orbitA[i]) * orbitStrength * 0.04
-      let sx = cx + (starX[i] + ox) * width * 0.62
-      let sy = cy + (starY[i] + oy) * height * 0.62
-      const dx = sx - cx
-      const dy = sy - cy
-      const dist = Math.hypot(dx, dy) || 1
-
-      // lensing: stars within lensR get pushed around the horizon (light-bending)
-      if (dist < lensR) {
-        const pull = (1 - dist / lensR) ** 2
-        const ang = Math.atan2(dy, dx) + pull * 0.9
-        const newDist = dist + pull * horizonR * 1.4
-        sx = cx + Math.cos(ang) * newDist
-        sy = cy + Math.sin(ang) * newDist
-      }
-
-      // stars swallowed by the horizon fade out
-      if (dist < horizonR * 1.05) continue
-
-      const tw = 0.6 + 0.4 * Math.sin(time * 2 + i)
-      const bright = starB[i] * tw * (0.5 + c.energy * 0.5)
-      const size = starZ[i] * 1.6
-      ctx.globalAlpha = bright
-      ctx.fillStyle = '#dfe8ff'
-      ctx.fillRect(sx, sy, size, size)
+    const v = viewFor(c)
+    if (!S || !sameView(S.v, v)) S = build(c)
+    const st = S
+    const ak = accentKeyOf(c.accent)
+    if (ak !== st.accentKey) {
+      st.accentKey = ak
+      st.accent = glowSprite(c.accent.map((x) => Math.round(x)).join(','))
     }
-    ctx.globalAlpha = 1
 
-    // --- accretion disc (behind + in front for depth) ---
-    const [ar, ag, ab] = c.accent
+    st.spin += dt * (0.12 + c.bass * 0.3)
+    paintDisc(st, c.energy)
+    paintHalo(st)
+
     ctx.save()
-    ctx.translate(cx, cy)
-    ctx.rotate(-0.5) // tilt
-    ctx.scale(1, 0.32) // perspective flattening
-    const discOuter = horizonR * 3.2
-    for (let ring = 0; ring < 3; ring++) {
-      const rr = horizonR * (1.5 + ring * 0.85)
-      const glow = ctx.createRadialGradient(0, 0, horizonR, 0, 0, discOuter)
-      const heat = 0.5 + c.energy * 0.5
-      glow.addColorStop(0, 'rgba(0,0,0,0)')
-      glow.addColorStop(0.55, `rgba(255,${150 + ring * 20},${60},${0.10 * heat})`)
-      glow.addColorStop(0.8, `rgba(${ar},${ag},${ab},${0.22 * heat})`)
-      glow.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = glow
-      ctx.beginPath()
-      ctx.arc(0, 0, rr, 0, Math.PI * 2)
-      ctx.fill()
+    toBoard(ctx, st.v)
+    ctx.imageSmoothingEnabled = true
+
+    // the lensed sky
+    ctx.drawImage(background(), 0, 0, BW, BH)
+
+    // the nebula takes the song's colour
+    ctx.globalCompositeOperation = 'lighter'
+    ctx.globalAlpha = 0.09
+    ctx.drawImage(st.accent, 80, 40, 700, 520)
+    ctx.globalAlpha = 0.07
+    ctx.drawImage(st.accent, 980, 360, 680, 540)
+
+    // stars drifting behind the hole, bent into arcs as they pass
+    const e2 = THETA_E * THETA_E
+    for (const s of st.drifters) {
+      s.x += s.vx * dt
+      if (s.x > 760) s.x = -760
+      if (s.x < -760) s.x = 760
+      const beta = Math.hypot(s.x, s.y) || 0.01
+      const ux = s.x / beta
+      const uy = s.y / beta
+      const root = Math.sqrt(beta * beta + 4 * e2)
+      for (const sign of [1, -1]) {
+        const ri = (beta + sign * root) / 2 // image radius (negative → opposite side)
+        const ar = Math.abs(ri)
+        if (ar < RS * 1.02) continue
+        const mu = Math.min(14, 1 / Math.abs(1 - Math.pow(THETA_E / ar, 4)))
+        const ix = C.x + ux * ri
+        const iy = C.y + uy * ri
+        const a = Math.min(1, s.b * Math.sqrt(mu) * 0.5)
+        if (a < 0.04) continue
+        if (mu > 1.6) {
+          // stretched along the ring
+          const ang = Math.atan2(iy - C.y, ix - C.x)
+          const span = Math.min(0.9, (mu * 2.2) / ar)
+          ctx.globalAlpha = a
+          ctx.strokeStyle = 'rgba(230,238,255,1)'
+          ctx.lineWidth = 1.4
+          ctx.beginPath()
+          ctx.arc(C.x, C.y, ar, ang - span / 2, ang + span / 2)
+          ctx.stroke()
+        } else {
+          ctx.globalAlpha = a
+          ctx.drawImage(st.white, ix - 4, iy - 4, 8, 8)
+        }
+      }
     }
-    // bright rotating streaks on the disc
-    const streaks = 40
-    for (let i = 0; i < streaks; i++) {
-      const a = (i / streaks) * Math.PI * 2 + discSpin
-      const rr = horizonR * (1.6 + (i % 5) * 0.28)
-      const x = Math.cos(a) * rr
-      const y = Math.sin(a) * rr
-      const bright = 0.15 + 0.25 * (0.5 + 0.5 * Math.sin(a * 3 + time * 4))
-      ctx.globalAlpha = bright * (0.6 + c.bass * 0.4)
-      ctx.fillStyle = `rgb(255,${180 + ((i * 7) % 60)},120)`
-      ctx.fillRect(x, y, 2.4, 2.4)
-    }
+
+    // the far half of the disc, behind the shadow
+    ctx.globalCompositeOperation = 'lighter'
     ctx.globalAlpha = 1
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(DB.x, DB.y, DB.w, C.y - 2 - DB.y)
+    ctx.clip()
+    ctx.drawImage(st.disc, DB.x, DB.y, DB.w, DB.h)
+    ctx.restore()
+    // a soft glow around it all
+    ctx.globalAlpha = 0.16 + c.energy * 0.1
+    ctx.drawImage(st.warm, C.x - R_OUT * 1.1, C.y - 120, R_OUT * 2.2, 240)
+
+    // the shadow: pure black, breathing on the kick
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.globalAlpha = 1
+    const rs = RS * (1 + c.kick * 0.035 + c.breath * 0.01)
+    const sh = ctx.createRadialGradient(C.x, C.y, rs * 0.94, C.x, C.y, rs * 1.03)
+    sh.addColorStop(0, 'rgba(0,0,0,1)')
+    sh.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = sh
+    ctx.beginPath()
+    ctx.arc(C.x, C.y, rs * 1.03, 0, Math.PI * 2)
+    ctx.fill()
+
+    // the halo: the far side of the disc, bent over the top
+    ctx.globalCompositeOperation = 'lighter'
+    const hs = rs / RS
+    ctx.globalAlpha = 0.72 + c.energy * 0.15
+    ctx.drawImage(st.halo, C.x - HR * hs, C.y - HR * hs, HR * 2 * hs, HR * 2 * hs)
+    // the photon ring
+    ctx.globalAlpha = 0.55 + c.kick * 0.4
+    ctx.strokeStyle = 'rgba(255,226,180,1)'
+    ctx.lineWidth = 1.6
+    ctx.beginPath()
+    ctx.arc(C.x, C.y, rs * 1.01, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.globalAlpha = 0.2 + c.kick * 0.2
+    ctx.lineWidth = 6
+    ctx.stroke()
+
+    // the near side of the disc, in front of the shadow
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(DB.x, C.y - 2, DB.w, DB.h)
+    ctx.clip()
+    ctx.globalAlpha = 1
+    ctx.drawImage(st.disc, DB.x, DB.y, DB.w, DB.h)
     ctx.restore()
 
-    // --- event horizon (pure black sphere with a photon ring) ---
-    const ring = ctx.createRadialGradient(cx, cy, horizonR * 0.9, cx, cy, horizonR * 1.25)
-    ring.addColorStop(0, 'rgba(0,0,0,1)')
-    ring.addColorStop(0.82, 'rgba(0,0,0,1)')
-    ring.addColorStop(0.92, `rgba(255,200,140,${0.5 + c.kick * 0.4})`)
-    ring.addColorStop(1, 'rgba(0,0,0,0)')
-    ctx.fillStyle = ring
-    ctx.beginPath()
-    ctx.arc(cx, cy, horizonR * 1.25, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = '#000'
-    ctx.beginPath()
-    ctx.arc(cx, cy, horizonR, 0, Math.PI * 2)
-    ctx.fill()
-
-    // --- cosmic dust (pooled), pulled gently toward the hole ---
-    if (dust.activeCount < 120 && Math.random() < 0.6) {
-      dust.spawn((p) => {
-        const edge = Math.random() * Math.PI * 2
-        const rad = minDim * (0.5 + Math.random() * 0.5)
-        p.x = cx + Math.cos(edge) * rad
-        p.y = cy + Math.sin(edge) * rad
-        p.vx = 0
-        p.vy = 0
-        p.maxLife = 6 + Math.random() * 6
-        p.size = 0.6 + Math.random() * 1.2
-        p.data = 0.2 + Math.random() * 0.5
-      })
+    // dust spiralling in along the disc
+    ctx.fillStyle = 'rgba(255,214,170,1)'
+    for (const d of st.dust) {
+      const w = 0.08 * Math.pow(R_OUT / d.r, 1.5) * (1 + c.bass * 0.6)
+      d.a += w * dt
+      d.r -= dt * (6 + 600 / d.r)
+      if (d.r < R_IN * 0.95) {
+        d.r = R_OUT * (0.9 + Math.random() * 0.5)
+        d.a = Math.random() * Math.PI * 2
+      }
+      const ca = Math.cos(d.a)
+      const sa = Math.sin(d.a)
+      const lx = ca * d.r
+      const ly = sa * d.r * SQUASH
+      const x = C.x + lx * Math.cos(TILT) - ly * Math.sin(TILT)
+      const y = C.y + lx * Math.sin(TILT) + ly * Math.cos(TILT)
+      // hidden behind the shadow
+      if (sa < 0 && Math.abs(x - C.x) < rs) continue
+      ctx.globalAlpha = d.b * Math.min(1, (R_OUT * 1.4 - d.r) / 100)
+      ctx.fillRect(x - 1, y - 1, 2, 2)
     }
-    dust.each((p) => {
-      const dx = cx - p.x
-      const dy = cy - p.y
-      const d = Math.hypot(dx, dy) || 1
-      const g = (minDim * 12) / (d * d) // inverse-square pull
-      p.vx += (dx / d) * g * dt
-      p.vy += (dy / d) * g * dt
-      p.x += p.vx * dt
-      p.y += p.vy * dt
-      if (d < horizonR) p.life = p.maxLife // consumed
-      ctx.globalAlpha = p.data * (1 - p.life / p.maxLife)
-      ctx.fillStyle = '#bcd0ff'
-      ctx.fillRect(p.x, p.y, p.size, p.size)
-    })
-    dust.update(dt)
-    ctx.globalAlpha = 1
 
-    // --- occasional meteors ---
-    nextMeteor -= dt
-    if (nextMeteor <= 0) {
-      nextMeteor = 4 + Math.random() * 7 - c.energy * 2
-      meteors.spawn((p) => {
-        const fromLeft = Math.random() < 0.5
-        p.x = fromLeft ? -40 : width + 40
-        p.y = Math.random() * height * 0.6
-        const sp = 260 + Math.random() * 220
-        p.vx = (fromLeft ? 1 : -1) * sp
-        p.vy = sp * (0.2 + Math.random() * 0.3)
-        p.maxLife = 2.2
-        p.size = 1.5 + Math.random() * 1.5
-        p.data = 0
-      })
+    // a meteor now and then
+    st.nextMeteor -= dt * (1 + c.energy)
+    if (st.nextMeteor <= 0 && st.meteor.t < 0) {
+      const left = Math.random() < 0.5
+      const sp = 300 + Math.random() * 200
+      st.meteor = { x: left ? -40 : BW + 40, y: 60 + Math.random() * 280, vx: (left ? 1 : -1) * sp, vy: sp * (0.15 + Math.random() * 0.2), t: 0 }
+      st.nextMeteor = 8 + Math.random() * 10
     }
-    meteors.each((p) => {
-      const tail = 14
-      ctx.strokeStyle = `rgba(255,240,220,${1 - p.life / p.maxLife})`
-      ctx.lineWidth = p.size
+    if (st.meteor.t >= 0) {
+      const m = st.meteor
+      m.t += dt
+      m.x += m.vx * dt
+      m.y += m.vy * dt
+      if (m.t > 4 || m.x < -100 || m.x > BW + 100) m.t = -1
+      else {
+        const tail = 0.16
+        const lg = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail, m.y - m.vy * tail)
+        lg.addColorStop(0, 'rgba(255,244,228,0.9)')
+        lg.addColorStop(1, 'rgba(255,200,160,0)')
+        ctx.globalAlpha = 1
+        ctx.strokeStyle = lg
+        ctx.lineWidth = 1.6
+        ctx.beginPath()
+        ctx.moveTo(m.x, m.y)
+        ctx.lineTo(m.x - m.vx * tail, m.y - m.vy * tail)
+        ctx.stroke()
+      }
+    }
+
+    // big moments send a ripple through space
+    if (c.impactHit && st.ripples.length < 3) st.ripples.push(0)
+    for (let i = st.ripples.length - 1; i >= 0; i--) {
+      const t = (st.ripples[i] += dt)
+      if (t > 3) {
+        st.ripples.splice(i, 1)
+        continue
+      }
+      const rr = RS * 1.2 + t * 320
+      const a = (1 - t / 3) * 0.22
+      ctx.globalAlpha = a
+      ctx.strokeStyle = `rgba(${c.accent.map((x) => Math.round(x)).join(',')},1)`
+      ctx.lineWidth = 10 * (1 - t / 3) + 1
       ctx.beginPath()
-      ctx.moveTo(p.x, p.y)
-      ctx.lineTo(p.x - (p.vx / 60) * tail, p.y - (p.vy / 60) * tail)
+      ctx.ellipse(C.x, C.y, rr, rr * 0.92, 0, 0, Math.PI * 2)
       ctx.stroke()
-    })
-    meteors.update(dt)
-
-    // --- impact flash: a subtle brightening ring on big hits ---
-    if (c.impact > 0.01) {
-      ctx.globalAlpha = c.impact * 0.25
-      const flash = ctx.createRadialGradient(cx, cy, horizonR, cx, cy, minDim * 0.7)
-      flash.addColorStop(0, `rgba(${ar},${ag},${ab},0.6)`)
-      flash.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.fillStyle = flash
-      ctx.fillRect(0, 0, width, height)
-      ctx.globalAlpha = 1
     }
-  },
+    ctx.restore()
 
-  unmount(): void {
-    // release big arrays so the GC can reclaim them when leaving the world
-    starX = new Float32Array(0)
-    starY = new Float32Array(0)
-    starZ = new Float32Array(0)
-    starB = new Float32Array(0)
-    orbitA = new Float32Array(0)
+    // a gentle vignette
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.globalAlpha = 1
+    const vg = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.35, width / 2, height / 2, Math.max(width, height) * 0.75)
+    vg.addColorStop(0, 'rgba(0,0,0,0)')
+    vg.addColorStop(1, 'rgba(0,0,4,0.55)')
+    ctx.fillStyle = vg
+    ctx.fillRect(0, 0, width, height)
   }
 }

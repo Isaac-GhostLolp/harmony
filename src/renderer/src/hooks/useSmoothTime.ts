@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { frameBudgetMs } from '@/utils/perf'
 import { usePlayerStore } from '@/store/playerStore'
 
 /**
@@ -20,10 +21,15 @@ export function useSmoothTime(): number {
       anchorAt = performance.now()
     })
 
-    const tick = (): void => {
+    let lastMs = 0
+    const tick = (now: number): void => {
+      raf = requestAnimationFrame(tick)
+      // Ultra Fast Mode: 30 updates a second (each one re-renders the view)
+      const budget = frameBudgetMs()
+      if (budget && now - lastMs < budget) return
+      lastMs = now
       const playing = usePlayerStore.getState().isPlaying
       setTime(playing ? anchor + (performance.now() - anchorAt) / 1000 : anchor)
-      raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
 

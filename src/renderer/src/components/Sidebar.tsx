@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { LogoLed } from './LogoLed'
 import {
   Library,
   ListMusic,
@@ -40,11 +41,8 @@ export function Sidebar(): JSX.Element {
   return (
     <aside className="glass glass-panel z-10 m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
       {/* Brand — fixed at top */}
-      <div className="mb-4 flex shrink-0 items-center gap-2 px-2 pt-1">
-        <div
-          className="h-8 w-8 rounded-lg"
-          style={{ background: 'linear-gradient(135deg, var(--accent), transparent 160%)' }}
-        />
+      <div className="mb-4 flex shrink-0 items-center gap-4 px-3 pt-2">
+        <LogoLed />
         <span className="text-lg font-semibold tracking-tight">Harmony</span>
       </div>
 

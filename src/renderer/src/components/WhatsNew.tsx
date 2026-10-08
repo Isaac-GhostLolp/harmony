@@ -65,6 +65,11 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
     if (a.kind === 'route') {
       close()
       navigate(a.to)
+    } else if (a.kind === 'karaoke') {
+      close()
+      const ui = useUiStore.getState()
+      ui.setLyricsMode('karaoke')
+      if (!ui.lyricsOpen) ui.toggleLyrics()
     } else {
       useUiStore.getState().setWorld(a.world)
       setDone((d) => new Set(d).add(key))

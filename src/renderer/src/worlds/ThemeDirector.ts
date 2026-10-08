@@ -3,6 +3,7 @@ import { getEngine } from '@/services/audioEngine'
 import { usePlayerStore } from '@/store/playerStore'
 import { mediaUrl } from '@/utils/format'
 import { readAccent } from '@/utils/color'
+import { canvasDpr, frameBudgetMs, isUltraFast, onUltraFastChange } from '@/utils/perf'
 import type { World, WorldContext } from './types'
 
 /**
@@ -35,6 +36,12 @@ class ThemeDirector {
   private surge = 0
   private shock = 0
   private reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  private lastFrameMs = 0
+
+  constructor() {
+    // Ultra Fast Mode changes the pixel density: resize the canvas right away
+    onUltraFastChange(() => this.resize())
+  }
 
   /** Turns the drop/chorus bloom and camera punch on or off. */
   setSurgeEnabled(on: boolean): void {
@@ -75,7 +82,7 @@ class ThemeDirector {
     const c = this.canvas
     const ctx = this.ctx
     if (!c || !ctx) return
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const dpr = canvasDpr()
     const r = c.getBoundingClientRect()
     c.width = Math.max(1, Math.round(r.width * dpr))
     c.height = Math.max(1, Math.round(r.height * dpr))
@@ -103,8 +110,12 @@ class ThemeDirector {
   private start(): void {
     if (this.raf) return
     this.last = performance.now() / 1000
-    const loop = (): void => {
+    const loop = (now: number): void => {
       this.raf = requestAnimationFrame(loop)
+      // Ultra Fast Mode: 30 fps is plenty for a background
+      const budget = frameBudgetMs()
+      if (budget && now - this.lastFrameMs < budget) return
+      this.lastFrameMs = now
       this.tick()
     }
     this.raf = requestAnimationFrame(loop)
@@ -136,7 +147,7 @@ class ThemeDirector {
   private buildContext(dt: number): WorldContext {
     const ctx = this.ctx!
     const c = this.canvas!
-    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    const dpr = canvasDpr()
     const width = c.width / dpr
     const height = c.height / dpr
 
@@ -252,7 +263,7 @@ class ThemeDirector {
       }
       ctx.restore()
     }
-    const zoom = this.reduceMotion ? 1 : 1 + 0.025 * s + 0.012 * c.kick * s + 0.02 * this.shock * this.shock
+    const zoom = this.reduceMotion || isUltraFast() ? 1 : 1 + 0.025 * s + 0.012 * c.kick * s + 0.02 * this.shock * this.shock
     const tf = zoom > 1.0005 ? `scale(${zoom.toFixed(4)})` : ''
     if (canvas.style.transform !== tf) canvas.style.transform = tf
   }
