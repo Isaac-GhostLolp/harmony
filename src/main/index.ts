@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, protocol, shell, ipcMain, type WebContents } from 'electron'
 import { createReadStream, promises as fsp } from 'fs'
 import { Readable } from 'stream'
 import { join, extname } from 'path'
@@ -165,6 +165,7 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  windowShortcuts(mainWindow)
   loadRenderer(mainWindow)
   registerIpcHandlers(mainWindow)
   initAutoUpdate(mainWindow)
@@ -196,7 +197,42 @@ function toggleMiniPlayer(): void {
   loadRenderer(miniWindow, '/mini')
 }
 
+/**
+ * The few keys the default Electron menu used to give, now that there is no
+ * menu bar (Windows/Linux): F11 full screen, Ctrl +/−/0 zoom, Ctrl+Q quit.
+ * Reload and DevTools only in development. Copy/paste/undo in text fields
+ * are Chromium's own and never needed the menu.
+ */
+function windowShortcuts(win: BrowserWindow): void {
+  const zoom = (wc: WebContents, step: number | null): void => {
+    wc.setZoomLevel(step === null ? 0 : Math.max(-3, Math.min(3, wc.getZoomLevel() + step)))
+  }
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+    const wc = win.webContents
+    const mod = input.control || input.meta
+    // F11 also reaches the page (DJ Mode leaves on it), as with the old menu
+    if (input.key === 'F11' && !mod && !input.alt) {
+      win.setFullScreen(!win.isFullScreen())
+      return
+    }
+    if (!mod || input.alt) return
+    const key = input.key.toLowerCase()
+    if (key === '=' || key === '+') zoom(wc, 0.5)
+    else if (key === '-' || key === '_') zoom(wc, -0.5)
+    else if (key === '0') zoom(wc, null)
+    else if (key === 'q' && !input.shift) app.quit()
+    else if (!app.isPackaged && key === 'r' && !input.shift) wc.reload()
+    else if (!app.isPackaged && key === 'i' && input.shift) wc.toggleDevTools()
+    else return
+    event.preventDefault()
+  })
+}
+
 app.whenReady().then(() => {
+  // no File/Edit/View bar: the Harmony has its own UI for everything. macOS
+  // keeps its menu (the app menu holds Quit and the Edit shortcuts there).
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   initDatabase()
   protocol.handle('harmony', handleMediaRequest)
   createWindow()

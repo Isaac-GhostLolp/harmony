@@ -37,6 +37,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.18.1',
+    title: 'Mais espaço para a música',
+    date: '2026-10-09',
+    items: [
+      {
+        emoji: '🧹',
+        title: 'Adeus, barra de menu',
+        text: 'A barra "File, Edit, View, Window, Help" saiu do topo da janela: o Harmony já tem tudo na própria interface, e a música ganhou mais espaço. Os atalhos continuam: F11 para tela cheia, Ctrl + e Ctrl − para o zoom, Ctrl 0 para voltar ao normal e Ctrl+Q para sair.'
+      }
+    ]
+  },
+  {
     version: '0.18.0',
     title: 'Do seu jeito',
     date: '2026-10-09',
