@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Play, Heart, MoreHorizontal, Check } from 'lucide-react'
+import { Play, Heart, MoreHorizontal, Check, ArrowUp, ArrowDown } from 'lucide-react'
 import type { Song, Playlist } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
 import { useCapsuleStore } from '@/store/capsuleStore'
@@ -8,6 +8,7 @@ import { formatDuration } from '@/utils/format'
 import { CoverArt } from '@/components/CoverArt'
 import { api } from '@/services/api'
 import { ConfirmDialog } from '@/components/InputDialog'
+import { useCoverCreator } from '@/store/coverCreatorStore'
 
 interface Props {
   songs: Song[]
@@ -43,6 +44,30 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
   const listRef = useRef<HTMLDivElement | null>(null)
   const range = useVisibleRange(listRef, songs.length)
   const win = { start: Math.min(range.start, songs.length), end: Math.min(range.end, songs.length) }
+
+  // "Now playing" shortcut: when the song that's playing is in this list but
+  // scrolled out of view, a pill offers to jump back to it.
+  const currentIdx = currentId === undefined ? -1 : songs.findIndex((s) => s.id === currentId)
+  const currentSong = currentIdx >= 0 ? songs[currentIdx] : null
+  const offscreen = currentIdx >= 0 && (currentIdx < range.first || currentIdx > range.last)
+  const [foundId, setFoundId] = useState<number | null>(null)
+  const jumpToCurrent = (): void => {
+    const el = listRef.current
+    if (!el || currentIdx < 0) return
+    const scroller = scrollParent(el)
+    if (!scroller) return
+    const listTop = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop
+    // the pinned header covers the top of the page (it sticks 14px above it)
+    const header = Math.max(0, (parseFloat(getComputedStyle(scroller).getPropertyValue('--sticky-h')) || 0) - 14)
+    const visible = scroller.clientHeight - header
+    const top = listTop + currentIdx * ROW_H - header - (visible - ROW_H) / 2
+    // a long way off: leap most of it at once, then glide the last screen
+    const far = top - scroller.scrollTop
+    if (Math.abs(far) > scroller.clientHeight * 2) scroller.scrollTop = top - Math.sign(far) * scroller.clientHeight
+    scroller.scrollTo({ top, behavior: 'smooth' })
+    setFoundId(currentSong!.id)
+    window.setTimeout(() => setFoundId(null), 1600)
+  }
 
   const selectMode = selected.size > 0
   const allSelected = songs.length > 0 && selected.size === songs.length
@@ -181,7 +206,8 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
     <div ref={listRef} className="flex flex-col">
       {/* Selection action bar — appears once something is selected */}
       {selectMode && (
-        <div className="glass fade-rise sticky top-0 z-20 mb-2 flex flex-wrap items-center gap-3 rounded-xl px-3 py-2">
+        <div style={{ top: 'calc(var(--sticky-h, 38px) - 38px)' }}
+          className="glass fade-rise sticky z-20 mb-2 flex flex-wrap items-center gap-3 rounded-xl px-3 py-2">
           <button
             onClick={selectAll}
             className="rounded-full bg-[var(--bg-raised)] px-3 py-1.5 text-xs font-semibold text-ink hover:bg-[var(--accent-soft)]"
@@ -237,7 +263,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
         return (
           <div
             key={song.id}
-            className={`group relative grid h-[52px] grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
+            className={`group relative grid h-[52px] ${foundId === song.id ? 'row-found' : ''} grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
               isSelected ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent)]' : active ? 'bg-[var(--accent-soft)]' : ''
             }`}
             onDoubleClick={() => playQueue(songs, i)}
@@ -350,6 +376,13 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 <MenuItem label="Tocar em seguida" onClick={() => { addNext(song); setMenuFor(null) }} />
                 <MenuItem label="Adicionar à fila" onClick={() => { addToQueue(song); setMenuFor(null) }} />
                 <MenuItem label="📮 Criar cápsula do tempo" onClick={() => { useCapsuleStore.getState().openSeal(song); setMenuFor(null) }} />
+                <MenuItem
+                  label={song.coverPath ? '🎨 Criar outra capa' : '🎨 Criar capa'}
+                  onClick={() => {
+                    useCoverCreator.getState().open({ songId: song.id, title: song.album ?? song.title, artist: song.artist ?? '', coverPath: song.coverPath })
+                    setMenuFor(null)
+                  }}
+                />
                 {extraAction && (
                   <MenuItem
                     label={extraAction.label}
@@ -406,6 +439,25 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
         )
       })}
       <div style={{ height: (songs.length - win.end) * ROW_H }} aria-hidden />
+      {/* zero-height and sticky to the bottom of the page: the pill floats
+          over the list without taking any room in it */}
+      {currentSong && (
+        <div className="now-playing-pill pointer-events-none sticky bottom-4 z-20 flex h-0 justify-end">
+          <button
+            onClick={jumpToCurrent}
+            aria-hidden={!offscreen}
+            tabIndex={offscreen ? 0 : -1}
+            title="Voltar para a música que está tocando"
+            className={`flex -translate-y-full items-center gap-2 rounded-full bg-[var(--accent)] py-1.5 pl-1.5 pr-3.5 text-xs font-semibold text-white shadow-[0_8px_24px_rgb(0_0_0/0.45)] transition-all duration-300 hover:scale-[1.04] ${
+              offscreen ? 'pointer-events-auto opacity-100' : 'translate-x-3 opacity-0'
+            }`}
+          >
+            <CoverArt src={currentSong.coverPath} title={currentSong.title} size="sm" rounded="full" className="!h-7 !w-7" />
+            <span className="max-w-[180px] truncate">Tocando agora</span>
+            {currentIdx < range.first ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+          </button>
+        </div>
+      )}
     </div>
     <ConfirmDialog
       open={pendingDelete !== null}
@@ -478,17 +530,14 @@ const OVERSCAN = 10
 function useVisibleRange(
   ref: React.RefObject<HTMLElement>,
   count: number
-): { start: number; end: number } {
+): { start: number; end: number; first: number; last: number } {
   const initial = Math.ceil(window.innerHeight / ROW_H) + OVERSCAN
-  const [range, setRange] = useState({ start: 0, end: Math.min(count, initial) })
+  const [range, setRange] = useState({ start: 0, end: Math.min(count, initial), first: 0, last: initial - OVERSCAN })
 
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    let scroller: HTMLElement | null = el.parentElement
-    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
-      scroller = scroller.parentElement
-    }
+    const scroller = scrollParent(el)
     const target: HTMLElement | Window = scroller ?? window
     let frame = 0
 
@@ -503,7 +552,15 @@ function useVisibleRange(
       const last = Math.ceil((viewTop + viewH - top) / ROW_H)
       const start = Math.max(0, Math.min(count, first - OVERSCAN))
       const end = Math.max(start, Math.min(count, last + OVERSCAN))
-      setRange((r) => (r.start === start && r.end === end ? r : { start, end }))
+      // the rows truly on screen: below the pinned page header, fully shown
+      const header = scroller ? parseFloat(getComputedStyle(scroller).getPropertyValue('--sticky-h')) || 0 : 0
+      const seenFirst = Math.ceil((viewTop + header - 14 - top) / ROW_H)
+      const seenLast = Math.floor((viewTop + viewH - top) / ROW_H) - 1
+      setRange((r) =>
+        r.start === start && r.end === end && r.first === seenFirst && r.last === seenLast
+          ? r
+          : { start, end, first: seenFirst, last: seenLast }
+      )
     }
     const schedule = (): void => {
       if (!frame) frame = requestAnimationFrame(update)
@@ -523,6 +580,13 @@ function useVisibleRange(
   }, [ref, count])
 
   return range
+}
+
+/** The nearest ancestor that scrolls vertically (the app's <main>). */
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  let p = el.parentElement
+  while (p && !/(auto|scroll)/.test(getComputedStyle(p).overflowY)) p = p.parentElement
+  return p
 }
 
 function MenuItem({ label, onClick }: { label: string; onClick: () => void }): JSX.Element {

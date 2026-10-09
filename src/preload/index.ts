@@ -88,6 +88,17 @@ const api = {
   lyrics: {
     resolve: (songId: number, force = false) => invoke('lyrics:resolve', songId, force)
   },
+  covers: {
+    saveCustom: (songId: number, data: ArrayBuffer) => invoke('covers:saveCustom', songId, data)
+  },
+  stickers: {
+    save: (data: ArrayBuffer, ext: string) => invoke('stickers:save', data, ext) as Promise<string | null>,
+    remove: (path: string) => invoke('stickers:delete', path) as Promise<boolean>
+  },
+  icons: {
+    save: (data: ArrayBuffer, ext: string) => invoke('icons:save', data, ext) as Promise<string | null>,
+    remove: (path: string) => invoke('icons:delete', path) as Promise<boolean>
+  },
   online: {
     fetchCover: (songId: number, force = false) => invoke('online:fetchCover', songId, force)
   },

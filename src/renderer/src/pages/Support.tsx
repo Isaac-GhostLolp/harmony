@@ -89,22 +89,47 @@ export function Support(): JSX.Element {
   const reasons = [
     'Desenvolvimento de novas funcionalidades',
     'Publicação da versão Android',
-    'Compra de equipamentos',
-    'Hospedagem e recursos gráficos',
-    'Melhorias de performance',
+    'Novos Mundos vivos e palcos do Visualizer',
+    'Compra de equipamentos para testes',
+    'Hospedagem do marketplace da comunidade',
     'Tempo dedicado ao projeto'
   ]
 
-  const roadmap: { label: string; done: boolean }[] = [
-    { label: 'Player offline', done: true },
-    { label: 'Biblioteca inteligente', done: true },
-    { label: 'Letras sincronizadas', done: true },
-    { label: 'Visualizer cinemático', done: true },
-    { label: 'Melhorias no Visualizer', done: false },
-    { label: 'Versão Android', done: false },
-    { label: 'Sistema de plugins', done: false },
-    { label: 'Cloud Sync (opcional)', done: false },
-    { label: 'Novos Show Packs', done: false }
+  // done = already in the app · now = being built for the next update ·
+  // next = planned, not started yet
+  const roadmap: { phase: string; items: { label: string; status: 'done' | 'now' | 'next' }[] }[] = [
+    {
+      phase: 'Já chegou',
+      items: [
+        { label: 'Player offline com biblioteca inteligente', status: 'done' },
+        { label: 'Letras sincronizadas e modo karaokê', status: 'done' },
+        { label: 'Visualizer com seis palcos e Modo DJ', status: 'done' },
+        { label: 'Mundos vivos que reagem à música', status: 'done' },
+        { label: 'Meu Mundo, Retrospectiva e Cápsulas do tempo', status: 'done' },
+        { label: 'Estúdio de edição de vídeos', status: 'done' },
+        { label: 'Modo Ultra Rápido para máquinas mais fracas', status: 'done' },
+        { label: 'Personalização total: temas, ícones, adesivos e barra de música', status: 'done' },
+        { label: 'Biblioteca em capas, discos e estante de livros', status: 'done' },
+        { label: 'Mundos de datas comemorativas, arcade, deserto e mais', status: 'done' },
+        { label: 'Criador de capas e atalho para a música que está tocando', status: 'done' }
+      ]
+    },
+    {
+      phase: 'Próximos passos',
+      items: [
+        { label: 'Mais Mundos vivos: Carnaval, Festa Junina, céu de anime e ilhas flutuantes', status: 'next' },
+        { label: 'Karaokê com ajuste de sincronia no toque', status: 'next' },
+        { label: 'Mundos ainda mais reativos ao refrão e aos drops', status: 'next' }
+      ]
+    },
+    {
+      phase: 'No horizonte',
+      items: [
+        { label: 'Marketplace “Feito pela comunidade”', status: 'next' },
+        { label: 'Versão Android', status: 'next' },
+        { label: 'Sincronização na nuvem (opcional)', status: 'next' }
+      ]
+    }
   ]
 
   return (
@@ -218,19 +243,37 @@ export function Support(): JSX.Element {
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
           <Wrench size={15} className="text-[var(--accent)]" /> Para onde o Harmony vai
         </h2>
-        <div className="relative border-l border-white/10 pl-6">
-          {roadmap.map((item) => (
-            <div key={item.label} className="relative mb-4 last:mb-0">
-              <span
-                className={`absolute -left-[27px] top-0.5 grid h-4 w-4 place-items-center rounded-full ${
-                  item.done ? 'bg-[var(--accent)]' : 'border border-white/20 bg-[var(--bg-raised)]'
-                }`}
-              >
-                {item.done && <Check size={10} className="text-white" />}
-              </span>
-              <p className={`text-sm ${item.done ? 'text-ink' : 'text-muted'}`}>
-                {item.done ? '✅' : '🚧'} {item.label}
+        <div className="flex flex-col gap-5">
+          {roadmap.map((phase) => (
+            <div key={phase.phase}>
+              <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+                {phase.phase}
               </p>
+              <div className="relative border-l border-[var(--glass-border)] pl-6">
+                {phase.items.map((item) => (
+                  <div key={item.label} className="relative mb-3 last:mb-0">
+                    <span
+                      className={`absolute -left-[31px] top-0.5 grid h-4 w-4 place-items-center rounded-full ${
+                        item.status === 'done'
+                          ? 'bg-[var(--accent)]'
+                          : item.status === 'now'
+                            ? 'roadmap-now border-2 border-[var(--accent)] bg-[var(--bg-base)]'
+                            : 'border border-[var(--glass-border)] bg-[var(--bg-raised)]'
+                      }`}
+                    >
+                      {item.status === 'done' && <Check size={10} className="text-white" />}
+                    </span>
+                    <p className={`text-sm ${item.status === 'next' ? 'text-muted' : 'text-ink'}`}>
+                      {item.label}
+                      {item.status === 'now' && (
+                        <span className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                          em construção
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

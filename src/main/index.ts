@@ -45,6 +45,10 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.gif': 'image/gif',
   '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
+  '.apng': 'image/apng',
+  '.bmp': 'image/bmp',
   '.mp4': 'video/mp4',
   '.webm': 'video/webm'
 }

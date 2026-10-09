@@ -63,15 +63,22 @@ function stripPoints(n: number): Float32Array {
 }
 
 function parseRgb(v: string): RGB | null {
+  const hex = v.match(/#([0-9a-f]{6})/i)
+  if (hex) {
+    const n = parseInt(hex[1], 16)
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  }
   const m = v.match(/(\d+)\s*[, ]\s*(\d+)\s*[, ]\s*(\d+)/)
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null
 }
 
 /** The cover's colour, made bright enough to read as light. */
 function ledColour(): RGB {
-  // only an inline --accent comes from a cover; otherwise use the brand orange
-  const inline = document.documentElement.style.getPropertyValue('--accent')
-  const c = inline ? parseRgb(readAccent()) : null
+  // only an inline --accent comes from a cover; otherwise use the brand
+  // orange — unless the theme keeps its own accent, then that one
+  const root = document.documentElement
+  const inline = root.style.getPropertyValue('--accent')
+  const c = inline || root.hasAttribute('data-fixed-accent') ? parseRgb(readAccent()) : null
   if (!c) return BRAND
   const max = Math.max(c[0], c[1], c[2], 1)
   const min = Math.min(c[0], c[1], c[2])
@@ -163,7 +170,7 @@ export function LogoLed(): JSX.Element {
       const G = Math.round(col[1])
       const B = Math.round(col[2])
       // additive light glows on dark themes; on the light theme it would wash out to white
-      const lightTheme = document.documentElement.getAttribute('data-theme') === 'light'
+      const lightTheme = document.documentElement.getAttribute('data-tone') === 'light'
 
       // a soft glow behind the logo on the beat (or breathing while paused)
       const k = playing ? flash * 0.45 : 0.1 + breath * 0.08

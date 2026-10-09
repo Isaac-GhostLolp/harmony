@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { isUltraFast, setUltraFast, useUltraFast } from '@/utils/perf'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar } from '@/components/Sidebar'
 import { PlayerBar } from '@/components/PlayerBar'
 import { QueuePanel } from '@/components/QueuePanel'
@@ -16,7 +16,7 @@ import { Playlists } from '@/pages/Playlists'
 import { Favorites } from '@/pages/Favorites'
 import { History } from '@/pages/History'
 import { Search } from '@/pages/Search'
-import { Stats } from '@/pages/Stats'
+import { Personalize } from '@/pages/Personalize'
 import { Visualizer } from '@/pages/Visualizer'
 import { Settings } from '@/pages/Settings'
 import { Equalizer } from '@/pages/Equalizer'
@@ -27,12 +27,20 @@ import { useUiStore, type BackgroundMode, type LyricsMode } from '@/store/uiStor
 import { themeDirector } from '@/worlds/ThemeDirector'
 import { CapsuleLayer } from '@/components/capsule/CapsuleDialogs'
 import { WhatsNew } from '@/components/WhatsNew'
+import { ScrollMemory } from '@/components/ScrollMemory'
+import { AppearanceStudio } from '@/components/appearance/AppearanceStudio'
+import { CoverCreator } from '@/components/cover/CoverCreator'
+import { StickerTray } from '@/components/stickers/StickerTray'
+import { useStickerStore } from '@/store/stickerStore'
+import { useIconStore } from '@/store/iconStore'
+import { useBarStore } from '@/store/barStore'
+import { IconDefs } from '@/components/icons/AppIcon'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
 import { useProfileStore } from '@/store/profileStore'
+import { useAppearanceStore } from '@/store/appearanceStore'
 import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
-import type { ThemeName } from '@/types'
 
 /**
  * Single audio engine for the whole app. It lives in its own empty component:
@@ -54,7 +62,10 @@ export function App(): JSX.Element {
   useEffect(() => {
     api.settings.get().then((raw) => {
       const s = raw as Record<string, unknown>
-      if (typeof s.theme === 'string') useUiStore.getState().setTheme(s.theme as ThemeName)
+      useAppearanceStore.getState().hydrate(s)
+      useStickerStore.getState().hydrate(s.stickers, s.stickerLibrary)
+      useIconStore.getState().hydrate(s.iconPack)
+      useBarStore.getState().hydrate(s.playerBar)
       if (typeof s.ultraFast === 'boolean') setUltraFast(s.ultraFast)
       if (typeof s.world === 'string' || s.world === null)
         useUiStore.getState().setWorld((s.world as string | null) ?? null)
@@ -131,6 +142,7 @@ export function App(): JSX.Element {
     return () => window.removeEventListener(INTRO_REPLAY_EVENT, replay)
   }, [])
 
+  const mainRef = useRef<HTMLElement>(null)
   const world = useUiStore((s) => s.world)
   const bgCover = backgroundMode === 'cover' && !world ? mediaUrl(coverPath) : undefined
 
@@ -152,7 +164,7 @@ export function App(): JSX.Element {
 
           <div className="relative flex min-h-0 flex-1">
             <Sidebar />
-            <main className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
+            <main ref={mainRef} className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
               <Routes>
                 <Route path="/" element={<Library />} />
                 <Route path="/search" element={<Search />} />
@@ -161,7 +173,9 @@ export function App(): JSX.Element {
                 <Route path="/playlists" element={<Playlists />} />
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/history" element={<History />} />
-                <Route path="/stats" element={<Stats />} />
+                {/* the old Estatísticas tab: all of it lives in Meu Mundo now */}
+                <Route path="/stats" element={<Navigate to="/my-world" replace />} />
+                <Route path="/personalize" element={<Personalize />} />
                 <Route path="/visualizer" element={<Visualizer />} />
                 <Route path="/cinema" element={<Visualizer />} />
                 <Route path="/settings" element={<Settings />} />
@@ -170,6 +184,8 @@ export function App(): JSX.Element {
                 <Route path="/support" element={<Support />} />
               </Routes>
             </main>
+            {/* after <main>, so its ref is set when this runs */}
+            <ScrollMemory target={mainRef} />
             <QueuePanel />
             <LyricsOverlay />
           </div>
@@ -178,6 +194,10 @@ export function App(): JSX.Element {
           <DjMode />
           <CapsuleLayer />
           <WhatsNew ready={!intro} />
+          <AppearanceStudio />
+          <CoverCreator />
+          <StickerTray />
+          <IconDefs />
         </div>
       </HashRouter>
     </>

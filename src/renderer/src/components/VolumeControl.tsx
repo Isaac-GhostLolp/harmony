@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { Volume2, Volume1, VolumeX } from 'lucide-react'
+import { AppIcon } from '@/components/icons/AppIcon'
 
 /**
  * Spotify-style volume control: scrolling the wheel over it nudges the volume
@@ -48,7 +48,7 @@ export function VolumeControl({
 
   useEffect(() => () => window.clearTimeout(hideTimer.current), [])
 
-  const Icon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2
+  const slot = volume === 0 ? 'mute' : volume < 0.5 ? 'volumeLow' : 'volume'
 
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2">
@@ -68,7 +68,7 @@ export function VolumeControl({
         className="text-muted transition-colors hover:text-ink"
         aria-label="Mudo"
       >
-        <Icon size={18} />
+        <AppIcon slot={slot} size={18} />
       </button>
       <div className="group relative flex h-6 w-24 items-center">
         <div className="relative h-1 w-full overflow-hidden rounded-full bg-[var(--bg-raised)]">

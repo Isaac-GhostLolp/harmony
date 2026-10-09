@@ -132,6 +132,14 @@ export function MyWorld(): JSX.Element {
   const facts = useMemo(() => {
     if (!profile || !world) return []
     const out = humanizedStats(profile)
+    // the old Estatísticas tab's "média diária", now one of the curiosities
+    if (profile.activeDays > 0 && profile.hoursPlayed > 0) {
+      const perDay = Math.round((profile.hoursPlayed * 60) / profile.activeDays)
+      if (perDay > 0)
+        out.push(
+          `Nos dias em que você ouve música, são em média ${perDay >= 60 ? `${Math.floor(perDay / 60)}h${String(perDay % 60).padStart(2, '0')}` : `${perDay} minutos`} por dia.`
+        )
+    }
     if (world.bestDay && world.bestDay.plays >= 3) {
       const d = new Date(world.bestDay.d + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
       out.push(`Seu maior dia de música foi ${d}: ${world.bestDay.plays} plays, ${Math.round(world.bestDay.seconds / 60)} minutos.`)

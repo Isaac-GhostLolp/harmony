@@ -124,6 +124,9 @@ export function initDatabase(): Database.Database {
   ensureColumn('albums', 'online_cover_path', 'TEXT')
   ensureColumn('albums', 'preferred_cover', "TEXT NOT NULL DEFAULT 'auto'")
 
+  // v0.18 — covers made in the cover creator (they win over the others)
+  ensureColumn('albums', 'custom_cover_path', 'TEXT')
+
   // v0.11 — playlist personalization: custom image (data URL), description,
   // emoji and a dominant color extracted from the image.
   ensureColumn('playlists', 'description', 'TEXT')
@@ -219,6 +222,18 @@ function migrateMultiArtists(database: Database.Database): void {
 export function getDb(): Database.Database {
   if (!db) throw new Error('Database not initialized')
   return db
+}
+
+export const stickersDir = (): string => {
+  const dir = join(app.getPath('userData'), 'stickers')
+  mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+export const iconsDir = (): string => {
+  const dir = join(app.getPath('userData'), 'icons')
+  mkdirSync(dir, { recursive: true })
+  return dir
 }
 
 export const coversDir = (): string => {

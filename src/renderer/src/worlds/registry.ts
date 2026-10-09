@@ -11,7 +11,24 @@ export interface WorldMeta {
   emoji: string
   category: 'worlds' | 'signature'
   blurb: string
+  /** behind "Carregar mais Worlds vivos": holidays and just-for-fun worlds */
+  more?: boolean
+  /** when it's "em alta": the days of the year this world is about */
+  season?: (d: Date) => boolean
   load: () => Promise<World>
+}
+
+/** month is 1..12; a range may wrap past New Year */
+const between = (d: Date, from: [number, number], to: [number, number]): boolean => {
+  const v = (d.getMonth() + 1) * 100 + d.getDate()
+  const a = from[0] * 100 + from[1]
+  const b = to[0] * 100 + to[1]
+  return a <= b ? v >= a && v <= b : v >= a || v <= b
+}
+
+/** Whether a world's date is near (shown first, with an "Em alta" badge). */
+export function inSeason(w: WorldMeta, d = new Date()): boolean {
+  return !!w.season && w.season(d)
 }
 
 export const WORLDS: WorldMeta[] = [
@@ -110,6 +127,73 @@ export const WORLDS: WorldMeta[] = [
     category: 'signature',
     blurb: 'Uma noite vulcânica iluminada por lava: brasas subindo, cinzas caindo e o brilho pulsando com a música.',
     load: () => import('./volcano').then((m) => m.volcanoWorld)
+  },
+  // ---- more worlds: holidays and fun -------------------------------------
+  {
+    id: 'halloween',
+    name: 'Halloween',
+    emoji: '🎃',
+    category: 'worlds',
+    more: true,
+    season: (d) => between(d, [10, 1], [11, 2]),
+    blurb: 'Lua cheia sobre um cemitério antigo: abóboras que pulsam com a batida, morcegos, fantasmas e névoa.',
+    load: () => import('./halloween').then((m) => m.halloweenWorld)
+  },
+  {
+    id: 'christmas',
+    name: 'Natal',
+    emoji: '🎄',
+    category: 'worlds',
+    more: true,
+    season: (d) => between(d, [12, 1], [1, 6]),
+    blurb: 'Uma pracinha nevando na véspera de Natal: a árvore pisca no ritmo, a estrela pulsa e o trenó do Papai Noel cruza a lua.',
+    load: () => import('./christmas').then((m) => m.christmasWorld)
+  },
+  {
+    id: 'newyear',
+    name: 'Réveillon',
+    emoji: '🎆',
+    category: 'worlds',
+    more: true,
+    season: (d) => between(d, [12, 26], [1, 2]),
+    blurb: 'Virada em Copacabana: fogos explodindo no ritmo sobre o mar, o reflexo na água e a multidão de branco na areia.',
+    load: () => import('./newyear').then((m) => m.newYearWorld)
+  },
+  {
+    id: 'arcade',
+    name: 'Arcade',
+    emoji: '🕹️',
+    category: 'worlds',
+    more: true,
+    blurb: 'Um fliperama dos anos 80 em tela de tubo: invasores marchando no ritmo, a navinha jogando sozinha e uma cidade-equalizador.',
+    load: () => import('./arcade').then((m) => m.arcadeWorld)
+  },
+  {
+    id: 'desert',
+    name: 'Deserto',
+    emoji: '🏜️',
+    category: 'worlds',
+    more: true,
+    blurb: 'Dunas sem fim sob a Via Láctea e duas luas (de dia, dois sóis), uma caravana na crista e algo gigante sob a areia.',
+    load: () => import('./desert').then((m) => m.desertWorld)
+  },
+  {
+    id: 'biolum',
+    name: 'Floresta Bioluminescente',
+    emoji: '🍄',
+    category: 'worlds',
+    more: true,
+    blurb: 'Uma floresta alienígena que brilha: cogumelos e árvores pulsando, plantas que se enrolam e sementes-água-viva no ar.',
+    load: () => import('./biolum').then((m) => m.biolumWorld)
+  },
+  {
+    id: 'coderain',
+    name: 'Chuva de Código',
+    emoji: '🟩',
+    category: 'worlds',
+    more: true,
+    blurb: 'O código verde caindo em três profundidades, no ritmo da música. Siga o coelho branco.',
+    load: () => import('./coderain').then((m) => m.codeRainWorld)
   },
   {
     id: 'custom',

@@ -1,10 +1,18 @@
+import { lookStamp } from '@/utils/appearance'
+
+let lastCover: string | undefined
+
 /**
  * Extracts a dominant accent color from an album cover and applies it as
  * CSS variables (--accent / --accent-soft), driving the "living" UI glow.
+ * A theme can opt out (the appearance studio's "follow the cover" switch):
+ * then the theme's own accent stays.
  */
 export async function applyAccentFromCover(url: string | undefined): Promise<void> {
   const root = document.documentElement
-  if (!url) {
+  lastCover = url
+  if (!url || root.hasAttribute('data-fixed-accent')) {
+    root.removeAttribute('data-cover-accent')
     root.style.removeProperty('--accent')
     root.style.removeProperty('--accent-soft')
     return
@@ -36,8 +44,13 @@ export async function applyAccentFromCover(url: string | undefined): Promise<voi
       r += pr; g += pg; b += pb; count++
     }
     if (count === 0) return
+    // the cover may have changed (or the switch flipped) while it loaded
+    if (lastCover !== url || root.hasAttribute('data-fixed-accent')) return
     r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count)
 
+    // pale covers get dark text on accent buttons (see globals.css)
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+    root.setAttribute('data-cover-accent', lum > 0.62 ? 'light' : 'dark')
     root.style.setProperty('--accent', `rgb(${r} ${g} ${b})`)
     root.style.setProperty('--accent-soft', `rgb(${r} ${g} ${b} / 0.18)`)
   } catch {
@@ -45,8 +58,13 @@ export async function applyAccentFromCover(url: string | undefined): Promise<voi
   }
 }
 
+/** Re-apply (or drop) the cover's accent after the theme changed. */
+export function refreshCoverAccent(): void {
+  void applyAccentFromCover(lastCover)
+}
+
 let accentInline: string | null = null
-let accentTheme: string | null = null
+let accentTheme: number | null = null
 let accentValue = ''
 
 /**
@@ -59,7 +77,7 @@ let accentValue = ''
 export function readAccent(): string {
   const root = document.documentElement
   const inline = root.style.getPropertyValue('--accent')
-  const theme = root.getAttribute('data-theme')
+  const theme = lookStamp()
   if (inline !== accentInline || theme !== accentTheme) {
     accentInline = inline
     accentTheme = theme

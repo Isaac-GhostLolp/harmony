@@ -1,8 +1,8 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
 import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'fs'
-import { extname, join } from 'path'
+import { extname, join, resolve, dirname } from 'path'
 import { app } from 'electron'
-import { getDb } from '../db/database'
+import { getDb, coversDir, stickersDir, iconsDir } from '../db/database'
 import { scanFolder, importFiles } from '../services/scanner'
 import {
   fetchLyricsOnline,
@@ -238,13 +238,68 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   )
 
   ipcMain.handle('albums:setPreferredCover', (_e, albumId: number, preferred: string) => {
-    if (!['auto', 'embedded', 'online'].includes(preferred)) return null
+    if (!['auto', 'embedded', 'online', 'custom'].includes(preferred)) return null
     db().prepare('UPDATE albums SET preferred_cover = ? WHERE id = ?').run(preferred, albumId)
     const row = db()
       .prepare(`SELECT ${EFFECTIVE_COVER_SQL} as cover FROM albums al WHERE al.id = ?`)
       .get(albumId) as { cover: string | null } | undefined
     return row?.cover ?? null
   })
+
+  // ---------- Cover creator ----------
+  // Saves a cover drawn in the app for a song's album (a song without an
+  // album becomes a single of its own) and makes it the album's cover.
+  ipcMain.handle('covers:saveCustom', (_e, songId: number, data: ArrayBuffer) => {
+    const d = db()
+    const song = d.prepare('SELECT id, title, album_id, artist_id, year FROM songs WHERE id = ?').get(songId) as
+      | { id: number; title: string; album_id: number | null; artist_id: number | null; year: number | null }
+      | undefined
+    if (!song || !data || data.byteLength === 0 || data.byteLength > 15 * 1024 * 1024) return null
+    let albumId = song.album_id
+    if (!albumId) {
+      d.prepare('INSERT OR IGNORE INTO albums (title, artist_id, year) VALUES (?, ?, ?)').run(song.title, song.artist_id, song.year)
+      albumId = (d.prepare('SELECT id FROM albums WHERE title = ? AND artist_id IS ?').get(song.title, song.artist_id) as { id: number }).id
+      d.prepare('UPDATE songs SET album_id = ? WHERE id = ?').run(albumId, songId)
+    }
+    const old = d.prepare('SELECT custom_cover_path as p FROM albums WHERE id = ?').get(albumId) as { p: string | null }
+    const file = join(coversDir(), `custom-${albumId}-${Date.now()}.jpg`)
+    writeFileSync(file, Buffer.from(data))
+    d.prepare("UPDATE albums SET custom_cover_path = ?, preferred_cover = 'custom' WHERE id = ?").run(file, albumId)
+    if (old?.p && old.p !== file && existsSync(old.p)) {
+      try {
+        unlinkSync(old.p)
+      } catch {
+        /* an old file left behind is harmless */
+      }
+    }
+    const row = d.prepare(`SELECT ${EFFECTIVE_COVER_SQL} as cover FROM albums al WHERE al.id = ?`).get(albumId) as { cover: string | null }
+    return { albumId, cover: row.cover }
+  })
+
+  // the user's own images (stickers, icon packs), copied into userData/<kind>
+  const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'apng', 'bmp'])
+  const imageStore = (kind: string, dir: () => string): void => {
+    ipcMain.handle(`${kind}:save`, (_e, data: ArrayBuffer, ext: string) => {
+      const e = String(ext).toLowerCase().replace(/^\./, '')
+      if (!IMAGE_EXT.has(e) || !data || data.byteLength === 0 || data.byteLength > 10 * 1024 * 1024) return null
+      const file = join(dir(), `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${e}`)
+      writeFileSync(file, Buffer.from(data))
+      return file
+    })
+    ipcMain.handle(`${kind}:delete`, (_e, path: string) => {
+      // only ever files inside that folder
+      const file = resolve(String(path))
+      if (dirname(file) !== resolve(dir()) || !existsSync(file)) return false
+      try {
+        unlinkSync(file)
+        return true
+      } catch {
+        return false
+      }
+    })
+  }
+  imageStore('stickers', stickersDir)
+  imageStore('icons', iconsDir)
 
   ipcMain.handle('albums:getSongs', (_e, albumId: number) =>
     db()

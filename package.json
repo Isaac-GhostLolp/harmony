@@ -1,6 +1,6 @@
 {
   "name": "harmony",
-  "version": "0.17.5",
+  "version": "0.18.0",
   "description": "Modern offline music player — Spotify-grade experience for your local library",
   "main": "out/main/index.js",
   "author": {

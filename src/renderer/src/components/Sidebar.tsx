@@ -1,33 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import { LogoLed } from './LogoLed'
-import {
-  Library,
-  ListMusic,
-  MicVocal,
-  Disc3,
-  Heart,
-  Clock,
-  Clapperboard,
-  Settings,
-  BarChart3,
-  Search,
-  SlidersHorizontal,
-  Globe2
-} from 'lucide-react'
+import { StickerZone } from './stickers/StickerZone'
+import { AppIcon } from './icons/AppIcon'
+import type { IconSlot } from './icons/slots'
 
-const items = [
-  { to: '/', label: 'Biblioteca', icon: Library },
-  { to: '/my-world', label: 'Meu Mundo', icon: Globe2 },
-  { to: '/search', label: 'Pesquisar', icon: Search },
-  { to: '/playlists', label: 'Playlists', icon: ListMusic },
-  { to: '/artists', label: 'Artistas', icon: MicVocal },
-  { to: '/albums', label: 'Álbuns', icon: Disc3 },
-  { to: '/favorites', label: 'Favoritos', icon: Heart },
-  { to: '/visualizer', label: 'Visualizer', icon: Clapperboard },
-  { to: '/history', label: 'Histórico', icon: Clock },
-  { to: '/stats', label: 'Estatísticas', icon: BarChart3 },
-  { to: '/equalizer', label: 'Equalizador', icon: SlidersHorizontal },
-  { to: '/settings', label: 'Configurações', icon: Settings }
+const items: { to: string; label: string; slot: IconSlot }[] = [
+  { to: '/', label: 'Biblioteca', slot: 'library' },
+  { to: '/my-world', label: 'Meu Mundo', slot: 'myworld' },
+  { to: '/search', label: 'Pesquisar', slot: 'search' },
+  { to: '/playlists', label: 'Playlists', slot: 'playlists' },
+  { to: '/artists', label: 'Artistas', slot: 'artists' },
+  { to: '/albums', label: 'Álbuns', slot: 'albums' },
+  { to: '/favorites', label: 'Favoritos', slot: 'favorites' },
+  { to: '/visualizer', label: 'Visualizer', slot: 'visualizer' },
+  { to: '/history', label: 'Histórico', slot: 'history' },
+  { to: '/equalizer', label: 'Equalizador', slot: 'equalizer' },
+  { to: '/personalize', label: 'Personalização', slot: 'personalize' },
+  { to: '/settings', label: 'Configurações', slot: 'settings' }
 ]
 
 const linkClass = (isActive: boolean): string =>
@@ -39,7 +28,7 @@ const linkClass = (isActive: boolean): string =>
 
 export function Sidebar(): JSX.Element {
   return (
-    <aside className="glass glass-panel z-10 m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
+    <aside data-stk-host className="glass glass-panel z-10 m-3 flex w-56 shrink-0 flex-col rounded-2xl p-3">
       {/* Brand — fixed at top */}
       <div className="mb-4 flex shrink-0 items-center gap-4 px-3 pt-2">
         <LogoLed />
@@ -51,9 +40,9 @@ export function Sidebar(): JSX.Element {
         className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1"
         style={{ scrollbarWidth: 'thin' }}
       >
-        {items.map(({ to, label, icon: Icon }) => (
+        {items.map(({ to, label, slot }) => (
           <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => linkClass(isActive)}>
-            <Icon size={17} strokeWidth={1.8} />
+            <AppIcon slot={slot} size={17} strokeWidth={1.8} />
             {label}
           </NavLink>
         ))}
@@ -71,7 +60,8 @@ export function Sidebar(): JSX.Element {
             }`
           }
         >
-          <Heart
+          <AppIcon
+            slot="support"
             size={17}
             strokeWidth={1.8}
             className="text-[var(--accent)] transition-transform group-hover:scale-110"
@@ -79,6 +69,8 @@ export function Sidebar(): JSX.Element {
           Apoie o Harmony
         </NavLink>
       </div>
+
+      <StickerZone zone="sidebar" label="Barra lateral" />
     </aside>
   )
 }

@@ -8,6 +8,8 @@ import { SongList } from '@/components/SongList'
 import { InputDialog, ConfirmDialog } from '@/components/InputDialog'
 import { PlaylistEditor } from '@/components/PlaylistEditor'
 import { FilterChips } from '@/components/FilterChips'
+import { StickerZone } from '@/components/stickers/StickerZone'
+import { useStickerStore } from '@/store/stickerStore'
 
 type Dialog =
   | { kind: 'create' }
@@ -77,6 +79,7 @@ export function Playlists(): JSX.Element {
   const doDelete = async (p: Playlist): Promise<void> => {
     setDialog(null)
     await api.playlists.remove(p.id)
+    useStickerStore.getState().clearZone(`playlist:${p.id}`)
     if (selected?.id === p.id) setSelected(null)
     load()
   }
@@ -106,7 +109,7 @@ export function Playlists(): JSX.Element {
                 : 'linear-gradient(135deg, var(--accent-soft), transparent 70%)'
             }}
           >
-            <div className="grid h-32 w-32 shrink-0 place-items-center overflow-hidden rounded-2xl bg-black/20 shadow-lg">
+            <div data-stk-host className="grid h-32 w-32 shrink-0 place-items-center overflow-hidden rounded-2xl bg-black/20 shadow-lg">
               {selected.image ? (
                 <img src={selected.image} alt="" className="h-full w-full object-cover" />
               ) : selected.emoji ? (
@@ -114,6 +117,7 @@ export function Playlists(): JSX.Element {
               ) : (
                 <ListMusic size={40} className="text-white/70" />
               )}
+              <StickerZone zone={`playlist:${selected.id}`} label="Capa" rel />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] uppercase tracking-wide text-white/60">Playlist</p>
@@ -201,6 +205,7 @@ export function Playlists(): JSX.Element {
                   <button onClick={() => open(p)} className="flex w-full flex-col text-left">
                     {/* cover area */}
                     <div
+                      data-stk-host
                       className="relative grid aspect-[16/9] w-full place-items-center overflow-hidden"
                       style={{
                         background: p.color
@@ -219,6 +224,7 @@ export function Playlists(): JSX.Element {
                       ) : (
                         <ListMusic size={30} className="text-white/70" />
                       )}
+                      <StickerZone zone={`playlist:${p.id}`} label="Capa" rel />
                     </div>
                     <div className="p-4">
                       <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
@@ -232,7 +238,7 @@ export function Playlists(): JSX.Element {
                       )}
                     </div>
                   </button>
-                  <div className="absolute right-3 top-3 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="absolute right-3 top-3 z-40 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <IconBtn onClick={() => setEditing(p)} label="Personalizar">
                       <ImageIcon size={13} />
                     </IconBtn>

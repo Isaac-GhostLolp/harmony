@@ -465,9 +465,10 @@ export async function fetchCoverOnline(local: LocalTrack): Promise<CoverResult |
 
 /** Effective cover honoring the user's per-album preference. */
 export const EFFECTIVE_COVER_SQL = `CASE
+  WHEN al.preferred_cover = 'custom' THEN COALESCE(al.custom_cover_path, al.cover_path, al.online_cover_path)
   WHEN al.preferred_cover = 'embedded' THEN al.cover_path
   WHEN al.preferred_cover = 'online' THEN COALESCE(al.online_cover_path, al.cover_path)
-  ELSE COALESCE(al.cover_path, al.online_cover_path)
+  ELSE COALESCE(al.cover_path, al.online_cover_path, al.custom_cover_path)
 END`
 
 export function applyCoverToSong(songId: number, result: CoverResult): string | null {

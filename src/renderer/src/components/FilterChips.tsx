@@ -74,7 +74,7 @@ export function FilterChips<T extends string>({
           onClick={() => onChange(chip.id)}
           className={`relative z-10 h-8 shrink-0 whitespace-nowrap rounded-full px-4 text-xs font-semibold transition-colors duration-200 ${
             active === chip.id
-              ? 'text-white'
+              ? 'text-[var(--on-accent,#fff)]'
               : 'bg-[var(--bg-raised)] text-muted hover:text-ink'
           }`}
         >

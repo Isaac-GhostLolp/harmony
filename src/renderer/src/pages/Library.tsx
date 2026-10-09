@@ -3,7 +3,9 @@ import { FolderPlus, RefreshCw } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import type { Song } from '@/types'
 import { api } from '@/services/api'
-import { SongList } from '@/components/SongList'
+import { SongViews, ViewSwitcher, useViewMode } from '@/components/views/SongViews'
+import { MissingCovers } from '@/components/cover/MissingCovers'
+import { COVERS_CHANGED_EVENT } from '@/store/coverCreatorStore'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
 import { FilterChips, type FilterChip } from '@/components/FilterChips'
@@ -41,13 +43,22 @@ function applyFilter(songs: Song[], filter: LibFilter): Song[] {
   }
 }
 
+// the chosen filter survives switching tabs (for this session), so coming
+// back to the library finds it the way it was left
+let lastFilter: LibFilter = 'all'
+
 export function Library(): JSX.Element {
   const [songs, setSongs] = useState<Song[]>([])
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null)
-  const [filter, setFilter] = useState<LibFilter>('all')
+  const [view, setView] = useViewMode('library')
+  const [filter, setFilterState] = useState<LibFilter>(lastFilter)
+  const setFilter = (f: LibFilter): void => {
+    lastFilter = f
+    setFilterState(f)
+  }
 
   // Build the chip list: fixed filters + a chip per genre present in the library.
   const chips = useMemo<FilterChip<LibFilter>[]>(() => {
@@ -74,7 +85,11 @@ export function Library(): JSX.Element {
   useEffect(() => {
     load()
     const off = api.library.onScanProgress((p) => setProgress(p))
-    return off
+    window.addEventListener(COVERS_CHANGED_EVENT, load)
+    return () => {
+      off()
+      window.removeEventListener(COVERS_CHANGED_EVENT, load)
+    }
   }, [load])
 
   const refreshLibrary = async (): Promise<void> => {
@@ -126,7 +141,7 @@ export function Library(): JSX.Element {
 
   return (
     <div
-      className={`relative h-full ${dragOver ? 'outline-dashed outline-2 outline-[var(--accent)] rounded-2xl' : ''}`}
+      className={`relative min-h-full ${dragOver ? 'outline-dashed outline-2 outline-[var(--accent)] rounded-2xl' : ''}`}
       onDragOver={(e) => {
         e.preventDefault()
         setDragOver(true)
@@ -141,6 +156,7 @@ export function Library(): JSX.Element {
         }
         actions={
           <div className="flex items-center gap-2">
+          {songs.length > 0 && <ViewSwitcher mode={view} onChange={setView} />}
           <button
             onClick={refreshLibrary}
             disabled={scanning}
@@ -163,7 +179,9 @@ export function Library(): JSX.Element {
           </button>
           </div>
         }
-      />
+      >
+        {songs.length > 0 && <FilterChips chips={chips} active={filter} onChange={setFilter} />}
+      </PageHeader>
 
       {songs.length === 0 && !scanning ? (
         <EmptyState
@@ -172,9 +190,6 @@ export function Library(): JSX.Element {
         />
       ) : (
         <>
-          {songs.length > 0 && (
-            <FilterChips chips={chips} active={filter} onChange={setFilter} />
-          )}
           {filtered.length === 0 ? (
             <div className="fade-in">
               <EmptyState
@@ -195,8 +210,9 @@ export function Library(): JSX.Element {
               />
             </div>
           ) : (
-            <div key={filter} className="fade-in">
-              <SongList songs={filtered} onChanged={load} />
+            <div key={`${filter}-${view}`} className="fade-in">
+              <MissingCovers songs={songs} />
+              <SongViews mode={view} songs={filtered} onChanged={load} />
             </div>
           )}
         </>

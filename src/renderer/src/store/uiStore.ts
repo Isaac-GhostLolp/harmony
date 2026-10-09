@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
 import type { ThemeName } from '@/types'
 import { themeDirector } from '@/worlds/ThemeDirector'
+import { useAppearanceStore } from '@/store/appearanceStore'
 
 export type BackgroundMode = 'none' | 'cover'
 export type LyricsMode = 'synced' | 'karaoke' | 'edit'
@@ -50,8 +51,8 @@ export const useUiStore = create<UiState>((set) => ({
   worldSurge: false,
   customMedia: null,
   setTheme: (theme) => {
-    document.documentElement.setAttribute('data-theme', theme)
-    window.harmony.settings.set('theme', theme)
+    // a classic theme is a preset Look now (store/appearanceStore.ts)
+    useAppearanceStore.getState().choose(`preset:${theme}`)
     set({ theme })
   },
   toggleQueue: () => set((s) => ({ queueOpen: !s.queueOpen })),
