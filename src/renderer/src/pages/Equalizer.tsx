@@ -4,6 +4,7 @@ import { useEqStore, EQ_PRESETS } from '@/store/eqStore'
 import { EQ_BANDS, getEngine } from '@/services/audioEngine'
 import { PageHeader } from '@/components/PageHeader'
 import { readAccent } from '@/utils/color'
+import { t, tk } from '@/i18n'
 
 const LABELS = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k']
 const MIN_DB = -12
@@ -127,12 +128,12 @@ export function Equalizer(): JSX.Element {
   }, [])
 
   const isModified = gains.some((g) => g !== 0)
-  const presetNames = [...Object.keys(EQ_PRESETS), 'Personalizado']
+  const presetNames = [...Object.keys(EQ_PRESETS), tk('Personalizado')]
 
   return (
     <div>
       <PageHeader
-        title="Equalizador"
+        title={t('Equalizador')}
         subtitle={`10 bandas · ${EQ_BANDS[0]} Hz – 16 kHz`}
         actions={
           <button
@@ -154,7 +155,7 @@ export function Equalizer(): JSX.Element {
                 }`}
               />
             </span>
-            {enabled ? 'Ativado' : 'Desativado'}
+            {enabled ? t('Ativado') : t('Desativado')}
           </button>
         }
       />
@@ -164,7 +165,7 @@ export function Equalizer(): JSX.Element {
         <canvas ref={canvasRef} className="h-48 w-full" />
         <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 text-[10px] text-muted">
           <span className="inline-block h-0.5 w-4 border-t border-dashed border-white/40" />
-          padrão (Flat)
+          {t('padrão (Flat)')}
         </div>
       </div>
 
@@ -182,16 +183,16 @@ export function Equalizer(): JSX.Element {
             }`}
           >
             {name === 'Flat' && <Sparkles size={12} className="mr-1 inline" />}
-            {name}
+            {t(name)}
           </button>
         ))}
         <button
           onClick={() => setPreset('Flat')}
           disabled={!enabled || !isModified}
           className="press ml-auto flex items-center gap-1.5 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-semibold text-muted transition-colors hover:text-ink disabled:opacity-40"
-          title="Zerar todas as bandas"
+          title={t('Zerar todas as bandas')}
         >
-          <RotateCcw size={13} /> Resetar
+          <RotateCcw size={13} /> {t('Resetar')}
         </button>
       </div>
 

@@ -5,6 +5,7 @@ import { useUiStore } from '@/store/uiStore'
 import { PRESETS } from '@/utils/appearance'
 import { ThemeCard } from './ThemeCard'
 import { ConfirmDialog, InputDialog } from '@/components/InputDialog'
+import { t } from '@/i18n'
 
 /**
  * Settings → the theme picker: your own themes, the new looks and the
@@ -27,21 +28,21 @@ export function ThemeGallery(): JSX.Element {
 
   const allSources = [
     ...mine.map((m) => ({ id: `mine:${m.id}`, name: m.name })),
-    ...PRESETS.map((p) => ({ id: `preset:${p.id}`, name: p.name }))
+    ...PRESETS.map((p) => ({ id: `preset:${p.id}`, name: t(p.name) }))
   ]
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">Temas</h2>
-          <p className="mt-0.5 text-xs text-muted">Escolha um tema ou crie o seu, com as suas cores, transparência e cantos.</p>
+          <h2 className="text-sm font-semibold">{t('Temas')}</h2>
+          <p className="mt-0.5 text-xs text-muted">{t('Escolha um tema ou crie o seu, com as suas cores, transparência e cantos.')}</p>
         </div>
         <button
           onClick={() => setStudioOpen(true)}
           className="press flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-white"
         >
-          <Palette size={13} /> Personalizar
+          <Palette size={13} /> {t('Personalizar')}
         </button>
       </div>
 
@@ -54,13 +55,13 @@ export function ThemeGallery(): JSX.Element {
             <ThemeCard name="" look={look} active onClick={() => setStudioOpen(true)} />
           </div>
           <div className="min-w-0 text-xs">
-            <p className="font-semibold">Em uso: {sourceName(source, mine)} (editado)</p>
-            <p className="mt-0.5 text-[11px] text-muted">Abra o estúdio para salvar como um tema seu.</p>
+            <p className="font-semibold">{t('Em uso:')} {sourceName(source, mine)} {t('(editado)')}</p>
+            <p className="mt-0.5 text-[11px] text-muted">{t('Abra o estúdio para salvar como um tema seu.')}</p>
           </div>
         </button>
       )}
 
-      <Shelf title="Meus temas">
+      <Shelf title={t('Meus temas')}>
         {mine.map((m) => (
           <ThemeCard
             key={m.id}
@@ -79,19 +80,19 @@ export function ThemeGallery(): JSX.Element {
           className="flex aspect-[16/10] flex-col items-center justify-center gap-1 self-start rounded-xl border border-dashed border-[var(--glass-border)] text-[11px] text-muted transition-colors hover:border-[var(--accent)] hover:text-ink"
         >
           <Plus size={16} />
-          Criar tema
+          {t('Criar tema')}
         </button>
       </Shelf>
-      {mine.length > 0 && <p className="-mt-1 mb-3 text-[10px] text-muted">Clique com o botão direito num tema seu para renomear ou excluir.</p>}
+      {mine.length > 0 && <p className="-mt-1 mb-3 text-[10px] text-muted">{t('Clique com o botão direito num tema seu para renomear ou excluir.')}</p>}
 
-      <Shelf title="Novos">
+      <Shelf title={t('Novos')}>
         {PRESETS.filter((p) => p.group === 'new').map((p) => (
-          <ThemeCard key={p.id} name={p.name} look={p.look} badge="novo" active={isOn(`preset:${p.id}`)} onClick={() => pick(`preset:${p.id}`)} />
+          <ThemeCard key={p.id} name={t(p.name)} look={p.look} badge={t('novo')} active={isOn(`preset:${p.id}`)} onClick={() => pick(`preset:${p.id}`)} />
         ))}
       </Shelf>
-      <Shelf title="Clássicos">
+      <Shelf title={t('Clássicos')}>
         {PRESETS.filter((p) => p.group === 'classic').map((p) => (
-          <ThemeCard key={p.id} name={p.name} look={p.look} active={isOn(`preset:${p.id}`)} onClick={() => pick(`preset:${p.id}`)} />
+          <ThemeCard key={p.id} name={t(p.name)} look={p.look} active={isOn(`preset:${p.id}`)} onClick={() => pick(`preset:${p.id}`)} />
         ))}
       </Shelf>
 
@@ -99,14 +100,14 @@ export function ThemeGallery(): JSX.Element {
       <div className="mt-2 rounded-2xl bg-[var(--bg-raised)] p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold">🌗 Tema por horário</p>
-            <p className="text-[11px] text-muted">Troca sozinho entre um tema de dia e um de noite.</p>
+            <p className="text-xs font-semibold">{t('🌗 Tema por horário')}</p>
+            <p className="text-[11px] text-muted">{t('Troca sozinho entre um tema de dia e um de noite.')}</p>
           </div>
           <button
             onClick={() => setSchedule({ enabled: !schedule.enabled })}
             role="switch"
             aria-checked={schedule.enabled}
-            aria-label="Tema por horário"
+            aria-label={t('Tema por horário')}
             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
               schedule.enabled ? 'bg-[var(--accent)]' : 'bg-[var(--bg-base)]'
             }`}
@@ -122,7 +123,7 @@ export function ThemeGallery(): JSX.Element {
                 <select
                   value={schedule[slot]}
                   onChange={(e) => setSchedule({ [slot]: e.target.value })}
-                  aria-label={slot === 'day' ? 'Tema de dia' : 'Tema de noite'}
+                  aria-label={slot === 'day' ? t('Tema de dia') : t('Tema de noite')}
                   className="min-w-0 flex-1 rounded-md bg-transparent text-xs outline-none"
                 >
                   {allSources.map((s) => (
@@ -131,11 +132,11 @@ export function ThemeGallery(): JSX.Element {
                     </option>
                   ))}
                 </select>
-                <span className="text-[10px] text-muted">a partir das</span>
+                <span className="text-[10px] text-muted">{t('a partir das')}</span>
                 <select
                   value={slot === 'day' ? schedule.dayAt : schedule.nightAt}
                   onChange={(e) => setSchedule(slot === 'day' ? { dayAt: Number(e.target.value) } : { nightAt: Number(e.target.value) })}
-                  aria-label={slot === 'day' ? 'Hora do dia' : 'Hora da noite'}
+                  aria-label={slot === 'day' ? t('Hora do dia') : t('Hora da noite')}
                   className="rounded-md bg-transparent text-xs tabular-nums outline-none"
                 >
                   {Array.from({ length: 24 }, (_, h) => (
@@ -158,19 +159,19 @@ export function ThemeGallery(): JSX.Element {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <button className="rounded-lg px-3 py-2 text-left hover:bg-[var(--bg-raised)]" onClick={() => { setRenaming(menu.id); setMenu(null) }}>
-              Renomear
+              {t('Renomear')}
             </button>
             <button className="rounded-lg px-3 py-2 text-left text-red-400 hover:bg-[var(--bg-raised)]" onClick={() => { setDeleting(menu.id); setMenu(null) }}>
-              Excluir
+              {t('Excluir')}
             </button>
           </div>
         </div>
       )}
       <InputDialog
         open={renaming !== null}
-        title="Renomear tema"
+        title={t('Renomear tema')}
         initialValue={mine.find((m) => m.id === renaming)?.name ?? ''}
-        confirmLabel="Salvar"
+        confirmLabel={t('Salvar')}
         onConfirm={(v) => {
           if (renaming) rename(renaming, v)
           setRenaming(null)
@@ -179,9 +180,9 @@ export function ThemeGallery(): JSX.Element {
       />
       <ConfirmDialog
         open={deleting !== null}
-        title="Excluir tema"
-        message={`Excluir “${mine.find((m) => m.id === deleting)?.name ?? ''}”? Se ele estiver em uso, a aparência continua igual até você trocar.`}
-        confirmLabel="Excluir"
+        title={t('Excluir tema')}
+        message={t('Excluir “{name}”? Se ele estiver em uso, a aparência continua igual até você trocar.', { name: mine.find((m) => m.id === deleting)?.name ?? '' })}
+        confirmLabel={t('Excluir')}
         danger
         onConfirm={() => {
           if (deleting) remove(deleting)

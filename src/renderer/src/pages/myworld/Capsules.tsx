@@ -6,6 +6,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { longDate, relativeTime, useCapsuleStore, type Capsule } from '@/store/capsuleStore'
 import { CoverArt } from '@/components/CoverArt'
 import { SectionTitle } from './parts'
+import { t } from '@/i18n'
 
 /**
  * Cápsulas do tempo in Meu Mundo: the ones ready to open (play the song and
@@ -44,18 +45,16 @@ export function Capsules({ songs, hue }: { songs: Song[]; hue: number }): JSX.El
 
   return (
     <div id="capsules" className="mb-6 scroll-mt-4">
-      <SectionTitle emoji="📮" title="Cápsulas do tempo" hint={hint} />
+      <SectionTitle emoji="📮" title={t('Cápsulas do tempo')} hint={hint} />
       {list.length === 0 ? (
         <div
           className="glass rounded-3xl p-6 text-center"
           style={{ background: `linear-gradient(160deg, hsl(${hue} 80% 55% / 0.12), transparent 70%)` }}
         >
           <p className="text-3xl">💌</p>
-          <p className="mt-2 text-sm font-semibold">Guarde uma lembrança numa música</p>
+          <p className="mt-2 text-sm font-semibold">{t('Guarde uma lembrança numa música')}</p>
           <p className="mx-auto mt-1 max-w-md text-xs text-muted">
-            Escreva o que uma música significa para você hoje e escolha quando ela abre. Quando a data chegar, na
-            próxima vez que ela tocar, seu eu do passado aparece. Use o botão 📮 no player ou o menu ⋯ de qualquer
-            música.
+            {t('Escreva o que uma música significa para você hoje e escolha quando ela abre. Quando a data chegar, na próxima vez que ela tocar, seu eu do passado aparece. Use o botão 📮 no player ou o menu ⋯ de qualquer música.')}
           </p>
         </div>
       ) : (
@@ -87,9 +86,9 @@ function ReadyCard({ c, song, hue }: { c: Capsule; song: Song | undefined; hue: 
           {c.emoji ?? '💌'}
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">Pronta para abrir!</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--accent)]">{t('Pronta para abrir!')}</p>
           <p className="truncate text-sm font-semibold">{c.title}</p>
-          <p className="truncate text-xs text-muted">Selada {relativeTime(c.createdAt)}</p>
+          <p className="truncate text-xs text-muted">{t('Selada')} {relativeTime(c.createdAt)}</p>
         </div>
       </div>
       <button
@@ -98,10 +97,10 @@ function ReadyCard({ c, song, hue }: { c: Capsule; song: Song | undefined; hue: 
       >
         {song ? (
           <>
-            <Play size={12} fill="currentColor" /> Tocar para abrir
+            <Play size={12} fill="currentColor" /> {t('Tocar para abrir')}
           </>
         ) : (
-          'Abrir agora'
+          t('Abrir agora')
         )}
       </button>
     </div>
@@ -123,7 +122,7 @@ function SealedCard({ c }: { c: Capsule }): JSX.Element {
         <DeleteButton c={c} />
       </div>
       <p className="mt-3 text-xs text-muted" title={longDate(c.openAt)}>
-        🔒 Abre {relativeTime(c.openAt)} · selada {relativeTime(c.createdAt)}
+        {t('🔒 Abre')} {relativeTime(c.openAt)} {t('· selada')} {relativeTime(c.createdAt)}
       </p>
     </div>
   )
@@ -144,7 +143,7 @@ function OpenedCard({ c }: { c: Capsule }): JSX.Element {
         <DeleteButton c={c} />
       </div>
       <p className="mt-3 line-clamp-4 whitespace-pre-wrap font-serif text-sm leading-relaxed">“{c.note}”</p>
-      <p className="mt-2 text-[11px] text-muted">Escrita em {longDate(c.createdAt)}</p>
+      <p className="mt-2 text-[11px] text-muted">{t('Escrita em')} {longDate(c.createdAt)}</p>
     </div>
   )
 }
@@ -166,12 +165,12 @@ function DeleteButton({ c }: { c: Capsule }): JSX.Element {
       }
       className="shrink-0 rounded-full bg-red-500/80 px-2.5 py-1 text-[11px] font-semibold text-white"
     >
-      Apagar?
+      {t('Apagar?')}
     </button>
   ) : (
     <button
       onClick={() => setConfirm(true)}
-      aria-label="Apagar cápsula"
+      aria-label={t('Apagar cápsula')}
       className="shrink-0 rounded-full p-1.5 text-muted opacity-0 transition-opacity hover:bg-white/10 hover:text-ink focus:opacity-100 group-hover:opacity-100"
     >
       <Trash2 size={14} />

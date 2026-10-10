@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore } from '@/store/uiStore'
 import { formatDuration } from '@/utils/format'
+import { t } from '@/i18n'
 
 export function QueuePanel(): JSX.Element {
   const open = useUiStore((s) => s.queueOpen)
@@ -24,8 +25,8 @@ export function QueuePanel(): JSX.Element {
           className="glass glass-panel z-20 m-3 ml-0 flex w-80 shrink-0 flex-col rounded-2xl p-3"
         >
           <div className="mb-2 flex items-center justify-between px-1">
-            <h2 className="text-sm font-semibold">Fila</h2>
-            <button onClick={toggle} className="text-muted hover:text-ink" aria-label="Fechar fila">
+            <h2 className="text-sm font-semibold">{t('Fila')}</h2>
+            <button onClick={toggle} className="text-muted hover:text-ink" aria-label={t('Fechar fila')}>
               <X size={16} />
             </button>
           </div>
@@ -33,7 +34,7 @@ export function QueuePanel(): JSX.Element {
           <div className="flex-1 overflow-y-auto">
             {queue.length === 0 && (
               <p className="px-2 py-6 text-center text-xs text-muted">
-                A fila está vazia. Toque algo na biblioteca.
+                {t('A fila está vazia. Toque algo na biblioteca.')}
               </p>
             )}
             {queue.map((song, i) => (
@@ -62,7 +63,7 @@ export function QueuePanel(): JSX.Element {
                 <button
                   onClick={() => removeFromQueue(i)}
                   className="text-muted opacity-0 hover:text-red-400 group-hover:opacity-100"
-                  aria-label="Remover da fila"
+                  aria-label={t('Remover da fila')}
                 >
                   <Trash2 size={13} />
                 </button>

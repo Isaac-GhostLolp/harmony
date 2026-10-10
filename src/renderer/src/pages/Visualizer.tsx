@@ -13,6 +13,7 @@ import {
   type PackId,
   type SceneState
 } from './visualizer/packs'
+import { t } from '@/i18n'
 
 /**
  * Visualizer — a virtual stage that turns any song into a spectacle.
@@ -192,8 +193,8 @@ export function Visualizer(): JSX.Element {
     <div className="relative flex h-full flex-col">
       <div className="relative z-50">
       <PageHeader
-        title="Visualizer"
-        subtitle="Um palco virtual que transforma qualquer música em espetáculo"
+        title={t('Visualizer')}
+        subtitle={t('Um palco virtual que transforma qualquer música em espetáculo')}
         actions={
           <div className="flex items-center gap-2">
             <div className="relative z-50">
@@ -230,7 +231,7 @@ export function Visualizer(): JSX.Element {
             <button
               onClick={toggleFullscreen}
               className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-semibold text-muted transition-colors hover:text-ink"
-              title="Tela cheia"
+              title={t('Tela cheia')}
             >
               {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
             </button>

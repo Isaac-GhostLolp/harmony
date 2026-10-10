@@ -10,6 +10,7 @@ import { VirtualRows, useContainerWidth } from './VirtualRows'
 import { useEscape } from './useEscape'
 import { CoverButton } from './CoverButton'
 import { albumDuration, groupAlbums, hueOf, type AlbumGroup } from './albums'
+import { t, tn } from '@/i18n'
 
 const SHELF_H = 212 // a shelf: the tallest book plus the plank
 const BOOK_MAX_H = 184
@@ -139,7 +140,7 @@ function OpenBook({ group, onClose }: { group: AlbumGroup; onClose: () => void }
           <CoverButton group={group} className="mt-3 !text-[#6b5a44] hover:!text-[#2b2620]" />
           <p className="page-meta">
             {group.year ? `${group.year} · ` : ''}
-            {group.songs.length} {group.songs.length === 1 ? 'capítulo' : 'capítulos'} · {formatDuration(albumDuration(group))}
+            {tn(group.songs.length, '{n} capítulo', '{n} capítulos')} · {formatDuration(albumDuration(group))}
           </p>
           <span className="page-number">i</span>
         </motion.div>
@@ -151,10 +152,10 @@ function OpenBook({ group, onClose }: { group: AlbumGroup; onClose: () => void }
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
         >
-          <button onClick={onClose} className="page-close" aria-label="Fechar o livro">
+          <button onClick={onClose} className="page-close" aria-label={t('Fechar o livro')}>
             <X size={15} />
           </button>
-          <p className="page-heading">Sumário</p>
+          <p className="page-heading">{t('Sumário')}</p>
           <div className="toc">
             {group.songs.map((s, i) => {
               const active = s.id === currentId
@@ -173,7 +174,7 @@ function OpenBook({ group, onClose }: { group: AlbumGroup; onClose: () => void }
             className="page-play"
           >
             {onThis && isPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-            {onThis && isPlaying ? 'Pausar a leitura' : onThis ? 'Continuar a leitura' : 'Começar a ler'}
+            {onThis && isPlaying ? t('Pausar a leitura') : onThis ? t('Continuar a leitura') : t('Começar a ler')}
           </button>
           <span className="page-number">ii</span>
         </motion.div>

@@ -12,6 +12,7 @@ import {
   useCapsuleStore,
   type Capsule
 } from '@/store/capsuleStore'
+import { t } from '@/i18n'
 
 /**
  * Cápsula do tempo — a note sealed on a song for the listener's future self.
@@ -118,16 +119,16 @@ function SealDialog(): JSX.Element | null {
     >
       <div
         role="dialog"
-        aria-label="Cápsula do tempo"
+        aria-label={t('Cápsula do tempo')}
         className="glass fade-rise w-[min(92vw,440px)] rounded-3xl p-5"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-ink">📮 Cápsula do tempo</h2>
-            <p className="text-xs text-muted">Uma lembrança para o seu eu do futuro, presa a esta música.</p>
+            <h2 className="text-base font-semibold text-ink">{t('📮 Cápsula do tempo')}</h2>
+            <p className="text-xs text-muted">{t('Uma lembrança para o seu eu do futuro, presa a esta música.')}</p>
           </div>
-          <button onClick={close} className="rounded-full p-1 text-muted hover:bg-white/10 hover:text-ink" aria-label="Fechar">
+          <button onClick={close} className="rounded-full p-1 text-muted hover:bg-white/10 hover:text-ink" aria-label={t('Fechar')}>
             <X size={16} />
           </button>
         </div>
@@ -145,15 +146,15 @@ function SealDialog(): JSX.Element | null {
             <div className="seal-pop mx-auto mb-3 grid h-16 w-16 place-items-center rounded-full bg-[var(--accent-soft)] text-3xl ring-2 ring-[var(--accent)]">
               {emoji}
             </div>
-            <p className="font-semibold">Cápsula selada!</p>
+            <p className="font-semibold">{t('Cápsula selada!')}</p>
             <p className="mt-1 text-xs text-muted">
-              Ela abre em {longDate(sealed)}, na primeira vez que esta música tocar depois disso.
+              {t('Ela abre em {date}, na primeira vez que esta música tocar depois disso.', { date: longDate(sealed) })}
             </p>
             <button
               onClick={close}
               className="mt-5 rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white"
             >
-              Até lá! 👋
+              {t('Até lá! 👋')}
             </button>
           </div>
         ) : (
@@ -163,20 +164,20 @@ function SealDialog(): JSX.Element | null {
               onChange={(e) => setNote(e.target.value.slice(0, MAX))}
               autoFocus
               rows={4}
-              placeholder="O que esta música significa para você hoje? Onde você está, com quem, o que está sentindo…"
+              placeholder={t('O que esta música significa para você hoje? Onde você está, com quem, o que está sentindo…')}
               className="w-full resize-none rounded-2xl bg-black/25 p-3 text-sm leading-relaxed placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
             <p className="mb-3 mt-1 text-right text-[10px] text-muted">
               {note.length}/{MAX}
             </p>
 
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">Selo</p>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{t('Selo')}</p>
             <div className="mb-4 flex flex-wrap gap-1">
               {EMOJIS.map((e) => (
                 <button
                   key={e}
                   onClick={() => setEmoji(e)}
-                  aria-label={`Selo ${e}`}
+                  aria-label={t('Selo {emoji}', { emoji: e })}
                   className={`rounded-lg p-1 text-xl transition-transform hover:scale-125 ${emoji === e ? 'bg-white/15' : ''}`}
                 >
                   {e}
@@ -184,7 +185,7 @@ function SealDialog(): JSX.Element | null {
               ))}
             </div>
 
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">Abrir daqui a</p>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{t('Abrir daqui a')}</p>
             <div className="mb-1 flex flex-wrap gap-1.5">
               {SEAL_OPTIONS.map((o) => (
                 <button
@@ -194,19 +195,19 @@ function SealDialog(): JSX.Element | null {
                     months === o.months ? 'bg-[var(--accent)] text-white' : 'bg-white/10 hover:bg-white/15'
                   }`}
                 >
-                  {o.label}
+                  {t(o.label)}
                 </button>
               ))}
             </div>
-            <p className="mb-4 text-[11px] text-muted">Abre a partir de {longDate(openAt)}.</p>
+            <p className="mb-4 text-[11px] text-muted">{t('Abre a partir de')} {longDate(openAt)}.</p>
 
-            {error && <p className="mb-2 text-center text-xs text-red-300">Não consegui selar a cápsula. Tente de novo.</p>}
+            {error && <p className="mb-2 text-center text-xs text-red-300">{t('Não consegui selar a cápsula. Tente de novo.')}</p>}
             <button
               onClick={seal}
               disabled={!note.trim() || saving}
               className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
             >
-              <Lock size={14} /> Selar cápsula
+              <Lock size={14} /> {t('Selar cápsula')}
             </button>
           </>
         )}
@@ -258,16 +259,16 @@ function RevealCard(): JSX.Element | null {
         {/* the envelope */}
         <button
           onClick={() => setOpened(true)}
-          aria-label="Abrir cápsula"
+          aria-label={t('Abrir cápsula')}
           className={`capsule-envelope mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full bg-[var(--accent-soft)] text-5xl ring-2 ring-[var(--accent)] ${
             opened ? 'is-open' : ''
           }`}
         >
           {capsule.emoji ?? '💌'}
         </button>
-        <p className="text-xs uppercase tracking-[0.25em] text-white/60">Uma cápsula do tempo abriu</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-white/60">{t('Uma cápsula do tempo abriu')}</p>
         <p className="mt-1 text-sm text-white/80">
-          Você escreveu isto em {longDate(capsule.createdAt)} ({relativeTime(capsule.createdAt)})
+          {t('Você escreveu isto em')} {longDate(capsule.createdAt)} ({relativeTime(capsule.createdAt)})
         </p>
 
         <div
@@ -290,14 +291,14 @@ function RevealCard(): JSX.Element | null {
         >
           {capsule.songId !== null && (
             <button onClick={writeAgain} className="rounded-full bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15">
-              Escrever uma nova
+              {t('Escrever uma nova')}
             </button>
           )}
           <button
             onClick={done}
             className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white"
           >
-            {left > 0 ? `Próxima (${left})` : 'Guardar no coração 💛'}
+            {left > 0 ? t('Próxima ({n})', { n: left }) : t('Guardar no coração 💛')}
           </button>
         </div>
       </div>

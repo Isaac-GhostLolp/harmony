@@ -1,3 +1,4 @@
+import { getLang } from '@/i18n'
 /**
  * Pitch detection for karaoke — a compact McLeod-style normalized
  * autocorrelation. Good enough for a voice (and the singer's band of a mix);
@@ -62,12 +63,14 @@ export function hzToMidi(hz: number): number {
   return 69 + 12 * Math.log2(hz / 440)
 }
 
-const NAMES = ['Dó', 'Dó#', 'Ré', 'Ré#', 'Mi', 'Fá', 'Fá#', 'Sol', 'Sol#', 'Lá', 'Lá#', 'Si']
+// solfège in Portuguese, letters in English
+const NAMES_PT = ['Dó', 'Dó#', 'Ré', 'Ré#', 'Mi', 'Fá', 'Fá#', 'Sol', 'Sol#', 'Lá', 'Lá#', 'Si']
+const NAMES_EN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-/** "Lá", "Dó#"… for a frequency (no octave: karaoke scores the note, not the octave). */
+/** "Lá", "Dó#" (or "A", "C#")… for a frequency (no octave: karaoke scores the note, not the octave). */
 export function noteName(hz: number): string {
   const m = Math.round(hzToMidi(hz))
-  return NAMES[((m % 12) + 12) % 12]
+  return (getLang() === 'pt' ? NAMES_PT : NAMES_EN)[((m % 12) + 12) % 12]
 }
 
 /**

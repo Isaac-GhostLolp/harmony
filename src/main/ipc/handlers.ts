@@ -73,6 +73,18 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
   )
 
+  // The few texts the main process shows, in the app's language (the
+  // renderer saves its choice as the 'language' setting; Portuguese by default)
+  const english = (): boolean => {
+    const row = db().prepare("SELECT value FROM settings WHERE key = 'language'").get() as { value: string } | undefined
+    try {
+      return row ? JSON.parse(row.value) === 'en' : false
+    } catch {
+      return false
+    }
+  }
+  const tr = (pt: string, en: string): string => (english() ? en : pt)
+
   // ---------- Edit export (Lyrics → Edit mode) ----------
   ipcMain.handle('edit:save', async (e, data: ArrayBuffer, baseName: string, ext: string) => {
     const safeExt = (ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4'
@@ -81,9 +93,9 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       'Harmony edit'
     const win = BrowserWindow.fromWebContents(e.sender)
     const options = {
-      title: 'Salvar edit',
+      title: tr('Salvar edit', 'Save edit'),
       defaultPath: join(app.getPath('videos'), `${safeName}.${safeExt}`),
-      filters: [{ name: safeExt === 'mp4' ? 'Vídeo MP4' : 'Vídeo WebM', extensions: [safeExt] }]
+      filters: [{ name: safeExt === 'mp4' ? tr('Vídeo MP4', 'MP4 video') : tr('Vídeo WebM', 'WebM video'), extensions: [safeExt] }]
     }
     const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
     if (res.canceled || !res.filePath) return null
@@ -987,7 +999,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     let genresUpdated = 0
 
     for (const ar of artists) {
-      send(done, total, `Artista: ${ar.name}`)
+      send(done, total, `${tr('Artista', 'Artist')}: ${ar.name}`)
       try {
         const photo = await fetchArtistPhoto(ar.name)
         if (photo) {
@@ -1001,7 +1013,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
 
     for (const s of missingCovers) {
-      send(done, total, `Capa: ${s.title}`)
+      send(done, total, `${tr('Capa', 'Cover')}: ${s.title}`)
       try {
         const result = await fetchCoverOnline({
           title: s.title,
@@ -1020,7 +1032,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
 
     for (const s of missingGenre) {
-      send(done, total, `Gênero: ${s.title}`)
+      send(done, total, `${tr('Gênero', 'Genre')}: ${s.title}`)
       try {
         const genre = await fetchGenre(s.title, s.artist)
         if (genre) {
@@ -1033,7 +1045,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
       done++
     }
 
-    send(total, total, 'Concluído')
+    send(total, total, tr('Concluído', 'Done'))
     return { artistsUpdated, coversUpdated, genresUpdated, total }
   })
 

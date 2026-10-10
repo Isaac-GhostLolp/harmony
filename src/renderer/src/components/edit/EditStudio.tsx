@@ -23,6 +23,7 @@ import {
   type EditTextSize
 } from './editRenderer'
 import { exportEdit, ExportCancelled } from './editExport'
+import { t, tk } from '@/i18n'
 
 /**
  * Edit mode: a lyric edit ready to post (TikTok / Reels / Shorts, or the
@@ -41,39 +42,39 @@ interface Prefs extends EditOptions {
 }
 
 const FORMATS: { id: EditFormat; label: string; hint: string }[] = [
-  { id: '9:16', label: '9:16', hint: 'TikTok, Reels, Shorts' },
-  { id: '4:5', label: '4:5', hint: 'Feed do Instagram' },
-  { id: '1:1', label: '1:1', hint: 'Quadrado' }
+  { id: '9:16', label: '9:16', hint: tk('TikTok, Reels, Shorts') },
+  { id: '4:5', label: '4:5', hint: tk('Feed do Instagram') },
+  { id: '1:1', label: '1:1', hint: tk('Quadrado') }
 ]
 const LOOKS: { id: EditLook; label: string }[] = [
-  { id: 'glow', label: 'Glow' },
-  { id: 'bold', label: 'Bold' },
-  { id: 'karaoke', label: 'Karaokê' },
-  { id: 'minimal', label: 'Minimal' }
+  { id: 'glow', label: tk('Glow') },
+  { id: 'bold', label: tk('Bold') },
+  { id: 'karaoke', label: tk('Karaokê') },
+  { id: 'minimal', label: tk('Minimal') }
 ]
 const SIZES: { id: EditTextSize; label: string }[] = [
-  { id: 'sm', label: 'P' },
-  { id: 'md', label: 'M' },
-  { id: 'lg', label: 'G' }
+  { id: 'sm', label: tk('P') },
+  { id: 'md', label: tk('M') },
+  { id: 'lg', label: tk('G') }
 ]
 const CENTERS: { id: EditCenter; label: string }[] = [
   { id: 'cd', label: 'CD' },
-  { id: 'vinyl', label: 'Vinil' },
-  { id: 'cover', label: 'Capa' },
-  { id: 'none', label: 'Nenhum' }
+  { id: 'vinyl', label: tk('Vinil') },
+  { id: 'cover', label: tk('Capa') },
+  { id: 'none', label: tk('Nenhum') }
 ]
 const BGS: { id: EditBg; label: string }[] = [
-  { id: 'cover', label: 'Capa' },
-  { id: 'gradient', label: 'Gradiente' },
-  { id: 'dark', label: 'Escuro' }
+  { id: 'cover', label: tk('Capa') },
+  { id: 'gradient', label: tk('Gradiente') },
+  { id: 'dark', label: tk('Escuro') }
 ]
 const SWATCHES = ['#ff4d8d', '#a855f7', '#3b82f6', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#f5f5f5']
 const EFFECTS: { id: 'beat' | 'dust' | 'grain' | 'header' | 'watermark'; label: string }[] = [
-  { id: 'beat', label: 'Batida' },
-  { id: 'dust', label: 'Poeira' },
-  { id: 'grain', label: 'Granulado' },
-  { id: 'header', label: 'Título' },
-  { id: 'watermark', label: 'Marca Harmony' }
+  { id: 'beat', label: tk('Batida') },
+  { id: 'dust', label: tk('Poeira') },
+  { id: 'grain', label: tk('Granulado') },
+  { id: 'header', label: tk('Título') },
+  { id: 'watermark', label: tk('Marca Harmony') }
 ]
 const LENGTHS = [15, 30, 60]
 const PREVIEW_SCALE = 0.5
@@ -326,7 +327,7 @@ export function EditStudio({
     const end = Math.min(song.duration || start + length, start + length)
     cancelled.current = false
     exporting.current = true
-    setStatus({ kind: 'rendering', label: 'Lendo a música…', progress: 0 })
+    setStatus({ kind: 'rendering', label: tk('Lendo a música…'), progress: 0 })
     // keep rendering at full speed if the window goes to the background
     api.edit.setBackgroundThrottling(false)
     try {
@@ -356,7 +357,7 @@ export function EditStudio({
           shown = r
           setStatus({
             kind: 'rendering',
-            label: phase === 'audio' ? 'Lendo a música…' : phase === 'video' ? 'Gerando o vídeo…' : 'Finalizando…',
+            label: phase === 'audio' ? t('Lendo a música…') : phase === 'video' ? t('Gerando o vídeo…') : 'Finalizando…',
             progress: r
           })
         }
@@ -371,8 +372,8 @@ export function EditStudio({
           kind: 'error',
           message:
             e instanceof Error && e.message === 'no-encoder'
-              ? 'Este computador não consegue gerar vídeo.'
-              : 'Não foi possível gerar o vídeo.'
+              ? t('Este computador não consegue gerar vídeo.')
+              : t('Não foi possível gerar o vídeo.')
         })
     } finally {
       exporting.current = false
@@ -411,52 +412,52 @@ export function EditStudio({
 
       <aside className="flex w-64 shrink-0 flex-col gap-4 py-1 text-sm">
         <div className="-mr-2 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-2">
-          <Section title="Formato">
+          <Section title={t('Formato')}>
             {FORMATS.map((f) => (
-              <Chip key={f.id} on={prefs.format === f.id} disabled={busy} title={f.hint} onClick={() => update({ format: f.id })}>
-                {f.label}
+              <Chip key={f.id} on={prefs.format === f.id} disabled={busy} title={t(f.hint ?? '')} onClick={() => update({ format: f.id })}>
+                {t(f.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Estilo da letra">
+          <Section title={t('Estilo da letra')}>
             {LOOKS.map((l) => (
               <Chip key={l.id} on={prefs.look === l.id} disabled={busy} onClick={() => update({ look: l.id })}>
-                {l.label}
+                {t(l.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Tamanho da letra">
+          <Section title={t('Tamanho da letra')}>
             {SIZES.map((s) => (
               <Chip key={s.id} on={prefs.textSize === s.id} disabled={busy} onClick={() => update({ textSize: s.id })}>
-                {s.label}
+                {t(s.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Centro">
+          <Section title={t('Centro')}>
             {CENTERS.map((c) => (
               <Chip key={c.id} on={prefs.center === c.id} disabled={busy} onClick={() => update({ center: c.id })}>
-                {c.label}
+                {t(c.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Fundo">
+          <Section title={t('Fundo')}>
             {BGS.map((b) => (
               <Chip key={b.id} on={prefs.bg === b.id} disabled={busy} onClick={() => update({ bg: b.id })}>
-                {b.label}
+                {t(b.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Cor">
+          <Section title={t('Cor')}>
             <Chip on={prefs.color === 'theme'} disabled={busy} onClick={() => update({ color: 'theme' })}>
-              Tema
+              {t('Tema')}
             </Chip>
             <Chip on={prefs.color === 'cover'} disabled={busy} onClick={() => update({ color: 'cover' })}>
-              Da capa
+              {t('Da capa')}
             </Chip>
             <div className="flex w-full flex-wrap gap-1.5 pt-0.5">
               {SWATCHES.map((c) => (
@@ -464,7 +465,7 @@ export function EditStudio({
                   key={c}
                   disabled={busy}
                   onClick={() => update({ color: c })}
-                  aria-label={`Cor ${c}`}
+                  aria-label={t('Cor {n}', { n: c })}
                   className={`h-6 w-6 rounded-full transition-transform hover:scale-110 disabled:opacity-50 ${
                     prefs.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#07070a]' : 'ring-1 ring-white/15'
                   }`}
@@ -474,37 +475,37 @@ export function EditStudio({
             </div>
           </Section>
 
-          <Section title="Efeitos">
+          <Section title={t('Efeitos')}>
             {EFFECTS.map((e) => (
               <Chip key={e.id} on={prefs[e.id]} disabled={busy} onClick={() => update({ [e.id]: !prefs[e.id] })}>
-                {e.label}
+                {t(e.label)}
               </Chip>
             ))}
           </Section>
 
-          <Section title="Duração">
+          <Section title={t('Duração')}>
             {LENGTHS.map((n) => (
               <Chip key={n} on={prefs.length === n} disabled={busy} onClick={() => update({ length: n })}>
                 {n}s
               </Chip>
             ))}
             <p className="w-full pt-1 text-xs text-muted">
-              Trecho: {fmt(startAt)} → {fmt(startAt + prefs.length)}
+              {t('Trecho:')} {fmt(startAt)} → {fmt(startAt + prefs.length)}
             </p>
             <p className="w-full text-[11px] leading-snug text-muted/70">
-              Começa na frase atual. Use a barra de tempo para escolher outro trecho.
+              {t('Começa na frase atual. Use a barra de tempo para escolher outro trecho.')}
             </p>
           </Section>
 
-          <Section title="Qualidade">
+          <Section title={t('Qualidade')}>
             <Chip on={prefs.quality === '720'} disabled={busy} onClick={() => update({ quality: '720' })}>
-              720p · leve
+              {t('720p · leve')}
             </Chip>
             <Chip on={prefs.quality === '1080'} disabled={busy} onClick={() => update({ quality: '1080' })}>
               1080p
             </Chip>
             <p className="w-full pt-1 text-[11px] leading-snug text-muted/70">
-              720p gera mais rápido em computadores mais simples. O vídeo sai liso nos dois.
+              {t('720p gera mais rápido em computadores mais simples. O vídeo sai liso nos dois.')}
             </p>
           </Section>
         </div>
@@ -523,7 +524,7 @@ export function EditStudio({
                 onClick={cancelExport}
                 className="flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold hover:bg-white/15"
               >
-                <X size={14} /> Cancelar
+                <X size={14} /> {t('Cancelar')}
               </button>
             </>
           ) : (
@@ -533,7 +534,7 @@ export function EditStudio({
               className="flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-60"
             >
               {status.kind === 'saving' ? <Spinner size={15} /> : <Download size={15} />}
-              {status.kind === 'saving' ? 'Salvando…' : 'Exportar edit'}
+              {status.kind === 'saving' ? t('Salvando…') : t('Exportar edit')}
             </button>
           )}
           {status.kind === 'done' && (
@@ -541,12 +542,12 @@ export function EditStudio({
               onClick={() => api.edit.reveal(status.path)}
               className="flex items-center justify-center gap-2 text-xs text-muted hover:text-ink"
             >
-              <FolderOpen size={13} /> Edit salvo · mostrar na pasta
+              <FolderOpen size={13} /> {t('Edit salvo · mostrar na pasta')}
             </button>
           )}
           {status.kind === 'error' && <p className="text-xs text-red-400">{status.message}</p>}
           <p className="text-[11px] leading-snug text-muted/70">
-            Vídeo {outW}×{outH} a 30 fps com o áudio da música.
+            {t('Vídeo {w}×{h} a 30 fps com o áudio da música.', { w: outW, h: outH })}
           </p>
         </div>
       </aside>

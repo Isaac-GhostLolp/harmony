@@ -5,6 +5,7 @@ import { useAppearanceStore, sourceName } from '@/store/appearanceStore'
 import { useUiStore } from '@/store/uiStore'
 import { FONTS, type ShadowStyle, randomLook } from '@/utils/appearance'
 import { InputDialog } from '@/components/InputDialog'
+import { t } from '@/i18n'
 
 /**
  * The appearance studio: a drawer on the right edge where every part of the
@@ -48,9 +49,9 @@ function Studio(): JSX.Element {
   const importFile = async (file: File): Promise<void> => {
     try {
       const id = importLook(JSON.parse(await file.text()), file.name.replace(/\..*$/, ''))
-      flash(id ? 'Tema importado e aplicado ✨' : 'Esse arquivo não parece um tema do Harmony.')
+      flash(id ? t('Tema importado e aplicado ✨') : t('Esse arquivo não parece um tema do Harmony.'))
     } catch {
-      flash('Não consegui ler esse arquivo.')
+      flash(t('Não consegui ler esse arquivo.'))
     }
   }
 
@@ -58,20 +59,20 @@ function Studio(): JSX.Element {
     <aside
       className="studio fade-rise fixed bottom-3 right-3 top-3 z-[90] flex w-[340px] flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] shadow-2xl"
       style={{ background: 'var(--bg-base)', backgroundImage: 'var(--bg-image)' }}
-      aria-label="Estúdio de aparência"
+      aria-label={t('Estúdio de aparência')}
     >
       <header className="flex items-start justify-between gap-3 border-b border-[var(--glass-border)] p-4">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">🎨 Estúdio de aparência</h2>
+          <h2 className="text-sm font-semibold">{t('🎨 Estúdio de aparência')}</h2>
           <p className="mt-0.5 truncate text-[11px] text-muted">
             {name}
-            {edited && <span className="text-[var(--accent)]"> · editado</span>}
+            {edited && <span className="text-[var(--accent)]"> {t('· editado')}</span>}
           </p>
         </div>
         <button
           onClick={() => setStudioOpen(false)}
           className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--bg-raised)] text-muted hover:text-ink"
-          aria-label="Fechar estúdio"
+          aria-label={t('Fechar estúdio')}
         >
           <X size={14} />
         </button>
@@ -79,14 +80,13 @@ function Studio(): JSX.Element {
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         <p className="text-[11px] leading-relaxed text-muted">
-          Tudo muda na hora — o app inteiro é a prévia. Pode deixar o estúdio aberto e passear pelas
-          abas.
+          {t('Tudo muda na hora — o app inteiro é a prévia. Pode deixar o estúdio aberto e passear pelas abas.')}
         </p>
         {world && (
           <div className="rounded-xl bg-[var(--accent-soft)] p-3 text-[11px] leading-relaxed">
-            Um Mundo vivo está ligado: os painéis seguem o Mundo enquanto ele estiver ativo.{' '}
+            {t('Um Mundo vivo está ligado: os painéis seguem o Mundo enquanto ele estiver ativo.')}{' '}
             <button onClick={() => setWorld(null)} className="font-semibold text-[var(--accent)] underline">
-              Desligar o Mundo
+              {t('Desligar o Mundo')}
             </button>
           </div>
         )}
@@ -95,52 +95,52 @@ function Studio(): JSX.Element {
           onClick={() => edit(randomLook())}
           className="press flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--bg-raised)] py-2.5 text-xs font-semibold hover:bg-[var(--accent-soft)]"
         >
-          <Dices size={14} /> Surpreenda-me
+          <Dices size={14} /> {t('Surpreenda-me')}
         </button>
 
-        <Group title="Cores">
-          <ColorRow label="Fundo" value={look.bg} onChange={(bg) => edit({ bg })} />
+        <Group title={t('Cores')}>
+          <ColorRow label={t('Fundo')} value={look.bg} onChange={(bg) => edit({ bg })} />
           <div className="flex items-center justify-between gap-3">
-            <span className="text-xs">Degradê no fundo</span>
+            <span className="text-xs">{t('Degradê no fundo')}</span>
             <div className="flex items-center gap-2">
-              {look.bg2 && <ColorSwatch value={look.bg2} onChange={(bg2) => edit({ bg2 })} label="Segunda cor do fundo" />}
+              {look.bg2 && <ColorSwatch value={look.bg2} onChange={(bg2) => edit({ bg2 })} label={t('Segunda cor do fundo')} />}
               <Switch
                 on={look.bg2 !== null}
-                label="Degradê no fundo"
+                label={t('Degradê no fundo')}
                 onChange={(on) => edit({ bg2: on ? shade(look.bg, 0.12) : null })}
               />
             </div>
           </div>
-          <ColorRow label="Texto" value={look.text} onChange={(text) => edit({ text })} />
-          <ColorRow label="Destaque" value={look.accent} onChange={(accent) => edit({ accent })} />
+          <ColorRow label={t('Texto')} value={look.text} onChange={(text) => edit({ text })} />
+          <ColorRow label={t('Destaque')} value={look.accent} onChange={(accent) => edit({ accent })} />
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs">Destaque segue a capa</p>
-              <p className="text-[10px] text-muted">A cor muda com a música que está tocando</p>
+              <p className="text-xs">{t('Destaque segue a capa')}</p>
+              <p className="text-[10px] text-muted">{t('A cor muda com a música que está tocando')}</p>
             </div>
-            <Switch on={look.followCover} label="Destaque segue a capa" onChange={(followCover) => edit({ followCover })} />
+            <Switch on={look.followCover} label={t('Destaque segue a capa')} onChange={(followCover) => edit({ followCover })} />
           </div>
         </Group>
 
-        <Group title="Painéis">
-          <ColorRow label="Cor dos painéis" value={look.tint} onChange={(tint) => edit({ tint })} />
-          <Slider label="Intensidade da cor" value={look.tintAlpha} max={80} unit="%" onChange={(tintAlpha) => edit({ tintAlpha })} />
+        <Group title={t('Painéis')}>
+          <ColorRow label={t('Cor dos painéis')} value={look.tint} onChange={(tint) => edit({ tint })} />
+          <Slider label={t('Intensidade da cor')} value={look.tintAlpha} max={80} unit="%" onChange={(tintAlpha) => edit({ tintAlpha })} />
           <Slider
-            label="Transparência"
-            hint={['vidro', 'sólido']}
+            label={t('Transparência')}
+            hint={['vidro', t('sólido')]}
             value={100 - look.opacity}
             max={100}
             unit="%"
             onChange={(v) => edit({ opacity: 100 - v })}
           />
-          <Slider label="Desfoque do vidro" value={look.blur} max={40} unit="px" onChange={(blur) => edit({ blur })} />
-          <ColorRow label="Cor da borda" value={look.border} onChange={(border) => edit({ border })} />
-          <Slider label="Borda" value={look.borderAlpha} max={40} unit="%" onChange={(borderAlpha) => edit({ borderAlpha })} />
+          <Slider label={t('Desfoque do vidro')} value={look.blur} max={40} unit="px" onChange={(blur) => edit({ blur })} />
+          <ColorRow label={t('Cor da borda')} value={look.border} onChange={(border) => edit({ border })} />
+          <Slider label={t('Borda')} value={look.borderAlpha} max={40} unit="%" onChange={(borderAlpha) => edit({ borderAlpha })} />
         </Group>
 
-        <Group title="Formas">
+        <Group title={t('Formas')}>
           <Slider
-            label="Arredondamento"
+            label={t('Arredondamento')}
             hint={['quadrado', 'redondo']}
             value={look.radius}
             max={200}
@@ -148,25 +148,25 @@ function Studio(): JSX.Element {
             onChange={(radius) => edit({ radius })}
           />
           <div>
-            <p className="mb-1.5 text-xs">Sombra</p>
+            <p className="mb-1.5 text-xs">{t('Sombra')}</p>
             <Segmented<ShadowStyle>
               value={look.shadow}
               options={[
-                ['soft', 'Suave'],
-                ['glow', 'Neon'],
-                ['hard', 'Recortada'],
-                ['none', 'Nenhuma']
+                ['soft', t('Suave')],
+                ['glow', t('Neon')],
+                ['hard', t('Recortada')],
+                ['none', t('Nenhuma')]
               ]}
               onChange={(shadow) => edit({ shadow })}
             />
           </div>
           {look.shadow !== 'none' && (
-            <Slider label="Força da sombra" value={look.shadowStrength} max={100} unit="%" onChange={(shadowStrength) => edit({ shadowStrength })} />
+            <Slider label={t('Força da sombra')} value={look.shadowStrength} max={100} unit="%" onChange={(shadowStrength) => edit({ shadowStrength })} />
           )}
-          <Slider label="Brilho ambiente" value={look.glow} max={100} unit="%" onChange={(glow) => edit({ glow })} />
+          <Slider label={t('Brilho ambiente')} value={look.glow} max={100} unit="%" onChange={(glow) => edit({ glow })} />
         </Group>
 
-        <Group title="Fonte">
+        <Group title={t('Fonte')}>
           <div className="grid grid-cols-2 gap-1.5">
             {FONTS.map((f) => (
               <button
@@ -177,8 +177,8 @@ function Studio(): JSX.Element {
                   look.font === f.id ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-raised)] hover:bg-[var(--accent-soft)]'
                 }`}
               >
-                {f.label}
-                <span className="block text-[10px] opacity-70">Aa Bb 123</span>
+                {t(f.label)}
+                <span className="block text-[10px] opacity-70">{t('Aa Bb 123')}</span>
               </button>
             ))}
           </div>
@@ -192,12 +192,12 @@ function Studio(): JSX.Element {
             onClick={() => setSaving(true)}
             className="press flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] py-2 text-xs font-semibold text-white"
           >
-            <Save size={13} /> Salvar como novo tema
+            <Save size={13} /> {t('Salvar como novo tema')}
           </button>
           {edited && (
             <button
               onClick={revert}
-              title="Desfazer as alterações"
+              title={t('Desfazer as alterações')}
               className="press grid h-8 w-8 place-items-center rounded-full bg-[var(--bg-raised)] text-muted hover:text-ink"
             >
               <RotateCcw size={13} />
@@ -212,7 +212,7 @@ function Studio(): JSX.Element {
             }}
             className="press w-full rounded-full bg-[var(--bg-raised)] py-2 text-xs font-semibold hover:bg-[var(--accent-soft)]"
           >
-            Atualizar “{name}”
+            {t('Atualizar “{name}”', { name })}
           </button>
         )}
         <div className="flex gap-2">
@@ -220,13 +220,13 @@ function Studio(): JSX.Element {
             onClick={exportTheme}
             className="press flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--bg-raised)] py-2 text-[11px] font-semibold text-muted hover:text-ink"
           >
-            <Download size={12} /> Exportar
+            <Download size={12} /> {t('Exportar')}
           </button>
           <button
             onClick={() => fileRef.current?.click()}
             className="press flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--bg-raised)] py-2 text-[11px] font-semibold text-muted hover:text-ink"
           >
-            <Upload size={12} /> Importar
+            <Upload size={12} /> {t('Importar')}
           </button>
           <input
             ref={fileRef}
@@ -244,14 +244,14 @@ function Studio(): JSX.Element {
 
       <InputDialog
         open={saving}
-        title="Salvar tema"
-        label="Dê um nome ao seu tema"
-        initialValue={mineId ? `${name} 2` : edited ? `Meu ${name}` : name}
-        confirmLabel="Salvar"
+        title={t('Salvar tema')}
+        label={t('Dê um nome ao seu tema')}
+        initialValue={mineId ? `${name} 2` : edited ? t('Meu {name}', { name }) : name}
+        confirmLabel={t('Salvar')}
         onConfirm={(v) => {
           saveAs(v)
           setSaving(false)
-          flash('Tema salvo em “Meus temas” 💾')
+          flash(t('Tema salvo em “Meus temas” 💾'))
         }}
         onCancel={() => setSaving(false)}
       />
@@ -361,7 +361,7 @@ function ColorRow({ label, value, onChange }: { label: string; value: string; on
           <button
             key={c}
             onClick={() => onChange(c)}
-            aria-label={`Usar ${c}`}
+            aria-label={t('Usar {color}', { color: c })}
             className={`h-3.5 w-3.5 rounded-full border border-[var(--glass-border)] transition-transform hover:scale-125 ${
               c === value.toLowerCase() ? 'ring-1 ring-[var(--text-primary)] ring-offset-1 ring-offset-[var(--bg-base)]' : ''
             }`}

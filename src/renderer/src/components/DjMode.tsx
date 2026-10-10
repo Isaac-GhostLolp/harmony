@@ -6,6 +6,7 @@ import { useUiStore } from '@/store/uiStore'
 import { CoverArt } from '@/components/CoverArt'
 import { SeekBar } from '@/components/SeekBar'
 import { useBreathe } from '@/hooks/useBreathe'
+import { t } from '@/i18n'
 
 /**
  * DJ Mode — a fully immersive, near-empty stage meant to be left running on a
@@ -91,8 +92,8 @@ export function DjMode(): JSX.Element | null {
       <div className="dj-controls absolute right-6 top-6 flex items-center gap-2 text-xs text-white/50">
         <kbd className="rounded bg-white/10 px-2 py-1 font-mono">F11</kbd>
         <span>ou</span>
-        <kbd className="rounded bg-white/10 px-2 py-1 font-mono">Esc</kbd>
-        <span>para sair</span>
+        <kbd className="rounded bg-white/10 px-2 py-1 font-mono">{t('Esc')}</kbd>
+        <span>{t('para sair')}</span>
       </div>
 
       {/* center stage */}
@@ -109,7 +110,7 @@ export function DjMode(): JSX.Element | null {
 
         <div className="max-w-2xl text-center">
           <h1 className="truncate text-4xl font-bold tracking-tight text-white">
-            {song?.title ?? 'Nada tocando'}
+            {song?.title ?? t('Nada tocando')}
           </h1>
           <p className="mt-2 text-lg text-white/60">{song?.artist ?? '—'}</p>
         </div>
@@ -121,21 +122,21 @@ export function DjMode(): JSX.Element | null {
             <button
               onClick={previous}
               className="text-white/70 transition-colors hover:text-white"
-              aria-label="Anterior"
+              aria-label={t('Anterior')}
             >
               <SkipBack size={26} fill="currentColor" />
             </button>
             <button
               onClick={togglePlay}
               className="grid h-16 w-16 place-items-center rounded-full bg-white text-black transition-transform hover:scale-105"
-              aria-label={isPlaying ? 'Pausar' : 'Tocar'}
+              aria-label={isPlaying ? t('Pausar') : t('Tocar')}
             >
               {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
             </button>
             <button
               onClick={next}
               className="text-white/70 transition-colors hover:text-white"
-              aria-label="Próxima"
+              aria-label={t('Próxima')}
             >
               <SkipForward size={26} fill="currentColor" />
             </button>

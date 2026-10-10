@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Camera, Smile, X } from 'lucide-react'
 import type { Playlist } from '@/types'
 import { extractDominantColor } from '@/utils/extractColor'
+import { t } from '@/i18n'
 
 const EMOJI_CHOICES = [
   '🎵', '🔥', '💜', '🌙', '☀️', '🌊', '🍃', '⚡', '🎸', '🎧',
@@ -87,7 +88,7 @@ export function PlaylistEditor({
           <button
             onClick={() => fileRef.current?.click()}
             className="group relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl bg-[var(--bg-raised)] shadow-lg"
-            title="Escolher imagem"
+            title={t('Escolher imagem')}
           >
             {image ? (
               <img src={image} alt="" className="h-full w-full object-cover" />
@@ -102,10 +103,10 @@ export function PlaylistEditor({
           </button>
           <input ref={fileRef} type="file" accept="image/*" onChange={onPickImage} className="hidden" />
           <div className="min-w-0 flex-1 pb-1">
-            <p className="text-[11px] uppercase tracking-wide text-muted">Playlist</p>
-            <p className="truncate text-lg font-semibold">{name || 'Sem nome'}</p>
+            <p className="text-[11px] uppercase tracking-wide text-muted">{t('Playlist')}</p>
+            <p className="truncate text-lg font-semibold">{name || t('Sem nome')}</p>
           </div>
-          <button onClick={onClose} className="self-start text-muted hover:text-ink" aria-label="Fechar">
+          <button onClick={onClose} className="self-start text-muted hover:text-ink" aria-label={t('Fechar')}>
             <X size={18} />
           </button>
         </div>
@@ -113,19 +114,19 @@ export function PlaylistEditor({
         <div className="space-y-4 p-5">
           {/* name + emoji */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted">Nome</label>
+            <label className="mb-1 block text-xs font-medium text-muted">{t('Nome')}</label>
             <div className="flex gap-2">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="flex-1 rounded-xl border border-white/10 bg-[var(--bg-raised)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-                placeholder="Nome da playlist"
+                placeholder={t('Nome da playlist')}
               />
               <div className="relative">
                 <button
                   onClick={() => setShowEmoji((v) => !v)}
                   className="grid h-full w-11 place-items-center rounded-xl border border-white/10 bg-[var(--bg-raised)] text-lg hover:border-[var(--accent)]"
-                  title="Emoji"
+                  title={t('Emoji')}
                 >
                   {emoji || <Smile size={16} className="text-muted" />}
                 </button>
@@ -138,7 +139,7 @@ export function PlaylistEditor({
                       }}
                       className="col-span-6 mb-1 rounded-md py-1 text-[11px] text-muted hover:bg-[var(--bg-raised)]"
                     >
-                      Sem emoji
+                      {t('Sem emoji')}
                     </button>
                     {EMOJI_CHOICES.map((em) => (
                       <button
@@ -160,14 +161,14 @@ export function PlaylistEditor({
 
           {/* description */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted">Descrição</label>
+            <label className="mb-1 block text-xs font-medium text-muted">{t('Descrição')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               maxLength={200}
               className="w-full resize-none rounded-xl border border-white/10 bg-[var(--bg-raised)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-              placeholder="Do que é feita essa playlist? Uma vibe, um momento…"
+              placeholder={t('Do que é feita essa playlist? Uma vibe, um momento…')}
             />
             <p className="mt-1 text-right text-[10px] text-muted">{description.length}/200</p>
           </div>
@@ -178,7 +179,7 @@ export function PlaylistEditor({
                 className="h-4 w-4 rounded-full ring-1 ring-white/20"
                 style={{ background: color }}
               />
-              Cor extraída da imagem
+              {t('Cor extraída da imagem')}
             </div>
           )}
 
@@ -187,14 +188,14 @@ export function PlaylistEditor({
               onClick={onClose}
               className="rounded-full px-4 py-2 text-xs font-semibold text-muted hover:text-ink"
             >
-              Cancelar
+              {t('Cancelar')}
             </button>
             <button
               onClick={save}
               disabled={saving}
               className="press rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Salvar
+              {t('Salvar')}
             </button>
           </div>
         </div>

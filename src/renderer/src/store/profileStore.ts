@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
+import { t } from '@/i18n'
+
+/** the name before the user picks one; shown in the app's language */
+export const DEFAULT_NAME = 'Você'
+export const displayName = (name: string): string => (!name.trim() || name === DEFAULT_NAME ? t('Você') : name)
 
 interface ProfileState {
   name: string
@@ -10,7 +15,7 @@ interface ProfileState {
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
-  name: 'Você',
+  name: DEFAULT_NAME,
   photo: null,
 
   setName: (name) => {

@@ -8,7 +8,9 @@ import { MissingCovers } from '@/components/cover/MissingCovers'
 import { COVERS_CHANGED_EVENT } from '@/store/coverCreatorStore'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
+import { useFavoriteSync } from '@/utils/favorites'
 import { FilterChips, type FilterChip } from '@/components/FilterChips'
+import { t, tn } from '@/i18n'
 
 type LibFilter =
   | 'all'
@@ -37,7 +39,7 @@ function applyFilter(songs: Song[], filter: LibFilter): Song[] {
     default:
       if (filter.startsWith('genre:')) {
         const g = filter.slice(6)
-        return songs.filter((s) => (s.genre ?? 'Sem gênero') === g)
+        return songs.filter((s) => (s.genre ?? t('Sem gênero')) === g)
       }
       return songs
   }
@@ -49,6 +51,7 @@ let lastFilter: LibFilter = 'all'
 
 export function Library(): JSX.Element {
   const [songs, setSongs] = useState<Song[]>([])
+  useFavoriteSync(setSongs)
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -66,12 +69,12 @@ export function Library(): JSX.Element {
       new Set(songs.map((s) => s.genre).filter((g): g is string => Boolean(g)))
     ).sort()
     const base: FilterChip<LibFilter>[] = [
-      { id: 'all', label: 'Todas' },
-      { id: 'recent', label: 'Adicionadas recentemente' },
-      { id: 'most', label: 'Mais reproduzidas' },
-      { id: 'never', label: 'Nunca reproduzidas' },
-      { id: 'lastPlayed', label: 'Última reprodução' },
-      { id: 'favorites', label: 'Favoritas' }
+      { id: 'all', label: t('Todas') },
+      { id: 'recent', label: t('Adicionadas recentemente') },
+      { id: 'most', label: t('Mais reproduzidas') },
+      { id: 'never', label: t('Nunca reproduzidas') },
+      { id: 'lastPlayed', label: t('Última reprodução') },
+      { id: 'favorites', label: t('Favoritas') }
     ]
     return [...base, ...genres.map((g) => ({ id: `genre:${g}` as LibFilter, label: g }))]
   }, [songs])
@@ -99,8 +102,8 @@ export function Library(): JSX.Element {
       const r = (await api.library.refresh()) as { added: number; removed: number }
       setRefreshMsg(
         r.added === 0 && r.removed === 0
-          ? 'Tudo em dia — nenhuma mudança nas pastas.'
-          : `${r.added} nova(s) adicionada(s), ${r.removed} removida(s).`
+          ? t('Tudo em dia — nenhuma mudança nas pastas.')
+          : t('{added} adicionada(s), {removed} removida(s).', { added: r.added, removed: r.removed })
       )
       await load()
     } finally {
@@ -150,9 +153,9 @@ export function Library(): JSX.Element {
       onDrop={onDrop}
     >
       <PageHeader
-        title="Biblioteca"
+        title={t('Biblioteca')}
         subtitle={
-          refreshMsg ?? `${songs.length} músicas · arraste arquivos ou pastas para importar`
+          refreshMsg ?? tn(songs.length, '{n} música · arraste arquivos ou pastas para importar', '{n} músicas · arraste arquivos ou pastas para importar')
         }
         actions={
           <div className="flex items-center gap-2">
@@ -160,10 +163,10 @@ export function Library(): JSX.Element {
           <button
             onClick={refreshLibrary}
             disabled={scanning}
-            title="Procura músicas novas nas pastas já importadas e remove as que sumiram do disco"
+            title={t('Procura músicas novas nas pastas já importadas e remove as que sumiram do disco')}
             className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-4 py-2 text-xs font-semibold text-ink transition-transform hover:scale-[1.03] disabled:opacity-60"
           >
-            {scanning ? <Spinner size={14} icon="rotate" /> : <RefreshCw size={14} />} Atualizar
+            {scanning ? <Spinner size={14} icon="rotate" /> : <RefreshCw size={14} />} {t('Atualizar')}
           </button>
           <button
             onClick={importFolder}
@@ -173,9 +176,9 @@ export function Library(): JSX.Element {
             {scanning ? <Spinner size={14} /> : <FolderPlus size={14} />}
             {scanning
               ? progress
-                ? `Analisando ${progress.processed}/${progress.total}`
-                : 'Importando…'
-              : 'Importar pasta'}
+                ? t('Analisando {done}/{total}', { done: progress.processed, total: progress.total })
+                : t('Importando…')
+              : t('Importar pasta')}
           </button>
           </div>
         }
@@ -185,8 +188,8 @@ export function Library(): JSX.Element {
 
       {songs.length === 0 && !scanning ? (
         <EmptyState
-          title="Sua biblioteca está vazia"
-          hint="Clique em Importar pasta ou arraste seus arquivos MP3, FLAC, WAV, OGG, AAC ou M4A para cá."
+          title={t('Sua biblioteca está vazia')}
+          hint={t('Clique em Importar pasta ou arraste seus arquivos MP3, FLAC, WAV, OGG, AAC ou M4A para cá.')}
         />
       ) : (
         <>
@@ -195,17 +198,17 @@ export function Library(): JSX.Element {
               <EmptyState
                 title={
                   filter === 'never'
-                    ? 'Você já ouviu tudo!'
+                    ? t('Você já ouviu tudo!')
                     : filter === 'favorites'
-                      ? 'Nenhuma favorita ainda'
-                      : 'Nada por aqui'
+                      ? t('Nenhuma favorita ainda')
+                      : t('Nada por aqui')
                 }
                 hint={
                   filter === 'never'
-                    ? 'Não há músicas sem reprodução — sua biblioteca está bem aproveitada.'
+                    ? t('Não há músicas sem reprodução — sua biblioteca está bem aproveitada.')
                     : filter === 'favorites'
-                      ? 'Toque no coração de uma música para guardá-la aqui.'
-                      : 'Nenhuma música corresponde a este filtro.'
+                      ? t('Toque no coração de uma música para guardá-la aqui.')
+                      : t('Nenhuma música corresponde a este filtro.')
                 }
               />
             </div>

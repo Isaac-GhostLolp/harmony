@@ -1,5 +1,6 @@
 import type { World, WorldContext } from './types'
 import { BW, BH, fbm, glowSprite, makeLayer, rng, sameView, toBoard, viewFor, type Layer, type View } from './kit'
+import { t } from '@/i18n'
 
 /**
  * 🛰️ Space Station — the view from a panoramic window: a great planet turning
@@ -754,7 +755,7 @@ function drawHud(ctx: CanvasRenderingContext2D, W: number, H: number, c: WorldCo
   ctx.fillText(`VEL ${vel} km/s`, m + 8, H - m - L * 0.6 - fs * 1.5)
   ctx.textAlign = 'right'
   const orbit = Math.floor(time / 92) + 1
-  ctx.fillText(`ÓRBITA ${orbit}`, W - m - 8, m + 8 + fs)
+  ctx.fillText(t('ÓRBITA {n}', { n: orbit }), W - m - 8, m + 8 + fs)
   // a small blinking status dot
   if (Math.sin(time * 1.6) > 0) {
     ctx.fillStyle = 'rgba(120,255,170,0.8)'

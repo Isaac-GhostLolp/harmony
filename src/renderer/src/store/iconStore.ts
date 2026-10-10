@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
 import { api } from '@/services/api'
 import { SLOTS, slotForName, type IconSlot } from '@/components/icons/slots'
+import { t } from '@/i18n'
 
 /**
  * Icon packs for the sidebar and the player bar. `pack` is a built-in pack
@@ -111,21 +112,21 @@ export const useIconStore = create<IconState>((set, get) => {
       for (const f of files) {
         const target = slot ?? slotForName(f.name)
         if (!target) {
-          error = `Não sei qual ícone é "${f.name}". Dê ao arquivo o nome do ícone, como play.png ou biblioteca.svg.`
+          error = t('Não sei qual ícone é “{name}”. Dê ao arquivo o nome do ícone, como play.png ou biblioteca.svg.', { name: f.name })
           continue
         }
         const ext = (f.name.split('.').pop() ?? '').toLowerCase()
         if (!ICON_EXT.includes(ext)) {
-          error = `"${f.name}" não é uma imagem que o Harmony aceita.`
+          error = t('“{name}” não é uma imagem que o Harmony aceita.', { name: f.name })
           continue
         }
         if (f.size > MAX_ICON_MB * 1024 * 1024) {
-          error = `"${f.name}" passa de ${MAX_ICON_MB} MB.`
+          error = t('“{name}” passa de {mb} MB.', { name: f.name, mb: MAX_ICON_MB })
           continue
         }
         const path = await api.icons.save(await f.arrayBuffer(), ext)
         if (!path) {
-          error = `Não foi possível guardar "${f.name}".`
+          error = t('Não foi possível guardar “{name}”.', { name: f.name })
           continue
         }
         const pack = get().mine.find((p) => p.id === id)

@@ -9,7 +9,9 @@ import { InputDialog, ConfirmDialog } from '@/components/InputDialog'
 import { PlaylistEditor } from '@/components/PlaylistEditor'
 import { FilterChips } from '@/components/FilterChips'
 import { StickerZone } from '@/components/stickers/StickerZone'
+import { useFavoriteSync } from '@/utils/favorites'
 import { useStickerStore } from '@/store/stickerStore'
+import { t, tk, tn } from '@/i18n'
 
 type Dialog =
   | { kind: 'create' }
@@ -20,11 +22,11 @@ type Dialog =
 type PlaylistSort = 'custom' | 'recent' | 'oldest' | 'duration' | 'title'
 
 const SORT_CHIPS: { id: PlaylistSort; label: string }[] = [
-  { id: 'custom', label: 'Ordem personalizada' },
-  { id: 'recent', label: 'Adicionadas por último' },
-  { id: 'oldest', label: 'Mais antigas' },
-  { id: 'duration', label: 'Duração' },
-  { id: 'title', label: 'Título' }
+  { id: 'custom', label: tk('Ordem personalizada') },
+  { id: 'recent', label: tk('Adicionadas por último') },
+  { id: 'oldest', label: tk('Mais antigas') },
+  { id: 'duration', label: tk('Duração') },
+  { id: 'title', label: tk('Título') }
 ]
 
 /** Sorts playlist songs. 'custom' keeps the manual (drag) order from the DB. */
@@ -47,6 +49,7 @@ export function Playlists(): JSX.Element {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [selected, setSelected] = useState<Playlist | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
+  useFavoriteSync(setSongs)
   const [dialog, setDialog] = useState<Dialog>(null)
   const [editing, setEditing] = useState<Playlist | null>(null)
   const [sort, setSort] = useState<PlaylistSort>('custom')
@@ -99,7 +102,7 @@ export function Playlists(): JSX.Element {
             }}
             className="mb-4 text-xs text-muted hover:text-ink"
           >
-            ← Playlists
+            {t('← Playlists')}
           </button>
           <div
             className="fade-rise mb-6 flex items-end gap-5 rounded-2xl p-6"
@@ -117,34 +120,34 @@ export function Playlists(): JSX.Element {
               ) : (
                 <ListMusic size={40} className="text-white/70" />
               )}
-              <StickerZone zone={`playlist:${selected.id}`} label="Capa" rel />
+              <StickerZone zone={`playlist:${selected.id}`} label={t('Capa')} rel />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] uppercase tracking-wide text-white/60">Playlist</p>
+              <p className="text-[11px] uppercase tracking-wide text-white/60">{t('Playlist')}</p>
               <h1 className="mt-1 truncate text-3xl font-semibold tracking-tight">{selected.name}</h1>
               {selected.description && (
                 <p className="mt-1 line-clamp-2 text-sm text-white/70">{selected.description}</p>
               )}
-              <p className="mt-2 text-xs text-white/60">{songs.length} músicas</p>
+              <p className="mt-2 text-xs text-white/60">{tn(songs.length, '{n} música', '{n} músicas')}</p>
             </div>
             <button
               onClick={() => setEditing(selected)}
               className="press flex items-center gap-2 self-start rounded-full bg-black/30 px-4 py-2 text-xs font-semibold text-white backdrop-blur hover:bg-black/50"
             >
-              <ImageIcon size={13} /> Personalizar
+              <ImageIcon size={13} /> {t('Personalizar')}
             </button>
           </div>
           {songs.length === 0 ? (
             <EmptyState
-              title="Playlist vazia"
-              hint="Use o menu ⋯ de qualquer música na biblioteca para adicioná-la aqui."
+              title={t('Playlist vazia')}
+              hint={t('Use o menu ⋯ de qualquer música na biblioteca para adicioná-la aqui.')}
             />
           ) : (
             <>
-              <FilterChips chips={SORT_CHIPS} active={sort} onChange={setSort} />
+              <FilterChips chips={SORT_CHIPS.map((c) => ({ ...c, label: t(c.label) }))} active={sort} onChange={setSort} />
               {sort === 'custom' && (
                 <p className="mb-3 -mt-2 text-[11px] text-muted">
-                  Arraste as músicas para montar sua ordem ideal.
+                  {t('Arraste as músicas para montar sua ordem ideal.')}
                 </p>
               )}
               <div key={sort} className="fade-in">
@@ -152,7 +155,7 @@ export function Playlists(): JSX.Element {
                   songs={sortPlaylistSongs(songs, sort)}
                   onChanged={() => open(selected)}
                   extraAction={{
-                    label: 'Remover da playlist',
+                    label: t('Remover da playlist'),
                     run: async (song) => {
                       await api.playlists.removeSong(selected.id, song.id)
                       open(selected)
@@ -174,21 +177,21 @@ export function Playlists(): JSX.Element {
       ) : (
         <div>
           <PageHeader
-            title="Playlists"
+            title={t('Playlists')}
             subtitle={`${playlists.length} playlists`}
             actions={
               <button
                 onClick={() => setDialog({ kind: 'create' })}
                 className="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:scale-[1.03]"
               >
-                <Plus size={14} /> Nova playlist
+                <Plus size={14} /> {t('Nova playlist')}
               </button>
             }
           />
           {playlists.length === 0 ? (
             <EmptyState
-              title="Nenhuma playlist"
-              hint="Crie sua primeira playlist para organizar sua biblioteca."
+              title={t('Nenhuma playlist')}
+              hint={t('Crie sua primeira playlist para organizar sua biblioteca.')}
             />
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
@@ -224,7 +227,7 @@ export function Playlists(): JSX.Element {
                       ) : (
                         <ListMusic size={30} className="text-white/70" />
                       )}
-                      <StickerZone zone={`playlist:${p.id}`} label="Capa" rel />
+                      <StickerZone zone={`playlist:${p.id}`} label={t('Capa')} rel />
                     </div>
                     <div className="p-4">
                       <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
@@ -234,23 +237,23 @@ export function Playlists(): JSX.Element {
                       {p.description ? (
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted">{p.description}</p>
                       ) : (
-                        <p className="mt-0.5 text-xs text-muted">{p.songCount} músicas</p>
+                        <p className="mt-0.5 text-xs text-muted">{tn(p.songCount, '{n} música', '{n} músicas')}</p>
                       )}
                     </div>
                   </button>
                   <div className="absolute right-3 top-3 z-40 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <IconBtn onClick={() => setEditing(p)} label="Personalizar">
+                    <IconBtn onClick={() => setEditing(p)} label={t('Personalizar')}>
                       <ImageIcon size={13} />
                     </IconBtn>
-                    <IconBtn onClick={() => setDialog({ kind: 'rename', playlist: p })} label="Renomear">
+                    <IconBtn onClick={() => setDialog({ kind: 'rename', playlist: p })} label={t('Renomear')}>
                       <Pencil size={13} />
                     </IconBtn>
-                    <IconBtn onClick={() => duplicate(p)} label="Duplicar">
+                    <IconBtn onClick={() => duplicate(p)} label={t('Duplicar')}>
                       <Copy size={13} />
                     </IconBtn>
                     <IconBtn
                       onClick={() => setDialog({ kind: 'delete', playlist: p })}
-                      label="Excluir"
+                      label={t('Excluir')}
                       danger
                     >
                       <Trash2 size={13} />
@@ -265,25 +268,25 @@ export function Playlists(): JSX.Element {
 
       <InputDialog
         open={dialog?.kind === 'create'}
-        title="Nova playlist"
-        label="Dê um nome para a sua playlist."
-        confirmLabel="Criar"
+        title={t('Nova playlist')}
+        label={t('Dê um nome para a sua playlist.')}
+        confirmLabel={t('Criar')}
         onConfirm={doCreate}
         onCancel={() => setDialog(null)}
       />
       <InputDialog
         open={dialog?.kind === 'rename'}
-        title="Renomear playlist"
+        title={t('Renomear playlist')}
         initialValue={dialog?.kind === 'rename' ? dialog.playlist.name : ''}
-        confirmLabel="Salvar"
+        confirmLabel={t('Salvar')}
         onConfirm={(name) => dialog?.kind === 'rename' && doRename(dialog.playlist, name)}
         onCancel={() => setDialog(null)}
       />
       <ConfirmDialog
         open={dialog?.kind === 'delete'}
-        title="Excluir playlist"
-        message={dialog?.kind === 'delete' ? `Excluir "${dialog.playlist.name}"?` : ''}
-        confirmLabel="Excluir"
+        title={t('Excluir playlist')}
+        message={dialog?.kind === 'delete' ? t('Excluir “{name}”?', { name: dialog.playlist.name }) : ''}
+        confirmLabel={t('Excluir')}
         danger
         onConfirm={() => dialog?.kind === 'delete' && doDelete(dialog.playlist)}
         onCancel={() => setDialog(null)}

@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
+import { tk } from '@/i18n'
 
 export const EQ_PRESETS: Record<string, number[]> = {
   Flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   Rock: [5, 4, 3, 1, -1, -1, 1, 3, 4, 5],
   Pop: [-1, 1, 3, 4, 3, 0, -1, -1, 1, 2],
   'Bass Boost': [7, 6, 5, 3, 1, 0, 0, 0, 0, 0],
-  'Clássica': [4, 3, 2, 1, -1, -2, 0, 2, 3, 4],
+  [tk('Clássica')]: [4, 3, 2, 1, -1, -2, 0, 2, 3, 4],
   Podcast: [-3, -2, 0, 2, 4, 4, 3, 1, 0, -1]
 }
 

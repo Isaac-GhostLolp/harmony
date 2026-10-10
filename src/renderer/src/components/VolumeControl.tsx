@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { AppIcon } from '@/components/icons/AppIcon'
+import { t } from '@/i18n'
 
 /**
  * Spotify-style volume control: scrolling the wheel over it nudges the volume
@@ -66,7 +67,7 @@ export function VolumeControl({
           flashPct()
         }}
         className="text-muted transition-colors hover:text-ink"
-        aria-label="Mudo"
+        aria-label={t('Mudo')}
       >
         <AppIcon slot={slot} size={18} />
       </button>
@@ -94,7 +95,7 @@ export function VolumeControl({
             flashPct()
           }}
           className="absolute left-0 top-1/2 h-6 w-full -translate-y-1/2 cursor-pointer opacity-0"
-          aria-label="Volume"
+          aria-label={t('Volume')}
         />
       </div>
     </div>

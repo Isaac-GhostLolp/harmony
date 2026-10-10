@@ -5,6 +5,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { CoverArt } from '@/components/CoverArt'
 import { clockLabel, WEEKDAYS, type Badge, type WorldStats } from './worldData'
 import { SectionTitle, useCountUp } from './parts'
+import { t, locale } from '@/i18n'
 
 // ---------------------------------------------------------------------------
 // Big numbers + "você sabia?"
@@ -19,7 +20,7 @@ function Tile({ emoji, value, suffix, label, hue, delay }: { emoji: string; valu
     >
       <span className="absolute -right-2 -top-3 text-6xl opacity-20">{emoji}</span>
       <p className="text-3xl font-black tabular-nums tracking-tight">
-        {v.toLocaleString('pt-BR')}
+        {v.toLocaleString(locale())}
         {suffix && <span className="ml-0.5 text-lg font-bold text-muted">{suffix}</span>}
       </p>
       <p className="mt-1 text-xs text-muted">{label}</p>
@@ -38,16 +39,16 @@ export function Numbers({ p, w, hue, facts }: { p: MusicProfile; w: WorldStats; 
   return (
     <div className="mb-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile emoji="🎧" value={Math.floor(p.hoursPlayed)} suffix="h" label="de música ouvida" hue={hue} delay={0} />
-        <Tile emoji="▶️" value={p.totalPlays} label="plays no total" hue={hue + 40} delay={60} />
-        <Tile emoji="🔥" value={w.streak.current} suffix={w.streak.current === 1 ? ' dia' : ' dias'} label={`seguidos agora · recorde: ${w.streak.best}`} hue={20} delay={120} />
-        <Tile emoji="🧭" value={w.artists} label="artistas que você já ouviu" hue={hue - 60} delay={180} />
+        <Tile emoji="🎧" value={Math.floor(p.hoursPlayed)} suffix="h" label={t('de música ouvida')} hue={hue} delay={0} />
+        <Tile emoji="▶️" value={p.totalPlays} label={t('plays no total')} hue={hue + 40} delay={60} />
+        <Tile emoji="🔥" value={w.streak.current} suffix={w.streak.current === 1 ? t(' dia') : t(' dias')} label={t('seguidos agora · recorde: {n}', { n: w.streak.best })} hue={20} delay={120} />
+        <Tile emoji="🧭" value={w.artists} label={t('artistas que você já ouviu')} hue={hue - 60} delay={180} />
       </div>
       {facts.length > 0 && (
         <div className="glass mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm">
           <span className="text-xl">💡</span>
           <p key={fact} className="fade-rise flex-1">
-            <span className="mr-1 font-semibold">Você sabia?</span>
+            <span className="mr-1 font-semibold">{t('Você sabia?')}</span>
             {facts[fact % facts.length]}
           </p>
           {facts.length > 1 && (
@@ -56,7 +57,7 @@ export function Numbers({ p, w, hue, facts }: { p: MusicProfile; w: WorldStats; 
                 <button
                   key={i}
                   onClick={() => setFact(i)}
-                  aria-label={`Curiosidade ${i + 1}`}
+                  aria-label={t('Curiosidade {n}', { n: i + 1 })}
                   className={`h-1.5 rounded-full transition-all ${i === fact % facts.length ? 'w-4 bg-[var(--accent)]' : 'w-1.5 bg-white/25'}`}
                 />
               ))}
@@ -81,9 +82,9 @@ export function Podium({ w }: { w: WorldStats }): JSX.Element {
   ]
   return (
     <div className="glass fade-rise rounded-3xl p-5">
-      <SectionTitle emoji="🏆" title="Seu pódio" hint="os artistas da sua vida" />
+      <SectionTitle emoji="🏆" title={t('Seu pódio')} hint={t('os artistas da sua vida')} />
       {!a ? (
-        <p className="py-10 text-center text-sm text-muted">Ouça algumas músicas e seu pódio aparece aqui.</p>
+        <p className="py-10 text-center text-sm text-muted">{t('Ouça algumas músicas e seu pódio aparece aqui.')}</p>
       ) : (
         <>
           <div className="flex items-end justify-center gap-3">
@@ -138,9 +139,9 @@ export function TopSongs({ w, songs }: { w: WorldStats; songs: Song[] }): JSX.El
   const byId = useMemo(() => new Map(songs.map((s) => [s.id, s])), [songs])
   return (
     <div className="glass fade-rise rounded-3xl p-5">
-      <SectionTitle emoji="🎶" title="Suas 5 do coração" hint="as que mais tocaram" />
+      <SectionTitle emoji="🎶" title={t('Suas 5 do coração')} hint={t('as que mais tocaram')} />
       {w.topSongs.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted">Suas músicas mais tocadas aparecem aqui.</p>
+        <p className="py-10 text-center text-sm text-muted">{t('Suas músicas mais tocadas aparecem aqui.')}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {w.topSongs.map((s, i) => (
@@ -192,9 +193,9 @@ export function ListeningClock({ w, hue }: { w: WorldStats; hue: number }): JSX.
   for (let i = 1; i < 7; i++) if (w.weekdays[i] > w.weekdays[favDay]) favDay = i
   return (
     <div className="glass fade-rise rounded-3xl p-5">
-      <SectionTitle emoji="🕰️" title="Seu relógio musical" />
+      <SectionTitle emoji="🕰️" title={t('Seu relógio musical')} />
       {!label ? (
-        <p className="py-10 text-center text-sm text-muted">Quando você ouvir mais, mostramos sua hora favorita.</p>
+        <p className="py-10 text-center text-sm text-muted">{t('Quando você ouvir mais, mostramos sua hora favorita.')}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-5">
           <svg viewBox={`0 0 ${size} ${size}`} className="h-48 w-48 shrink-0">
@@ -230,7 +231,7 @@ export function ListeningClock({ w, hue }: { w: WorldStats; hue: number }): JSX.
           <div className="min-w-[160px] flex-1">
             <p className="text-lg font-semibold leading-snug">{label.text}</p>
             <p className="mt-1 text-xs text-muted">
-              Seu horário de pico é por volta das <span className="text-ink">{label.peak}h</span>.
+              {t('Seu horário de pico é por volta das')} <span className="text-ink">{label.peak}h</span>.
             </p>
             <div className="mt-4 flex h-16 items-end gap-1.5">
               {w.weekdays.map((n, d) => (
@@ -242,12 +243,12 @@ export function ListeningClock({ w, hue }: { w: WorldStats; hue: number }): JSX.
                       background: d === favDay ? `hsl(${hue + 40} 95% 65%)` : `hsl(${hue} 60% 55% / 0.55)`
                     }}
                   />
-                  <span className="text-[9px] uppercase text-muted">{WEEKDAYS[d].slice(0, 3)}</span>
+                  <span className="text-[9px] uppercase text-muted">{t(WEEKDAYS[d]).slice(0, 3)}</span>
                 </div>
               ))}
             </div>
             <p className="mt-2 text-xs text-muted">
-              Seu dia favorito para ouvir é <span className="text-ink">{WEEKDAYS[favDay]}</span>.
+              {t('Seu dia favorito para ouvir é')} <span className="text-ink">{t(WEEKDAYS[favDay])}</span>.
             </p>
           </div>
         </div>
@@ -261,7 +262,7 @@ export function GenreDNA({ w, hue }: { w: WorldStats; hue: number }): JSX.Elemen
   if (!total) return null
   return (
     <div className="glass fade-rise rounded-3xl p-5">
-      <SectionTitle emoji="🧬" title="Seu DNA musical" hint="do que o seu som é feito" />
+      <SectionTitle emoji="🧬" title={t('Seu DNA musical')} hint={t('do que o seu som é feito')} />
       <div className="flex h-5 overflow-hidden rounded-full">
         {w.topGenres.map((g, i) => (
           <div
@@ -316,7 +317,7 @@ export function Anthem({
       className="glass fade-rise relative overflow-hidden rounded-3xl p-5"
       style={{ background: `radial-gradient(circle at 15% 20%, hsl(${hue + 20} 90% 60% / 0.22), transparent 60%)` }}
     >
-      <SectionTitle emoji="💖" title="A música da minha vida" hint="aquela que diz tudo sobre você" />
+      <SectionTitle emoji="💖" title={t('A música da minha vida')} hint={t('aquela que diz tudo sobre você')} />
       {song && !choosing ? (
         <div className="flex flex-wrap items-center gap-5">
           <div className="relative">
@@ -333,7 +334,7 @@ export function Anthem({
               onChange={(e) => onChange({ songId: song.id, note: e.target.value })}
               maxLength={160}
               rows={2}
-              placeholder="Por que ela é especial? Escreva um recadinho…"
+              placeholder={t('Por que ela é especial? Escreva um recadinho…')}
               className="mt-2 w-full resize-none rounded-xl bg-white/5 px-3 py-2 font-serif text-sm italic placeholder:text-muted/70 focus:outline-none focus:ring-1 focus:ring-white/20"
             />
             <div className="mt-2 flex gap-2">
@@ -341,10 +342,10 @@ export function Anthem({
                 onClick={() => playQueue([song], 0)}
                 className="press flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-semibold text-white"
               >
-                <Play size={12} fill="white" /> Tocar
+                <Play size={12} fill="white" /> {t('Tocar')}
               </button>
               <button onClick={() => setChoosing(true)} className="rounded-full bg-white/10 px-4 py-1.5 text-xs">
-                Trocar
+                {t('Trocar')}
               </button>
             </div>
           </div>
@@ -356,17 +357,17 @@ export function Anthem({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Procure na sua biblioteca…"
+              placeholder={t('Procure na sua biblioteca…')}
               className="flex-1 bg-transparent text-sm focus:outline-none"
             />
             {song && (
-              <button onClick={() => setChoosing(false)} aria-label="Cancelar">
+              <button onClick={() => setChoosing(false)} aria-label={t('Cancelar')}>
                 <X size={14} className="text-muted" />
               </button>
             )}
           </div>
           {songs.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">Importe músicas para escolher a sua.</p>
+            <p className="mt-3 text-sm text-muted">{t('Importe músicas para escolher a sua.')}</p>
           ) : (
             <div className="mt-2 grid gap-1 sm:grid-cols-2">
               {results.map((s) => (
@@ -403,7 +404,7 @@ export function Achievements({ badges, hue }: { badges: Badge[]; hue: number }):
   const done = badges.filter((b) => b.progress >= 1).length
   return (
     <div className="mb-6">
-      <SectionTitle emoji="🏅" title="Conquistas" hint={`${done} de ${badges.length} desbloqueadas`} />
+      <SectionTitle emoji="🏅" title={t('Conquistas')} hint={t('{done} de {total} desbloqueadas', { done, total: badges.length })} />
       <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
         {badges.map((b, i) => {
           const got = b.progress >= 1
@@ -442,7 +443,7 @@ export function Journey({ entries }: { entries: string[] }): JSX.Element | null 
   if (entries.length === 0) return null
   return (
     <div className="mb-6">
-      <SectionTitle emoji="📖" title="Seu diário musical" />
+      <SectionTitle emoji="📖" title={t('Seu diário musical')} />
       <div className="glass rounded-3xl p-6">
         <div className="relative border-l border-white/10 pl-6">
           {entries.map((entry, i) => (

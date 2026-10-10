@@ -10,6 +10,7 @@ import { SeekBar } from '@/components/SeekBar'
 import { VolumeControl } from '@/components/VolumeControl'
 import { StickerZone } from '@/components/stickers/StickerZone'
 import { AppIcon } from '@/components/icons/AppIcon'
+import { t } from '@/i18n'
 
 /**
  * The music bar, in the style chosen in Settings (store/barStore):
@@ -62,14 +63,14 @@ export function PlayerBar(): JSX.Element {
     <div className={`flex min-w-0 items-center gap-3 ${compact ? 'w-56' : 'w-64'} ${style === 'vinyl' ? 'pl-1' : ''}`}>
       {art}
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{song?.title ?? 'Nada tocando'}</p>
-        <p className="truncate text-xs text-muted">{song?.artist ?? 'Importe sua biblioteca'}</p>
+        <p className="truncate text-sm font-medium">{song?.title ?? t('Nada tocando')}</p>
+        <p className="truncate text-xs text-muted">{song?.artist ?? t('Importe sua biblioteca')}</p>
       </div>
       {song && (
         <button
           onClick={toggleFavorite}
           className="ml-1 text-muted transition-colors hover:text-[var(--accent)]"
-          aria-label="Favoritar"
+          aria-label={t('Favoritar')}
         >
           <AppIcon slot={song.favorite ? 'liked' : 'like'} size={16} />
         </button>
@@ -78,8 +79,8 @@ export function PlayerBar(): JSX.Element {
         <button
           onClick={() => useCapsuleStore.getState().openSeal(song)}
           className="text-muted transition-colors hover:text-[var(--accent)]"
-          aria-label="Cápsula do tempo"
-          title="Guardar uma lembrança nesta música"
+          aria-label={t('Cápsula do tempo')}
+          title={t('Guardar uma lembrança nesta música')}
         >
           <AppIcon slot="capsule" size={15} />
         </button>
@@ -91,7 +92,7 @@ export function PlayerBar(): JSX.Element {
     <button
       onClick={toggleShuffle}
       className={shuffle ? 'text-[var(--accent)]' : 'text-muted hover:text-ink'}
-      aria-label="Aleatório"
+      aria-label={t('Aleatório')}
     >
       <AppIcon slot="shuffle" size={16} active={shuffle} />
     </button>
@@ -100,21 +101,21 @@ export function PlayerBar(): JSX.Element {
     <button
       onClick={cycleRepeat}
       className={repeat !== 'off' ? 'text-[var(--accent)]' : 'text-muted hover:text-ink'}
-      aria-label="Repetir"
+      aria-label={t('Repetir')}
     >
       <AppIcon slot={repeat === 'one' ? 'repeatOne' : 'repeat'} size={16} active={repeat !== 'off'} />
     </button>
   )
   const transport = (
     <>
-      <button onClick={previous} className="text-muted hover:text-ink" aria-label="Anterior">
+      <button onClick={previous} className="text-muted hover:text-ink" aria-label={t('Anterior')}>
         <AppIcon slot="prev" size={compact ? 18 : 20} />
       </button>
       <button
         onClick={togglePlay}
         className={`grid place-items-center rounded-full transition-transform hover:scale-105 ${compact ? 'h-8 w-8' : 'h-10 w-10'}`}
         style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
-        aria-label={isPlaying ? 'Pausar' : 'Tocar'}
+        aria-label={isPlaying ? t('Pausar') : t('Tocar')}
       >
         {isPlaying ? (
           <AppIcon slot="pause" size={compact ? 15 : 18} />
@@ -122,7 +123,7 @@ export function PlayerBar(): JSX.Element {
           <AppIcon slot="play" size={compact ? 15 : 18} className="ml-0.5" />
         )}
       </button>
-      <button onClick={next} className="text-muted hover:text-ink" aria-label="Próxima">
+      <button onClick={next} className="text-muted hover:text-ink" aria-label={t('Próxima')}>
         <AppIcon slot="next" size={compact ? 18 : 20} />
       </button>
     </>
@@ -143,22 +144,22 @@ export function PlayerBar(): JSX.Element {
       <button
         onClick={toggleLyrics}
         className={lyricsOpen ? 'text-[var(--accent)]' : 'text-muted hover:text-ink'}
-        aria-label="Letras"
+        aria-label={t('Letras')}
       >
         <AppIcon slot="lyrics" size={17} active={lyricsOpen} />
       </button>
       <button
         onClick={() => useUiStore.getState().setDjMode(true)}
         className="text-muted hover:text-ink"
-        aria-label="DJ Mode"
-        title="DJ Mode (tela imersiva)"
+        aria-label={t('DJ Mode')}
+        title={t('DJ Mode (tela imersiva)')}
       >
         <AppIcon slot="dj" size={18} />
       </button>
-      <button onClick={() => api.player.toggleMini()} className="text-muted hover:text-ink" aria-label="Mini player">
+      <button onClick={() => api.player.toggleMini()} className="text-muted hover:text-ink" aria-label={t('Mini player')}>
         <AppIcon slot="mini" size={17} />
       </button>
-      <button onClick={toggleQueue} className="text-muted hover:text-ink" aria-label="Fila">
+      <button onClick={toggleQueue} className="text-muted hover:text-ink" aria-label={t('Fila')}>
         <AppIcon slot="queue" size={18} />
       </button>
       <VolumeControl volume={volume} onChange={setVolume} />
@@ -196,7 +197,7 @@ export function PlayerBar(): JSX.Element {
   return (
     <BarFrame style={style} cover={song?.coverPath ?? null}>
       {body}
-      <StickerZone zone="player" label="Player" />
+      <StickerZone zone="player" label={t('Player')} />
     </BarFrame>
   )
 }

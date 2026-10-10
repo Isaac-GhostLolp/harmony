@@ -5,6 +5,7 @@ import { usePlayerStore } from '@/store/playerStore'
 import { CoverArt } from '@/components/CoverArt'
 import { MOODS, mixFor, roulettePick, type Mood } from './worldData'
 import { SectionTitle } from './parts'
+import { t } from '@/i18n'
 
 /** "Como você está hoje?" — one tap turns a mood into a mix from your own library. */
 export function MoodMix({
@@ -23,15 +24,17 @@ export function MoodMix({
   const play = (m: Mood): void => {
     onMood(m.id)
     if (songs.length === 0) {
-      setInfo('Importe algumas músicas para montar seu mix.')
+      setInfo(t('Importe algumas músicas para montar seu mix.'))
       return
     }
     const { songs: mix, matched } = mixFor(m, songs)
     playQueue(mix, 0)
     setInfo(
       matched >= 10
-        ? `Tocando ${mix.length} músicas ${m.label.toLowerCase() === 'foco' ? 'para focar' : `para um dia ${m.label.toLowerCase()}`}.`
-        : `Tocando ${mix.length} músicas: suas queridinhas para combinar com o clima.`
+        ? m.label === 'Foco'
+          ? t('Tocando {n} músicas para focar.', { n: mix.length })
+          : t('Tocando {n} músicas para um dia {mood}.', { n: mix.length, mood: t(m.label).toLowerCase() })
+        : t('Tocando {n} músicas: suas queridinhas para combinar com o clima.', { n: mix.length })
     )
   }
 
@@ -40,7 +43,7 @@ export function MoodMix({
       className="glass fade-rise relative overflow-hidden rounded-3xl p-5"
       style={current ? { background: `linear-gradient(135deg, hsl(${current.hue} 80% 50% / 0.22), transparent 70%)` } : undefined}
     >
-      <SectionTitle emoji="💭" title="Como você está hoje?" hint="um toque e o mix começa" />
+      <SectionTitle emoji="💭" title={t('Como você está hoje?')} hint={t('um toque e o mix começa')} />
       <div className="grid grid-cols-3 gap-2">
         {MOODS.map((m) => (
           <button
@@ -53,12 +56,12 @@ export function MoodMix({
             <span className="text-3xl transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-125">
               {m.emoji}
             </span>
-            {m.label}
+            {t(m.label)}
           </button>
         ))}
       </div>
       <p className="mt-3 min-h-[1.25rem] text-xs text-muted">
-        {info ?? (current ? `Hoje você está ${current.emoji} ${current.label.toLowerCase()}. Toque de novo para outro mix.` : 'Escolha um humor e o Harmony monta um mix com as suas músicas.')}
+        {info ?? (current ? t('Hoje você está {emoji} {mood}. Toque de novo para outro mix.', { emoji: current.emoji, mood: t(current.label).toLowerCase() }) : t('Escolha um humor e o Harmony monta um mix com as suas músicas.'))}
       </p>
     </div>
   )
@@ -228,9 +231,9 @@ export function Roulette({
 
   return (
     <div className="glass fade-rise rounded-3xl p-5">
-      <SectionTitle emoji="🎡" title="Roleta musical" hint="deixa a sorte escolher" />
+      <SectionTitle emoji="🎡" title={t('Roleta musical')} hint={t('deixa a sorte escolher')} />
       {songs.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted">Importe músicas para girar a roleta.</p>
+        <p className="py-10 text-center text-sm text-muted">{t('Importe músicas para girar a roleta.')}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-5">
           <canvas ref={canvasRef} className="aspect-square w-56 cursor-pointer" onClick={spin} />
@@ -239,14 +242,14 @@ export function Roulette({
               <div className="fade-rise flex items-center gap-3 rounded-2xl bg-white/10 p-3">
                 <CoverArt src={winner.coverPath} title={winner.title} size="md" rounded="xl" />
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-wider text-muted">A roleta escolheu</p>
+                  <p className="text-[11px] uppercase tracking-wider text-muted">{t('A roleta escolheu')}</p>
                   <p className="truncate font-semibold">{winner.title}</p>
                   <p className="truncate text-xs text-muted">{winner.artist ?? '—'}</p>
                 </div>
               </div>
             ) : (
               <p className="text-sm text-muted">
-                {spinning ? 'Girando… 🤞' : 'Clique na roleta ou no botão e veja qual música o destino escolhe para você.'}
+                {spinning ? t('Girando… 🤞') : t('Clique na roleta ou no botão e veja qual música o destino escolhe para você.')}
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -255,7 +258,7 @@ export function Roulette({
                   onClick={() => playQueue([winner], 0)}
                   className="press flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white"
                 >
-                  <Play size={13} fill="white" /> Tocar
+                  <Play size={13} fill="white" /> {t('Tocar')}
                 </button>
               ) : (
                 <button
@@ -263,7 +266,7 @@ export function Roulette({
                   disabled={spinning}
                   className="press flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                 >
-                  <RotateCw size={13} /> Girar
+                  <RotateCw size={13} /> {t('Girar')}
                 </button>
               )}
               {winner && (
@@ -271,7 +274,7 @@ export function Roulette({
                   onClick={spin}
                   className="press flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold"
                 >
-                  <RotateCw size={13} /> Girar de novo
+                  <RotateCw size={13} /> {t('Girar de novo')}
                 </button>
               )}
               <button
@@ -282,7 +285,7 @@ export function Roulette({
                 disabled={spinning}
                 className="press flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold disabled:opacity-60"
               >
-                <Shuffle size={13} /> Trocar músicas
+                <Shuffle size={13} /> {t('Trocar músicas')}
               </button>
             </div>
           </div>

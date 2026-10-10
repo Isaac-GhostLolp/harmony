@@ -19,6 +19,7 @@ import {
   type RecapData,
   type Scene
 } from './recapRenderer'
+import { t } from '@/i18n'
 
 /**
  * Retrospectiva — the listener's year in music as a 9:16 video to post.
@@ -188,7 +189,7 @@ export function RecapStudio({
     if (busy || !data || !assets) return
     cancelled.current = false
     exporting.current = true
-    setStatus({ kind: 'rendering', label: 'Preparando a trilha…', progress: 0 })
+    setStatus({ kind: 'rendering', label: t('Preparando a trilha…'), progress: 0 })
     api.edit.setBackgroundThrottling(false)
     try {
       const top = data.topSongs[0]
@@ -217,7 +218,7 @@ export function RecapStudio({
           shown = r
           setStatus({
             kind: 'rendering',
-            label: phase === 'audio' ? 'Preparando a trilha…' : phase === 'video' ? 'Gerando o vídeo…' : 'Finalizando…',
+            label: phase === 'audio' ? t('Preparando a trilha…') : phase === 'video' ? t('Gerando o vídeo…') : t('Finalizando…'),
             progress: r
           })
         }
@@ -233,8 +234,8 @@ export function RecapStudio({
           kind: 'error',
           message:
             e instanceof Error && e.message === 'no-encoder'
-              ? 'Este computador não consegue gerar vídeo.'
-              : 'Não foi possível gerar o vídeo.'
+              ? t('Este computador não consegue gerar vídeo.')
+              : t('Não foi possível gerar o vídeo.')
         })
       }
     } finally {
@@ -264,12 +265,12 @@ export function RecapStudio({
           {(!data || !assets || empty || loadError) && (
             <div className="absolute inset-0 grid place-items-center rounded-2xl bg-black/70 p-8 text-center text-white">
               {loadError ? (
-                <p className="text-sm">Não consegui carregar sua retrospectiva.</p>
+                <p className="text-sm">{t('Não consegui carregar sua retrospectiva.')}</p>
               ) : empty ? (
                 <div>
                   <p className="mb-1 text-3xl">🎧</p>
-                  <p className="text-sm">Ainda não há músicas ouvidas neste período.</p>
-                  <p className="mt-1 text-xs text-white/60">Dê alguns plays e volte aqui!</p>
+                  <p className="text-sm">{t('Ainda não há músicas ouvidas neste período.')}</p>
+                  <p className="mt-1 text-xs text-white/60">{t('Dê alguns plays e volte aqui!')}</p>
                 </div>
               ) : (
                 <Spinner size={22} />
@@ -292,9 +293,9 @@ export function RecapStudio({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold">
-              <Clapperboard size={18} /> Retrospectiva
+              <Clapperboard size={18} /> {t('Retrospectiva')}
             </h2>
-            <p className="text-xs text-white/60">Seu ano em música, pronto para os stories.</p>
+            <p className="text-xs text-white/60">{t('Seu ano em música, pronto para os stories.')}</p>
           </div>
           <button
             onClick={() => {
@@ -302,14 +303,14 @@ export function RecapStudio({
               onClose()
             }}
             className="rounded-full p-1.5 text-white/70 hover:bg-white/10 hover:text-white"
-            aria-label="Fechar"
+            aria-label={t('Fechar')}
           >
             <X size={18} />
           </button>
         </div>
 
         <div className="-mr-2 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
-          <Section title="Período">
+          <Section title={t('Período')}>
             {periods.map((p) => (
               <Chip key={String(p)} on={period === p} disabled={busy} onClick={() => setPeriod(p)}>
                 {periodLabel(p)}
@@ -318,10 +319,10 @@ export function RecapStudio({
           </Section>
 
           {scenes.length > 0 && !empty && (
-            <Section title="Cenas">
+            <Section title={t('Cenas')}>
               {scenes.map((s, i) => (
                 <Chip key={s.id} on={sceneIdx === i} disabled={busy} onClick={() => jumpTo(s)}>
-                  {s.label}
+                  {t(s.label)}
                 </Chip>
               ))}
             </Section>
@@ -329,20 +330,20 @@ export function RecapStudio({
 
           {data && data.topSongs[0] && (
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/50">Trilha sonora</p>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/50">{t('Trilha sonora')}</p>
               <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10">
                 <Music2 size={16} className="shrink-0 text-white/60" />
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{data.topSongs[0].title}</p>
                   <p className="truncate text-xs text-white/60">
-                    {data.topSongs[0].artist ?? 'Artista desconhecido'} · a parte mais forte
+                    {data.topSongs[0].artist ?? 'Artista desconhecido'} {t('· a parte mais forte')}
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          <Section title="Qualidade">
+          <Section title={t('Qualidade')}>
             {(['720', '1080'] as Quality[]).map((q) => (
               <Chip key={q} on={quality === q} disabled={busy} onClick={() => setQuality(q)}>
                 {q}p
@@ -350,8 +351,7 @@ export function RecapStudio({
             ))}
           </Section>
           <p className="text-xs text-white/50">
-            Vídeo 9:16 de {Math.round(length)}s. A prévia usa uma batida de exemplo; o vídeo final pulsa no ritmo da
-            sua música.
+            {t('Vídeo 9:16 de {n}s. A prévia usa uma batida de exemplo; o vídeo final pulsa no ritmo da sua música.', { n: Math.round(length) })}
           </p>
         </div>
 
@@ -361,7 +361,7 @@ export function RecapStudio({
               onClick={() => api.edit.reveal(status.path)}
               className="flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/15"
             >
-              <FolderOpen size={14} /> Vídeo salvo! Mostrar na pasta
+              <FolderOpen size={14} /> {t('Vídeo salvo! Mostrar na pasta')}
             </button>
           )}
           {status.kind === 'error' && <p className="text-center text-xs text-red-300">{status.message}</p>}
@@ -372,7 +372,7 @@ export function RecapStudio({
               }}
               className="rounded-full bg-white/10 px-4 py-2.5 font-semibold hover:bg-white/15"
             >
-              Cancelar
+              {t('Cancelar')}
             </button>
           ) : (
             <button
@@ -381,7 +381,7 @@ export function RecapStudio({
               className="flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2.5 font-semibold text-white disabled:opacity-40"
             >
               {status.kind === 'saving' ? <Spinner size={14} /> : <Download size={16} />}
-              {status.kind === 'saving' ? 'Salvando…' : 'Exportar vídeo'}
+              {status.kind === 'saving' ? t('Salvando…') : t('Exportar vídeo')}
             </button>
           )}
         </div>

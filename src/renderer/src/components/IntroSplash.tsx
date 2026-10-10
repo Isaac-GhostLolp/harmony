@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { readAccent } from '@/utils/color'
-import { useProfileStore } from '@/store/profileStore'
+import { useProfileStore, DEFAULT_NAME } from '@/store/profileStore'
+import { t } from '@/i18n'
 
 /**
  * Opening animation, drawn on one canvas over the app while it loads:
@@ -92,9 +93,9 @@ function accentHue(): number {
 
 function greeting(): string {
   const hour = new Date().getHours()
-  const part = hour < 5 ? 'Boa madrugada' : hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const part = hour < 5 ? t('Boa madrugada') : hour < 12 ? t('Bom dia') : hour < 18 ? t('Boa tarde') : t('Boa noite')
   const name = useProfileStore.getState().name?.trim()
-  return name && name !== 'Você' ? `${part}, ${name}!` : `${part}!`
+  return name && name !== DEFAULT_NAME ? t('{part}, {name}!', { part, name }) : `${part}!`
 }
 
 /** A soft round glow, drawn once and scaled with drawImage (cheaper than shadowBlur). */
@@ -118,6 +119,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }): JSX.Element {
   doneRef.current = onDone
   const skipRef = useRef(false)
 
+  const skipHint = t('clique para pular')
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -515,7 +517,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }): JSX.Element {
         ctx.font = "500 12px 'Segoe UI', system-ui, sans-serif"
         ctx.textAlign = 'center'
         ctx.textBaseline = 'alphabetic'
-        ctx.fillText('clique para pular', cx, H - 22)
+        ctx.fillText(skipHint, cx, H - 22)
         ctx.globalAlpha = 1
       }
 

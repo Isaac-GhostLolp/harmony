@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Pencil } from 'lucide-react'
 import type { Level, Personality } from './worldData'
+import { t, locale } from '@/i18n'
 
 /**
  * The page's cover: an aurora in the listener's own colour with music notes
@@ -32,7 +33,7 @@ function shrinkPhoto(file: File): Promise<string> {
       c.width = out
       c.height = out
       const ctx = c.getContext('2d')
-      if (!ctx) return reject(new Error('no canvas'))
+      if (!ctx) return reject(new Error(t('no canvas')))
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out)
       resolve(c.toDataURL('image/jpeg', 0.88))
@@ -199,7 +200,7 @@ export function Hero({
     e.target.value = ''
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setPhotoError('Esse arquivo não é uma imagem.')
+      setPhotoError(t('Esse arquivo não é uma imagem.'))
       return
     }
     setPhotoError(null)
@@ -208,7 +209,7 @@ export function Hero({
         onPhoto(dataUrl)
         setPicker(false)
       })
-      .catch(() => setPhotoError('Não consegui abrir essa imagem. Tente outra.'))
+      .catch(() => setPhotoError(t('Não consegui abrir essa imagem. Tente outra.')))
   }
 
   return (
@@ -229,7 +230,7 @@ export function Hero({
             aria-expanded={picker}
             className="group relative grid h-28 w-28 place-items-center rounded-full p-[3px] transition-transform hover:scale-[1.04]"
             style={{ background: `conic-gradient(from 200deg, hsl(${hue} 95% 65%), hsl(${hue + 60} 95% 65%), hsl(${hue - 40} 95% 65%), hsl(${hue} 95% 65%))` }}
-            title="Trocar avatar"
+            title={t('Trocar avatar')}
           >
             <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-black/40">
               {photo ? (
@@ -245,10 +246,10 @@ export function Hero({
           {picker && (
             <div
               role="dialog"
-              aria-label="Escolha seu avatar"
+              aria-label={t('Escolha seu avatar')}
               className="glass absolute left-0 top-[118px] z-50 w-64 rounded-2xl p-3 text-xs shadow-2xl"
             >
-              <p className="mb-2 font-semibold">Escolha seu avatar</p>
+              <p className="mb-2 font-semibold">{t('Escolha seu avatar')}</p>
               <div className="grid grid-cols-6 gap-1">
                 {AVATARS.map((a) => (
                   <button
@@ -270,7 +271,7 @@ export function Hero({
                 onClick={() => fileRef.current?.click()}
                 className="mt-2 w-full rounded-full bg-[var(--accent)] px-3 py-1.5 font-semibold text-white"
               >
-                {photo ? 'Trocar foto' : 'Usar uma foto minha'}
+                {photo ? t('Trocar foto') : t('Usar uma foto minha')}
               </button>
               {photo && (
                 <button
@@ -280,7 +281,7 @@ export function Hero({
                   }}
                   className="mt-1.5 w-full rounded-full bg-white/10 px-3 py-1.5 font-semibold hover:bg-white/15"
                 >
-                  Remover foto
+                  {t('Remover foto')}
                 </button>
               )}
               {photoError && <p className="mt-2 text-center text-red-300">{photoError}</p>}
@@ -299,7 +300,7 @@ export function Hero({
             value={bio}
             onChange={(e) => onBio(e.target.value)}
             maxLength={90}
-            placeholder="Escreva uma frase que é a sua cara…"
+            placeholder={t('Escreva uma frase que é a sua cara…')}
             className="mt-1 w-full max-w-md bg-transparent text-sm text-white/85 placeholder:text-white/40 focus:outline-none"
           />
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white ring-1 ring-white/15">
@@ -312,8 +313,8 @@ export function Hero({
         {/* level */}
         <div className="w-full rounded-2xl bg-black/30 p-4 text-white ring-1 ring-white/10 sm:w-60">
           <div className="flex items-baseline justify-between">
-            <span className="text-[11px] uppercase tracking-widest text-white/60">Nível</span>
-            <span className="text-[11px] text-white/60">{level.xp.toLocaleString('pt-BR')} XP</span>
+            <span className="text-[11px] uppercase tracking-widest text-white/60">{t('Nível')}</span>
+            <span className="text-[11px] text-white/60">{level.xp.toLocaleString(locale())} {t('XP')}</span>
           </div>
           <p className="text-4xl font-black leading-tight">{level.level}</p>
           <p className="text-sm font-semibold" style={{ color: `hsl(${hue} 95% 78%)` }}>
@@ -329,15 +330,15 @@ export function Hero({
             />
           </div>
           <p className="mt-1.5 text-[11px] text-white/60">
-            Faltam {level.toNext.toLocaleString('pt-BR')} XP para o nível {level.level + 1}
+            {t('Faltam {xp} XP para o nível {level}', { xp: level.toNext.toLocaleString(locale()), level: level.level + 1 })}
           </p>
           <div className="mt-3 flex items-center gap-1.5">
-            <span className="mr-1 text-[10px] uppercase tracking-wider text-white/50">Cor</span>
+            <span className="mr-1 text-[10px] uppercase tracking-wider text-white/50">{t('Cor')}</span>
             {WORLD_HUES.map((h) => (
               <button
                 key={h}
                 onClick={() => onHue(h)}
-                aria-label="Cor do seu mundo"
+                aria-label={t('Cor do seu mundo')}
                 className={`h-4 w-4 rounded-full transition-transform hover:scale-125 ${
                   h === hue ? 'ring-2 ring-white ring-offset-1 ring-offset-black/40' : ''
                 }`}

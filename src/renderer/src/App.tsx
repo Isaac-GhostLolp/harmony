@@ -53,6 +53,8 @@ function AudioBridge(): null {
   return null
 }
 
+let introShown = false
+
 export function App(): JSX.Element {
   const backgroundMode = useUiStore((s) => s.background)
   const coverPath = usePlayerStore((s) => s.queue[s.currentIndex]?.coverPath ?? null)
@@ -135,7 +137,12 @@ export function App(): JSX.Element {
   }, [])
 
   // opening animation, over the app while it loads (Settings can replay it)
-  const [intro, setIntro] = useState(() => introEnabled() && !isUltraFast())
+  // once per session: redrawing the app (a language switch) doesn't replay it
+  const [intro, setIntro] = useState(() => {
+    const show = introEnabled() && !isUltraFast() && !introShown
+    introShown = true
+    return show
+  })
   useEffect(() => {
     const replay = (): void => setIntro(true)
     window.addEventListener(INTRO_REPLAY_EVENT, replay)

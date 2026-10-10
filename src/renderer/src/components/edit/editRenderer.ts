@@ -23,6 +23,7 @@
  */
 import type { DirectorFrame } from '@/services/stageDirector'
 import type { LrcLine } from '@/utils/lrc'
+import { t } from '@/i18n'
 
 export const EDIT_W = 1080
 
@@ -989,7 +990,7 @@ function drawWatermark(ctx: CanvasRenderingContext2D, y: number): void {
   ctx.textBaseline = 'middle'
   ctx.globalAlpha = 0.5
   ctx.fillStyle = '#ffffff'
-  ctx.fillText('♪  feito com Harmony', W / 2, y)
+  ctx.fillText(t('♪  feito com Harmony'), W / 2, y)
   ctx.globalAlpha = 1
 }
 

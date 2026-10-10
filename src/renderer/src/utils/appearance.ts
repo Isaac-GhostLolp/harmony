@@ -15,6 +15,7 @@
  * first frame (no flash of the default theme on boot).
  */
 import type { ThemeName } from '@/types'
+import { tk } from '@/i18n'
 
 export type FontId = 'system' | 'nunito' | 'outfit' | 'lora' | 'mono' | 'pixel'
 export type ShadowStyle = 'soft' | 'glow' | 'hard' | 'none'
@@ -47,12 +48,12 @@ export interface Look {
 }
 
 export const FONTS: { id: FontId; label: string; family: string }[] = [
-  { id: 'system', label: 'Padrão', family: "'Segoe UI', 'Inter', system-ui, sans-serif" },
-  { id: 'nunito', label: 'Arredondada', family: "'Nunito Variable', 'Segoe UI', system-ui, sans-serif" },
-  { id: 'outfit', label: 'Moderna', family: "'Outfit Variable', 'Segoe UI', system-ui, sans-serif" },
-  { id: 'lora', label: 'Clássica', family: "'Lora Variable', Georgia, serif" },
-  { id: 'mono', label: 'Código', family: "'JetBrains Mono Variable', ui-monospace, monospace" },
-  { id: 'pixel', label: 'Pixel', family: "'Pixelify Sans Variable', 'Courier New', monospace" }
+  { id: 'system', label: tk('Padrão'), family: "'Segoe UI', 'Inter', system-ui, sans-serif" },
+  { id: 'nunito', label: tk('Arredondada'), family: "'Nunito Variable', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'outfit', label: tk('Moderna'), family: "'Outfit Variable', 'Segoe UI', system-ui, sans-serif" },
+  { id: 'lora', label: tk('Clássica'), family: "'Lora Variable', Georgia, serif" },
+  { id: 'mono', label: tk('Código'), family: "'JetBrains Mono Variable', ui-monospace, monospace" },
+  { id: 'pixel', label: tk('Pixel'), family: "'Pixelify Sans Variable', 'Courier New', monospace" }
 ]
 
 // ---------------------------------------------------------------------------
@@ -86,28 +87,28 @@ const look = (l: Partial<Look> & Pick<Look, 'flavor' | 'bg' | 'text' | 'accent'>
 
 export const PRESETS: Preset[] = [
   // the classics, exactly as they always looked
-  { id: 'dark', name: 'Dark', group: 'classic', look: look({ flavor: 'dark', bg: '#0b0b10', text: '#f4f4f6', accent: '#7c6cf4' }) },
-  { id: 'darkpro', name: 'Dark Pro', group: 'classic', look: look({ flavor: 'darkpro', bg: '#050506', text: '#fafafa', accent: '#e4e4e7', tintAlpha: 3, borderAlpha: 6, shadowStrength: 100 }) },
-  { id: 'light', name: 'Light', group: 'classic', look: look({ flavor: 'light', bg: '#f3f2f7', text: '#17171c', accent: '#5b48e0', tint: '#000000', border: '#000000', borderAlpha: 7 }) },
-  { id: 'amoled', name: 'AMOLED', group: 'classic', look: look({ flavor: 'amoled', bg: '#000000', text: '#ffffff', accent: '#3ddc97', tintAlpha: 5, borderAlpha: 10, shadowStrength: 100 }) },
-  { id: 'glass', name: 'Glass', group: 'classic', look: look({ flavor: 'glass', bg: '#0e1017', bg2: '#151a2c', text: '#f4f6ff', accent: '#8ab4ff', tintAlpha: 7, blur: 22, borderAlpha: 16, shadowStrength: 65 }) },
-  { id: 'synthwave', name: 'Synthwave', group: 'classic', look: look({ flavor: 'synthwave', bg: '#1a0b2e', bg2: '#2a1240', text: '#fdf0ff', accent: '#ff2d95', tint: '#ff2d95', tintAlpha: 6, border: '#5ee7ff', borderAlpha: 22, shadow: 'glow', shadowStrength: 60 }) },
-  { id: 'nature', name: 'Nature', group: 'classic', look: look({ flavor: 'nature', bg: '#10201a', text: '#eef7ee', accent: '#6fcf7f', tint: '#7ac878', tintAlpha: 5, border: '#6fcf7f', borderAlpha: 16, radius: 125, shadowStrength: 70 }) },
-  { id: 'cyberpunk', name: 'Cyberpunk', group: 'classic', look: look({ flavor: 'cyberpunk', bg: '#0d0221', text: '#eafffd', accent: '#ff2a6d', tint: '#ff2aff', tintAlpha: 6, border: '#00fff9', borderAlpha: 20, shadow: 'glow', shadowStrength: 45 }) },
-  { id: 'ghostguard', name: 'GhostGuard', group: 'classic', look: look({ flavor: 'ghostguard', bg: '#0a0e14', text: '#e6fffb', accent: '#2dd4bf', tint: '#5eead4', tintAlpha: 5, border: '#2dd4bf', borderAlpha: 16, shadowStrength: 85 }) },
-  { id: 'pixel', name: 'Pixel Art', group: 'classic', look: look({ flavor: 'pixel', bg: '#1a1c2c', text: '#f4f4f4', accent: '#ffcd75', tintAlpha: 6, borderAlpha: 14, radius: 0, shadow: 'hard', shadowStrength: 50, font: 'pixel' }) },
+  { id: 'dark', name: tk('Dark'), group: 'classic', look: look({ flavor: 'dark', bg: '#0b0b10', text: '#f4f4f6', accent: '#7c6cf4' }) },
+  { id: 'darkpro', name: tk('Dark Pro'), group: 'classic', look: look({ flavor: 'darkpro', bg: '#050506', text: '#fafafa', accent: '#e4e4e7', tintAlpha: 3, borderAlpha: 6, shadowStrength: 100 }) },
+  { id: 'light', name: tk('Light'), group: 'classic', look: look({ flavor: 'light', bg: '#f3f2f7', text: '#17171c', accent: '#5b48e0', tint: '#000000', border: '#000000', borderAlpha: 7 }) },
+  { id: 'amoled', name: tk('AMOLED'), group: 'classic', look: look({ flavor: 'amoled', bg: '#000000', text: '#ffffff', accent: '#3ddc97', tintAlpha: 5, borderAlpha: 10, shadowStrength: 100 }) },
+  { id: 'glass', name: tk('Glass'), group: 'classic', look: look({ flavor: 'glass', bg: '#0e1017', bg2: '#151a2c', text: '#f4f6ff', accent: '#8ab4ff', tintAlpha: 7, blur: 22, borderAlpha: 16, shadowStrength: 65 }) },
+  { id: 'synthwave', name: tk('Synthwave'), group: 'classic', look: look({ flavor: 'synthwave', bg: '#1a0b2e', bg2: '#2a1240', text: '#fdf0ff', accent: '#ff2d95', tint: '#ff2d95', tintAlpha: 6, border: '#5ee7ff', borderAlpha: 22, shadow: 'glow', shadowStrength: 60 }) },
+  { id: 'nature', name: tk('Nature'), group: 'classic', look: look({ flavor: 'nature', bg: '#10201a', text: '#eef7ee', accent: '#6fcf7f', tint: '#7ac878', tintAlpha: 5, border: '#6fcf7f', borderAlpha: 16, radius: 125, shadowStrength: 70 }) },
+  { id: 'cyberpunk', name: tk('Cyberpunk'), group: 'classic', look: look({ flavor: 'cyberpunk', bg: '#0d0221', text: '#eafffd', accent: '#ff2a6d', tint: '#ff2aff', tintAlpha: 6, border: '#00fff9', borderAlpha: 20, shadow: 'glow', shadowStrength: 45 }) },
+  { id: 'ghostguard', name: tk('GhostGuard'), group: 'classic', look: look({ flavor: 'ghostguard', bg: '#0a0e14', text: '#e6fffb', accent: '#2dd4bf', tint: '#5eead4', tintAlpha: 5, border: '#2dd4bf', borderAlpha: 16, shadowStrength: 85 }) },
+  { id: 'pixel', name: tk('Pixel Art'), group: 'classic', look: look({ flavor: 'pixel', bg: '#1a1c2c', text: '#f4f4f4', accent: '#ffcd75', tintAlpha: 6, borderAlpha: 14, radius: 0, shadow: 'hard', shadowStrength: 50, font: 'pixel' }) },
 
   // new looks for 0.18
-  { id: 'aurora', name: 'Aurora', group: 'new', look: look({ flavor: 'dark', bg: '#071419', bg2: '#1a0f2e', text: '#ecfbff', accent: '#5eead4', tint: '#7dd3fc', tintAlpha: 5, opacity: 10, border: '#a5f3fc', borderAlpha: 12, radius: 130, glow: 100, font: 'outfit' }) },
-  { id: 'sakura', name: 'Sakura', group: 'new', look: look({ flavor: 'light', bg: '#fff4f7', bg2: '#fde2ea', text: '#3a1f2b', accent: '#e8578a', tint: '#ffffff', tintAlpha: 55, opacity: 20, blur: 20, border: '#e8578a', borderAlpha: 14, radius: 150, shadowStrength: 35, font: 'nunito' }) },
-  { id: 'ocean', name: 'Oceano', group: 'new', look: look({ flavor: 'dark', bg: '#03121f', bg2: '#062a3d', text: '#e6f6ff', accent: '#38bdf8', tint: '#38bdf8', tintAlpha: 5, opacity: 25, border: '#7dd3fc', borderAlpha: 12, radius: 120, shadowStrength: 70 }) },
-  { id: 'cafe', name: 'Café', group: 'new', look: look({ flavor: 'dark', bg: '#1b1410', bg2: '#2a1d15', text: '#f5ebe0', accent: '#d4a373', tint: '#e6ccb2', tintAlpha: 5, opacity: 30, border: '#e6ccb2', borderAlpha: 10, radius: 110, shadowStrength: 60, glow: 60, font: 'lora' }) },
-  { id: 'snow', name: 'Neve', group: 'new', look: look({ flavor: 'light', bg: '#f7f9fc', text: '#14213d', accent: '#3a86ff', tint: '#ffffff', tintAlpha: 70, opacity: 40, border: '#14213d', borderAlpha: 8, radius: 160, shadowStrength: 30, glow: 50, font: 'nunito' }) },
-  { id: 'wine', name: 'Vinho', group: 'new', look: look({ flavor: 'dark', bg: '#16070c', bg2: '#2b0d18', text: '#fbeef2', accent: '#e11d48', tint: '#fb7185', tintAlpha: 5, opacity: 20, border: '#fb7185', borderAlpha: 12, radius: 90, shadowStrength: 80, font: 'lora' }) },
-  { id: 'mint', name: 'Menta', group: 'new', look: look({ flavor: 'light', bg: '#effaf5', bg2: '#dcf5ea', text: '#10302a', accent: '#10b981', tint: '#ffffff', tintAlpha: 60, opacity: 25, border: '#10b981', borderAlpha: 14, radius: 140, shadowStrength: 30, font: 'outfit' }) },
-  { id: 'sunset', name: 'Pôr do sol', group: 'new', look: look({ flavor: 'dark', bg: '#1f0b24', bg2: '#3d1414', text: '#fff1e6', accent: '#ff8a3d', tint: '#ffb26b', tintAlpha: 6, opacity: 10, blur: 24, border: '#ffb26b', borderAlpha: 16, radius: 130, shadow: 'glow', shadowStrength: 40, font: 'outfit' }) },
-  { id: 'terminal', name: 'Terminal', group: 'new', look: look({ flavor: 'darkpro', bg: '#020a04', text: '#c8ffd4', accent: '#22ff66', tint: '#22ff66', tintAlpha: 4, opacity: 50, border: '#22ff66', borderAlpha: 22, radius: 25, shadow: 'glow', shadowStrength: 30, glow: 40, font: 'mono' }) },
-  { id: 'paper', name: 'Papel', group: 'new', look: look({ flavor: 'light', bg: '#f4efe6', text: '#2b2620', accent: '#b45309', tint: '#fffdf8', tintAlpha: 75, opacity: 60, border: '#2b2620', borderAlpha: 12, radius: 60, shadow: 'hard', shadowStrength: 25, glow: 0, font: 'lora' }) }
+  { id: 'aurora', name: tk('Aurora'), group: 'new', look: look({ flavor: 'dark', bg: '#071419', bg2: '#1a0f2e', text: '#ecfbff', accent: '#5eead4', tint: '#7dd3fc', tintAlpha: 5, opacity: 10, border: '#a5f3fc', borderAlpha: 12, radius: 130, glow: 100, font: 'outfit' }) },
+  { id: 'sakura', name: tk('Sakura'), group: 'new', look: look({ flavor: 'light', bg: '#fff4f7', bg2: '#fde2ea', text: '#3a1f2b', accent: '#e8578a', tint: '#ffffff', tintAlpha: 55, opacity: 20, blur: 20, border: '#e8578a', borderAlpha: 14, radius: 150, shadowStrength: 35, font: 'nunito' }) },
+  { id: 'ocean', name: tk('Oceano'), group: 'new', look: look({ flavor: 'dark', bg: '#03121f', bg2: '#062a3d', text: '#e6f6ff', accent: '#38bdf8', tint: '#38bdf8', tintAlpha: 5, opacity: 25, border: '#7dd3fc', borderAlpha: 12, radius: 120, shadowStrength: 70 }) },
+  { id: 'cafe', name: tk('Café'), group: 'new', look: look({ flavor: 'dark', bg: '#1b1410', bg2: '#2a1d15', text: '#f5ebe0', accent: '#d4a373', tint: '#e6ccb2', tintAlpha: 5, opacity: 30, border: '#e6ccb2', borderAlpha: 10, radius: 110, shadowStrength: 60, glow: 60, font: 'lora' }) },
+  { id: 'snow', name: tk('Neve'), group: 'new', look: look({ flavor: 'light', bg: '#f7f9fc', text: '#14213d', accent: '#3a86ff', tint: '#ffffff', tintAlpha: 70, opacity: 40, border: '#14213d', borderAlpha: 8, radius: 160, shadowStrength: 30, glow: 50, font: 'nunito' }) },
+  { id: 'wine', name: tk('Vinho'), group: 'new', look: look({ flavor: 'dark', bg: '#16070c', bg2: '#2b0d18', text: '#fbeef2', accent: '#e11d48', tint: '#fb7185', tintAlpha: 5, opacity: 20, border: '#fb7185', borderAlpha: 12, radius: 90, shadowStrength: 80, font: 'lora' }) },
+  { id: 'mint', name: tk('Menta'), group: 'new', look: look({ flavor: 'light', bg: '#effaf5', bg2: '#dcf5ea', text: '#10302a', accent: '#10b981', tint: '#ffffff', tintAlpha: 60, opacity: 25, border: '#10b981', borderAlpha: 14, radius: 140, shadowStrength: 30, font: 'outfit' }) },
+  { id: 'sunset', name: tk('Pôr do sol'), group: 'new', look: look({ flavor: 'dark', bg: '#1f0b24', bg2: '#3d1414', text: '#fff1e6', accent: '#ff8a3d', tint: '#ffb26b', tintAlpha: 6, opacity: 10, blur: 24, border: '#ffb26b', borderAlpha: 16, radius: 130, shadow: 'glow', shadowStrength: 40, font: 'outfit' }) },
+  { id: 'terminal', name: tk('Terminal'), group: 'new', look: look({ flavor: 'darkpro', bg: '#020a04', text: '#c8ffd4', accent: '#22ff66', tint: '#22ff66', tintAlpha: 4, opacity: 50, border: '#22ff66', borderAlpha: 22, radius: 25, shadow: 'glow', shadowStrength: 30, glow: 40, font: 'mono' }) },
+  { id: 'paper', name: tk('Papel'), group: 'new', look: look({ flavor: 'light', bg: '#f4efe6', text: '#2b2620', accent: '#b45309', tint: '#fffdf8', tintAlpha: 75, opacity: 60, border: '#2b2620', borderAlpha: 12, radius: 60, shadow: 'hard', shadowStrength: 25, glow: 0, font: 'lora' }) }
 ]
 
 export const DEFAULT_PRESET = 'dark'

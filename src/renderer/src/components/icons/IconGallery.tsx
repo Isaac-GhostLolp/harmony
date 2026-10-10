@@ -4,6 +4,7 @@ import { useIconStore, MAX_PACKS, type Stroke } from '@/store/iconStore'
 import { AppIcon } from './AppIcon'
 import { IconPackEditor } from './IconPackEditor'
 import { PACK_NAMES, type IconSlot } from './slots'
+import { t, tk } from '@/i18n'
 
 /**
  * Settings → Ícones: the line weight of every icon in the app, and the
@@ -13,9 +14,9 @@ import { PACK_NAMES, type IconSlot } from './slots'
 
 
 const STROKES: { id: Stroke; label: string }[] = [
-  { id: 'thin', label: 'Fino' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'bold', label: 'Grosso' }
+  { id: 'thin', label: tk('Fino') },
+  { id: 'normal', label: tk('Normal') },
+  { id: 'bold', label: tk('Grosso') }
 ]
 
 const SIDE: IconSlot[] = ['library', 'search', 'playlists', 'favorites', 'settings']
@@ -64,22 +65,22 @@ export function IconGallery(): JSX.Element {
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">Ícones</h2>
-          <p className="mt-0.5 text-xs text-muted">O estilo dos ícones da barra lateral e do player.</p>
+          <h2 className="text-sm font-semibold">{t('Ícones')}</h2>
+          <p className="mt-0.5 text-xs text-muted">{t('O estilo dos ícones da barra lateral e do player.')}</p>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-muted">
-          Traço
+          {t('Traço')}
           <div className="flex rounded-full bg-[var(--bg-raised)] p-0.5">
             {STROKES.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setStroke(s.id)}
-                title={s.id === 'normal' ? 'O traço padrão' : `Traço ${s.label.toLowerCase()} em todos os ícones do app`}
+                title={s.id === 'normal' ? t('O traço padrão') : s.id === 'thin' ? t('Traço fino em todos os ícones do app') : t('Traço grosso em todos os ícones do app')}
                 className={`rounded-full px-3 py-1 transition-colors ${
                   stroke === s.id ? 'bg-[var(--accent)] font-semibold text-[var(--on-accent,#fff)]' : 'hover:text-ink'
                 }`}
               >
-                {s.label}
+                {t(s.label)}
               </button>
             ))}
           </div>
@@ -93,15 +94,15 @@ export function IconGallery(): JSX.Element {
             m.name,
             <button
               onClick={() => setEditing(m.id)}
-              title="Editar pacote"
-              aria-label={`Editar ${m.name}`}
+              title={t('Editar pacote')}
+              aria-label={t('Editar {name}', { name: m.name })}
               className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full bg-[var(--bg-raised)] text-muted opacity-0 shadow transition-opacity hover:text-ink group-hover:opacity-100"
             >
               <Pencil size={11} />
             </button>
           )
         )}
-        {Object.entries(PACK_NAMES).map(([id, name]) => card(id, name))}
+        {Object.entries(PACK_NAMES).map(([id, name]) => card(id, t(name)))}
         {mine.length < MAX_PACKS && (
           <button
             onClick={() => {
@@ -112,7 +113,7 @@ export function IconGallery(): JSX.Element {
             className="flex min-h-[96px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--glass-border)] text-[11px] text-muted transition-colors hover:border-[var(--accent)] hover:text-ink"
           >
             <Plus size={16} />
-            Criar com suas imagens
+            {t('Criar com suas imagens')}
           </button>
         )}
       </div>

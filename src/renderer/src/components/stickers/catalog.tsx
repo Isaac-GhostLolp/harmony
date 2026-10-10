@@ -1,3 +1,4 @@
+import { tk } from '@/i18n'
 /**
  * The sticker sheet. Every sticker is a small hand-drawn SVG on a 100×100
  * board (kept inside ~10..90 so the die-cut border fits); the white border
@@ -23,7 +24,7 @@ const INK = '#1d1b26'
 export const STICKERS: StickerDef[] = [
   {
     id: 'heart',
-    name: 'Coração',
+    name: tk('Coração'),
     anim: 'beat',
     art: (
       <>
@@ -34,7 +35,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'notes',
-    name: 'Notas',
+    name: tk('Notas'),
     anim: 'wobble',
     art: (
       <>
@@ -48,7 +49,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'vinyl',
-    name: 'Vinil',
+    name: tk('Vinil'),
     anim: 'spin',
     art: (
       <>
@@ -65,7 +66,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cd',
-    name: 'CD',
+    name: tk('CD'),
     anim: 'spin',
     art: (
       <>
@@ -79,7 +80,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cassette',
-    name: 'Fita',
+    name: tk('Fita'),
     anim: 'none',
     art: (
       <>
@@ -97,7 +98,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'headphones',
-    name: 'Fones',
+    name: tk('Fones'),
     anim: 'beat',
     art: (
       <>
@@ -110,7 +111,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'speaker',
-    name: 'Caixa de som',
+    name: tk('Caixa de som'),
     anim: 'beat',
     art: (
       <>
@@ -125,7 +126,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'eq',
-    name: 'Equalizador',
+    name: tk('Equalizador'),
     anim: 'eq',
     art: (
       <>
@@ -139,7 +140,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'mic',
-    name: 'Microfone',
+    name: tk('Microfone'),
     anim: 'wobble',
     art: (
       <>
@@ -153,7 +154,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'star',
-    name: 'Estrela',
+    name: tk('Estrela'),
     anim: 'twinkle',
     art: (
       <>
@@ -164,7 +165,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'holo',
-    name: 'Estrela holográfica',
+    name: tk('Estrela holográfica'),
     anim: 'holo',
     art: (
       <>
@@ -175,7 +176,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'sparkle',
-    name: 'Brilhos',
+    name: tk('Brilhos'),
     anim: 'twinkle',
     art: (
       <>
@@ -187,13 +188,13 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'bolt',
-    name: 'Raio',
+    name: tk('Raio'),
     anim: 'flicker',
     art: <path d="M58 8L22 56h22l-8 36 40-52H52z" fill="#ffd60a" stroke="#f4a100" strokeWidth="3" strokeLinejoin="round" />
   },
   {
     id: 'flame',
-    name: 'Fogo',
+    name: tk('Fogo'),
     anim: 'flicker',
     art: (
       <>
@@ -204,7 +205,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'sun',
-    name: 'Sol',
+    name: tk('Sol'),
     anim: 'spin',
     art: (
       <>
@@ -222,7 +223,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'moon',
-    name: 'Lua',
+    name: tk('Lua'),
     anim: 'float',
     art: (
       <>
@@ -236,7 +237,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cloud',
-    name: 'Nuvem',
+    name: tk('Nuvem'),
     anim: 'float',
     art: (
       <>
@@ -251,7 +252,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'rainbow',
-    name: 'Arco-íris',
+    name: tk('Arco-íris'),
     anim: 'none',
     art: (
       <>
@@ -266,7 +267,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'planet',
-    name: 'Planeta',
+    name: tk('Planeta'),
     anim: 'float',
     art: (
       <>
@@ -280,7 +281,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'alien',
-    name: 'Alien',
+    name: tk('Alien'),
     anim: 'wobble',
     art: (
       <>
@@ -298,7 +299,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'ghost',
-    name: 'Fantasminha',
+    name: tk('Fantasminha'),
     anim: 'float',
     art: (
       <>
@@ -313,7 +314,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cat',
-    name: 'Gatinho',
+    name: tk('Gatinho'),
     anim: 'none',
     art: (
       <>
@@ -331,7 +332,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'smiley',
-    name: 'Sorriso',
+    name: tk('Sorriso'),
     anim: 'beat',
     art: (
       <>
@@ -345,7 +346,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cherry',
-    name: 'Cerejas',
+    name: tk('Cerejas'),
     anim: 'none',
     art: (
       <>
@@ -360,7 +361,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'mushroom',
-    name: 'Cogumelo',
+    name: tk('Cogumelo'),
     anim: 'none',
     art: (
       <>
@@ -377,7 +378,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'cactus',
-    name: 'Cacto',
+    name: tk('Cacto'),
     anim: 'wobble',
     art: (
       <>
@@ -395,7 +396,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'crown',
-    name: 'Coroa',
+    name: tk('Coroa'),
     anim: 'twinkle',
     art: (
       <>
@@ -409,7 +410,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'pizza',
-    name: 'Pizza',
+    name: tk('Pizza'),
     anim: 'none',
     art: (
       <>
@@ -425,7 +426,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'play',
-    name: 'Play',
+    name: tk('Play'),
     anim: 'beat',
     art: (
       <>
@@ -436,7 +437,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'badge-lofi',
-    name: 'Lo-fi',
+    name: tk('Lo-fi'),
     anim: 'wobble',
     art: (
       <>
@@ -449,7 +450,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'badge-vibe',
-    name: 'Good vibes',
+    name: tk('Good vibes'),
     anim: 'none',
     art: (
       <>
@@ -467,7 +468,7 @@ export const STICKERS: StickerDef[] = [
   },
   {
     id: 'badge-harmony',
-    name: 'Harmony',
+    name: tk('Harmony'),
     anim: 'holo',
     art: (
       <>

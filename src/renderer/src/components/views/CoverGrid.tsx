@@ -3,6 +3,7 @@ import type { Song } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
 import { CoverArt } from '@/components/CoverArt'
 import { VirtualRows, useContainerWidth } from './VirtualRows'
+import { t } from '@/i18n'
 
 const MIN_W = 150
 const GAP = 16
@@ -48,7 +49,7 @@ export function CoverGrid({ songs }: { songs: Song[] }): JSX.Element {
                       <CoverArt src={song.coverPath} title={song.title} size="full" rounded="xl" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                       {active && isPlaying ? (
-                        <span className="playing-bars absolute bottom-2 right-2" aria-label="Tocando">
+                        <span className="playing-bars absolute bottom-2 right-2" aria-label={t('Tocando')}>
                           <i />
                           <i />
                           <i />

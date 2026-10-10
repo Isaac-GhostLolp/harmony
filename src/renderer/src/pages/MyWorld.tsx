@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import type { MusicProfile, Song } from '@/types'
 import { api } from '@/services/api'
-import { useProfileStore } from '@/store/profileStore'
+import { useProfileStore, displayName } from '@/store/profileStore'
 import { InputDialog } from '@/components/InputDialog'
 import { Spinner } from '@/components/Spinner'
 import { RecapStudio } from '@/components/recap/RecapStudio'
@@ -14,6 +14,7 @@ import { Achievements, Anthem, GenreDNA, Journey, ListeningClock, Numbers, Podiu
 import { Confetti, type ConfettiHandle } from './myworld/parts'
 import { Capsules } from './myworld/Capsules'
 import { badgesOf, greetingWord, levelOf, personalityOf, type WorldStats } from './myworld/worldData'
+import { t, locale } from '@/i18n'
 
 /**
  * Meu Mundo — the listener's own corner of Harmony. Everything here is about
@@ -66,7 +67,8 @@ export function MyWorld(): JSX.Element {
   const [reloadKey, setReloadKey] = useState(0)
   const [recapOpen, setRecapOpen] = useState(false)
   const [params, setParams] = useSearchParams()
-  const { name, photo, setName, setPhoto } = useProfileStore()
+  const { name: rawName, photo, setName, setPhoto } = useProfileStore()
+  const name = displayName(rawName)
   const confetti = useRef<ConfettiHandle | null>(null)
 
   useEffect(() => {
@@ -137,15 +139,19 @@ export function MyWorld(): JSX.Element {
       const perDay = Math.round((profile.hoursPlayed * 60) / profile.activeDays)
       if (perDay > 0)
         out.push(
-          `Nos dias em que você ouve música, são em média ${perDay >= 60 ? `${Math.floor(perDay / 60)}h${String(perDay % 60).padStart(2, '0')}` : `${perDay} minutos`} por dia.`
+          t('Nos dias em que você ouve música, são em média {time} por dia.', {
+            time: perDay >= 60 ? `${Math.floor(perDay / 60)}h${String(perDay % 60).padStart(2, '0')}` : t('{n} minutos', { n: perDay })
+          })
         )
     }
     if (world.bestDay && world.bestDay.plays >= 3) {
-      const d = new Date(world.bestDay.d + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
-      out.push(`Seu maior dia de música foi ${d}: ${world.bestDay.plays} plays, ${Math.round(world.bestDay.seconds / 60)} minutos.`)
+      const d = new Date(world.bestDay.d + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'long' })
+      out.push(t('Seu maior dia de música foi {day}: {plays} plays, {min} minutos.', { day: d, plays: world.bestDay.plays, min: Math.round(world.bestDay.seconds / 60) }))
     }
     if (world.songsPlayed > 0 && profile.totalSongs > 0) {
-      out.push(`Você já ouviu ${Math.round((world.songsPlayed / profile.totalSongs) * 100)}% da sua biblioteca. ${world.songsPlayed < profile.totalSongs ? 'Tem tesouro esperando por você!' : 'Tudinho!'}`)
+      out.push(
+        `${t('Você já ouviu {pct}% da sua biblioteca.', { pct: Math.round((world.songsPlayed / profile.totalSongs) * 100) })} ${world.songsPlayed < profile.totalSongs ? t('Tem tesouro esperando por você!') : t('Tudinho!')}`
+      )
     }
     return out
   }, [profile, world])
@@ -154,12 +160,12 @@ export function MyWorld(): JSX.Element {
     return (
       <div className="grid h-64 place-items-center text-center">
         <div>
-          <p className="mb-3 text-sm text-muted">Não consegui carregar o seu mundo agora.</p>
+          <p className="mb-3 text-sm text-muted">{t('Não consegui carregar o seu mundo agora.')}</p>
           <button
             onClick={() => setReloadKey((k) => k + 1)}
             className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm font-semibold text-white"
           >
-            Tentar de novo
+            {t('Tentar de novo')}
           </button>
         </div>
       </div>
@@ -201,7 +207,7 @@ export function MyWorld(): JSX.Element {
         <div className="fade-rise mb-6 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-yellow-400/25 to-transparent px-4 py-3 ring-1 ring-yellow-300/30">
           <span className="text-2xl">🎉</span>
           <p className="flex-1 text-sm">
-            <span className="font-semibold">Subiu de nível!</span> Desde a sua última visita você chegou ao nível{' '}
+            <span className="font-semibold">{t('Subiu de nível!')}</span> {t('Desde a sua última visita você chegou ao nível')}{' '}
             <span className="font-semibold">{levelUp}</span>: {level.title}.
           </p>
           <button onClick={() => setLevelUp(null)} className="text-xs text-muted hover:text-ink">
@@ -220,13 +226,13 @@ export function MyWorld(): JSX.Element {
         >
           <span className="text-3xl transition-transform group-hover:scale-110">🎬</span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Sua Retrospectiva {new Date().getFullYear()}</span>
+            <span className="block font-semibold">{t('Sua Retrospectiva')} {new Date().getFullYear()}</span>
             <span className="block text-xs text-white/70">
-              Seus minutos, artistas e músicas do ano num vídeo pronto para os stories.
+              {t('Seus minutos, artistas e músicas do ano num vídeo pronto para os stories.')}
             </span>
           </span>
           <span className="shrink-0 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black">
-            Criar meu vídeo
+            {t('Criar meu vídeo')}
           </span>
         </button>
       )}
@@ -267,9 +273,9 @@ export function MyWorld(): JSX.Element {
       )}
       <InputDialog
         open={editingName}
-        title="Como podemos te chamar?"
+        title={t('Como podemos te chamar?')}
         initialValue={name}
-        confirmLabel="Salvar"
+        confirmLabel={t('Salvar')}
         onConfirm={(v) => {
           setName(v)
           setEditingName(false)

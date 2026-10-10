@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
 import { findSticker, type StickerAnim } from '@/components/stickers/catalog'
 import { api } from '@/services/api'
+import { t, tk } from '@/i18n'
 
 /**
  * Stickers the user stuck around the app. Each one lives in a zone (the
@@ -27,11 +28,11 @@ export interface CustomSticker {
 
 export type CustomAnim = Extract<StickerAnim, 'none' | 'float' | 'wobble' | 'spin' | 'beat'>
 export const CUSTOM_ANIMS: { id: CustomAnim; label: string }[] = [
-  { id: 'none', label: 'Parado' },
-  { id: 'float', label: 'Flutuar' },
-  { id: 'wobble', label: 'Balançar' },
-  { id: 'spin', label: 'Girar' },
-  { id: 'beat', label: 'Pulsar na batida' }
+  { id: 'none', label: tk('Parado') },
+  { id: 'float', label: tk('Flutuar') },
+  { id: 'wobble', label: tk('Balançar') },
+  { id: 'spin', label: tk('Girar') },
+  { id: 'beat', label: tk('Pulsar na batida') }
 ]
 export const STICKER_FILE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'apng', 'bmp']
 export const MAX_FILE_MB = 10
@@ -146,21 +147,21 @@ export const useStickerStore = create<StickerState>((set, get) => {
       const added: CustomSticker[] = []
       for (const f of files) {
         if (get().library.length + added.length >= MAX_LIBRARY) {
-          error = `Você chegou ao limite de ${MAX_LIBRARY} adesivos próprios.`
+          error = t('Você chegou ao limite de {n} adesivos próprios.', { n: MAX_LIBRARY })
           break
         }
         const ext = (f.name.split('.').pop() ?? '').toLowerCase()
         if (!STICKER_FILE_EXT.includes(ext)) {
-          error = `"${f.name}" não é uma imagem que o Harmony aceita.`
+          error = t('“{name}” não é uma imagem que o Harmony aceita.', { name: f.name })
           continue
         }
         if (f.size > MAX_FILE_MB * 1024 * 1024) {
-          error = `"${f.name}" passa de ${MAX_FILE_MB} MB.`
+          error = t('“{name}” passa de {mb} MB.', { name: f.name, mb: MAX_FILE_MB })
           continue
         }
         const path = await api.stickers.save(await f.arrayBuffer(), ext)
         if (!path) {
-          error = `Não foi possível guardar "${f.name}".`
+          error = t('Não foi possível guardar “{name}”.', { name: f.name })
           continue
         }
         const name = f.name.replace(/\.[^.]+$/, '').slice(0, 40) || 'Adesivo'

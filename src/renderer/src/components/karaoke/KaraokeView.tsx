@@ -6,6 +6,7 @@ import { MicInput } from '@/services/mic'
 import { useSmoothTime } from '@/hooks/useSmoothTime'
 import { activeLineIndex, type LrcLine } from '@/utils/lrc'
 import { detectPitch, noteName, pitchClassDistance } from '@/utils/pitch'
+import { t, tk } from '@/i18n'
 
 /**
  * Karaokê — sing over the song.
@@ -144,11 +145,11 @@ function gradeOf(s: Score): { grade: string; tune: number; presence: number; tot
 }
 
 const GRADE_LINE: Record<string, string> = {
-  S: 'Lenda do palco! 🌟',
-  A: 'Mandou muito bem! 🎉',
-  B: 'Boa! Tá afinando 🎶',
-  C: 'Valeu a coragem! 💪',
-  D: 'O importante é se divertir 😄'
+  S: tk('Lenda do palco! 🌟'),
+  A: tk('Mandou muito bem! 🎉'),
+  B: tk('Boa! Tá afinando 🎶'),
+  C: tk('Valeu a coragem! 💪'),
+  D: tk('O importante é se divertir 😄')
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +268,7 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
       })
       .catch(() => {
         if (!alive) return
-        setMicError('Não consegui acessar o microfone.')
+        setMicError(t('Não consegui acessar o microfone.'))
         setMicOn(false)
       })
     return () => {
@@ -341,13 +342,13 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors ${
             prefs.cut ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-raised)] text-muted hover:text-ink'
           }`}
-          title="Tira a voz original da música"
+          title={t('Tira a voz original da música')}
         >
-          🎤 {prefs.cut ? 'Sem a voz original' : 'Com a voz original'}
+          🎤 {prefs.cut ? t('Sem a voz original') : t('Com a voz original')}
         </button>
         {prefs.cut && !mono && (
           <label className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-3 py-1.5 text-muted">
-            Intensidade
+            {t('Intensidade')}
             <input
               type="range"
               min={30}
@@ -366,9 +367,9 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors ${
             micOn ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-raised)] text-muted hover:text-ink'
           }`}
-          title="Cante no microfone e ganhe uma nota"
+          title={t('Cante no microfone e ganhe uma nota')}
         >
-          {micOn ? <Mic size={13} /> : <MicOff size={13} />} {micOn ? 'Pontuando' : 'Cantar valendo nota'}
+          {micOn ? <Mic size={13} /> : <MicOff size={13} />} {micOn ? t('Pontuando') : t('Cantar valendo nota')}
         </button>
         {micOn && (
           <span className="flex items-center gap-2 rounded-full bg-[var(--bg-raised)] px-3 py-1.5 tabular-nums text-muted">
@@ -378,8 +379,8 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
                 style={{ width: `${Math.min(100, live.level * 600)}%` }}
               />
             </span>
-            Você: <b className="text-ink">{live.you ? noteName(live.you) : '—'}</b>
-            · Música: <b className="text-ink">{live.song ? noteName(live.song) : '—'}</b>
+            {t('Você:')} <b className="text-ink">{live.you ? noteName(live.you) : '—'}</b>
+            {t('· Música:')} <b className="text-ink">{live.song ? noteName(live.song) : '—'}</b>
             {live.you > 0 && live.song > 0 && (
               <span className={pitchClassDistance(live.you, live.song) <= 1 ? 'text-emerald-400' : 'text-amber-300'}>
                 {pitchClassDistance(live.you, live.song) <= 1 ? '✓' : '~'}
@@ -390,21 +391,21 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
         )}
       </div>
       <div className="mx-auto mb-2 flex items-center gap-1 rounded-full bg-[var(--bg-raised)] px-1 py-0.5 text-[11px] text-muted">
-        <span className="px-2">Ajuste da letra</span>
-        <button onClick={() => nudge(-0.1)} className="rounded-full px-2 py-0.5 hover:bg-white/10 hover:text-ink" aria-label="Letra mais cedo" title="Letra mais cedo (−0,1s)">
+        <span className="px-2">{t('Ajuste da letra')}</span>
+        <button onClick={() => nudge(-0.1)} className="rounded-full px-2 py-0.5 hover:bg-white/10 hover:text-ink" aria-label={t('Letra mais cedo')} title={t('Letra mais cedo (−0,1s)')}>
           −
         </button>
-        <span className="w-10 text-center tabular-nums" title="Seu ajuste nesta música">
+        <span className="w-10 text-center tabular-nums" title={t('Seu ajuste nesta música')}>
           {manual > 0 ? '+' : ''}
           {manual.toFixed(1).replace('.', ',')}s
         </span>
-        <button onClick={() => nudge(0.1)} className="rounded-full px-2 py-0.5 hover:bg-white/10 hover:text-ink" aria-label="Letra mais tarde" title="Letra mais tarde (+0,1s)">
+        <button onClick={() => nudge(0.1)} className="rounded-full px-2 py-0.5 hover:bg-white/10 hover:text-ink" aria-label={t('Letra mais tarde')} title={t('Letra mais tarde (+0,1s)')}>
           +
         </button>
       </div>
       {(mono || micError) && (
         <p className="mb-1 text-center text-[11px] text-amber-300">
-          {micError ?? 'Esta faixa é mono: a voz não pode ser separada, então ela toca normalmente.'}
+          {micError ?? t('Esta faixa é mono: a voz não pode ser separada, então ela toca normalmente.')}
         </p>
       )}
 
@@ -458,7 +459,7 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
       </div>
 
       {!isPlaying && micOn && (
-        <p className="pb-1 text-center text-[11px] text-muted">Dê play para começar a pontuar.</p>
+        <p className="pb-1 text-center text-[11px] text-muted">{t('Dê play para começar a pontuar.')}</p>
       )}
 
       {result && (
@@ -467,22 +468,22 @@ export function KaraokeView({ lines }: { lines: LrcLine[] }): JSX.Element {
             <button
               onClick={() => setResult(null)}
               className="absolute right-3 top-3 rounded-full p-1 text-muted hover:bg-white/10 hover:text-ink"
-              aria-label="Fechar"
+              aria-label={t('Fechar')}
             >
               <X size={15} />
             </button>
-            <p className="text-xs uppercase tracking-widest text-muted">Sua nota em</p>
+            <p className="text-xs uppercase tracking-widest text-muted">{t('Sua nota em')}</p>
             <p className="truncate text-sm font-semibold">{result.title}</p>
             <p className="seal-pop my-3 text-7xl font-black text-[var(--accent)]">{result.grade}</p>
-            <p className="font-semibold">{GRADE_LINE[result.grade]}</p>
+            <p className="font-semibold">{t(GRADE_LINE[result.grade])}</p>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
               <div className="rounded-xl bg-white/5 p-2.5">
                 <p className="text-lg font-bold tabular-nums">{Math.round(result.tune * 100)}%</p>
-                <p className="text-muted">afinação</p>
+                <p className="text-muted">{t('afinação')}</p>
               </div>
               <div className="rounded-xl bg-white/5 p-2.5">
                 <p className="text-lg font-bold tabular-nums">{Math.round(result.presence * 100)}%</p>
-                <p className="text-muted">cantando junto</p>
+                <p className="text-muted">{t('cantando junto')}</p>
               </div>
             </div>
           </div>

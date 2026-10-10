@@ -51,9 +51,14 @@ export function useAudioPlayer(): void {
     }
   }, [])
 
-  // Song change (epoch bumps even when the same song is re-selected)
+  // Song change (epoch bumps even when the same song is re-selected). The
+  // app can be redrawn while a song plays (switching the language remounts
+  // it): the song already in the engine is not loaded again.
   useEffect(() => {
     if (!song) return
+    const key = `${song.id}:${epoch}`
+    if (key === loadedKey) return
+    loadedKey = key
     const engine = getEngine()
     engine.load(mediaUrl(song.path)!)
     api.history.add(song.id)
@@ -108,5 +113,8 @@ export function useAudioPlayer(): void {
     getEngine().crossfadeSec = crossfade
   }, [crossfade])
 }
+
+/** which song (and selection) the engine holds; lives outside React */
+let loadedKey = ''
 
 const EQ_FLAT = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -11,6 +11,7 @@ import {
 import { STICKERS, findSticker } from './catalog'
 import { StickerArt } from './art'
 import { beginDrag, DragGhost } from './drag'
+import { t, tk } from '@/i18n'
 
 /**
  * Sticking mode: a sheet of stickers floating over the app. Drag one onto
@@ -87,8 +88,8 @@ export function StickerDefs(): JSX.Element {
   )
 }
 
-const ZONE_NAMES: Record<string, string> = { sidebar: 'barra lateral', player: 'player' }
-const zoneName = (z: string): string => ZONE_NAMES[z] ?? (z.startsWith('playlist:') ? 'capa da playlist' : z)
+const ZONE_NAMES: Record<string, string> = { sidebar: tk('na barra lateral'), player: tk('no player') }
+const zoneName = (z: string): string => t(ZONE_NAMES[z] ?? (z.startsWith('playlist:') ? tk('na capa da playlist') : z))
 const ACCEPT = STICKER_FILE_EXT.map((e) => `.${e}`).join(',')
 
 export function StickerTray(): JSX.Element {
@@ -149,7 +150,7 @@ export function StickerTray(): JSX.Element {
     if (e.button !== 0) return
     e.preventDefault()
     if (full) {
-      setNotice(`Você já colou ${MAX_STICKERS} adesivos. Descole algum para colar outro.`)
+      setNotice(t('Você já colou {n} adesivos. Descole algum para colar outro.', { n: MAX_STICKERS }))
       return
     }
     beginDrag(e, { id, r: 0, s: 1 })
@@ -184,9 +185,9 @@ export function StickerTray(): JSX.Element {
           >
             <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">Adesivos</p>
+                <p className="text-sm font-semibold">{t('Adesivos')}</p>
                 <p className="text-[11px] leading-snug text-muted">
-                  Arraste para a barra lateral, o player ou a capa de uma playlist. Para descolar, arraste de volta para cá.
+                  {t('Arraste para a barra lateral, o player ou a capa de uma playlist. Para descolar, arraste de volta para cá.')}
                 </p>
               </div>
               <span className={`shrink-0 text-[11px] ${full ? 'font-semibold text-[var(--accent)]' : 'text-muted'}`}>
@@ -195,8 +196,8 @@ export function StickerTray(): JSX.Element {
               <button
                 onClick={() => setFolded((f) => !f)}
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted hover:bg-[var(--bg-raised)] hover:text-ink"
-                aria-label={folded ? 'Mostrar adesivos' : 'Recolher'}
-                title={folded ? 'Mostrar adesivos' : 'Recolher'}
+                aria-label={folded ? t('Mostrar adesivos') : t('Recolher')}
+                title={folded ? t('Mostrar adesivos') : t('Recolher')}
               >
                 {folded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
@@ -204,7 +205,7 @@ export function StickerTray(): JSX.Element {
                 onClick={() => setEditing(false)}
                 className="press shrink-0 rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-semibold text-[var(--on-accent,#fff)]"
               >
-                Concluir
+                {t('Concluir')}
               </button>
             </div>
 
@@ -223,21 +224,21 @@ export function StickerTray(): JSX.Element {
 
             {!folded && (
               <div className="mt-2 max-h-[208px] overflow-y-auto p-1 pr-2" style={{ scrollbarWidth: 'thin' }}>
-                <SheetTitle>Meus adesivos</SheetTitle>
+                <SheetTitle>{t('Meus adesivos')}</SheetTitle>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] gap-1">
                   <button
                     onClick={() => fileRef.current?.click()}
-                    title={`PNG, JPG, WebP, GIF, SVG… até ${MAX_FILE_MB} MB`}
+                    title={t('PNG, JPG, WebP, GIF, SVG… até {mb} MB', { mb: MAX_FILE_MB })}
                     className="flex aspect-square flex-col items-center justify-center gap-0.5 rounded-xl border border-dashed border-[var(--glass-border)] text-[10px] text-muted transition-colors hover:border-[var(--accent)] hover:text-ink"
                   >
                     <ImagePlus size={17} />
-                    Adicionar
+                    {t('Adicionar')}
                   </button>
                   {library.map((c) => (
                     <div key={c.id} className="group relative">
                       <button
                         title={c.name}
-                        aria-label={`Colar ${c.name}`}
+                        aria-label={t('Colar {name}', { name: c.name })}
                         className="stk-pick grid aspect-square w-full place-items-center rounded-xl p-1.5 transition-colors hover:bg-[var(--bg-raised)]"
                         onPointerDown={pick(c.id)}
                       >
@@ -245,8 +246,8 @@ export function StickerTray(): JSX.Element {
                       </button>
                       <button
                         onClick={() => setDeleting(c.id)}
-                        aria-label={`Excluir ${c.name}`}
-                        title="Excluir este adesivo"
+                        aria-label={t('Excluir {name}', { name: c.name })}
+                        title={t('Excluir este adesivo')}
                         className="absolute -right-0.5 -top-0.5 grid h-5 w-5 place-items-center rounded-full bg-[var(--bg-base)] text-muted opacity-0 shadow transition-opacity hover:text-red-400 group-hover:opacity-100"
                       >
                         <X size={11} />
@@ -256,17 +257,17 @@ export function StickerTray(): JSX.Element {
                 </div>
                 {library.length === 0 && (
                   <p className="mt-1 text-[10px] text-muted">
-                    Use suas próprias imagens: PNG, JPG, WebP, GIF animado ou SVG. Também dá para soltar os arquivos aqui.
+                    {t('Use suas próprias imagens: PNG, JPG, WebP, GIF animado ou SVG. Também dá para soltar os arquivos aqui.')}
                   </p>
                 )}
 
-                <SheetTitle>Do Harmony</SheetTitle>
+                <SheetTitle>{t('Do Harmony')}</SheetTitle>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] gap-1">
                   {STICKERS.map((s) => (
                     <button
                       key={s.id}
-                      title={s.name}
-                      aria-label={`Colar ${s.name}`}
+                      title={t(s.name)}
+                      aria-label={t('Colar {name}', { name: t(s.name) })}
                       className="stk-pick grid aspect-square place-items-center rounded-xl p-1.5 transition-colors hover:bg-[var(--bg-raised)]"
                       onPointerDown={pick(s.id)}
                     >
@@ -281,10 +282,10 @@ export function StickerTray(): JSX.Element {
               {toDelete ? (
                 <>
                   <span className="min-w-0 flex-1 truncate">
-                    Excluir <b className="text-ink">{toDelete.name}</b>? Ele também sai de todos os lugares onde está colado.
+                    {t('Excluir “{name}”? Ele também sai de todos os lugares onde está colado.', { name: toDelete.name })}
                   </span>
                   <button onClick={() => setDeleting(null)} className="rounded-full px-3 py-1 hover:bg-[var(--bg-raised)] hover:text-ink">
-                    Cancelar
+                    {t('Cancelar')}
                   </button>
                   <button
                     onClick={() => {
@@ -293,7 +294,7 @@ export function StickerTray(): JSX.Element {
                     }}
                     className="rounded-full bg-red-500/90 px-3 py-1 font-semibold text-white"
                   >
-                    Excluir
+                    {t('Excluir')}
                   </button>
                 </>
               ) : notice ? (
@@ -301,7 +302,7 @@ export function StickerTray(): JSX.Element {
               ) : selected ? (
                 <>
                   <span className="mr-1 min-w-0 truncate">
-                    <b className="text-ink">{custom ? custom.name : findSticker(selected.id)?.name}</b> na {zoneName(selected.zone)}
+                    <b className="text-ink">{custom ? custom.name : t(findSticker(selected.id)?.name ?? '')}</b> {zoneName(selected.zone)}
                   </span>
                   <span className="flex-1" />
                   {custom && (
@@ -309,43 +310,43 @@ export function StickerTray(): JSX.Element {
                       <select
                         value={custom.anim}
                         onChange={(e) => editCustom(custom.id, { anim: e.target.value as CustomAnim })}
-                        title="Movimento (vale para todas as cópias)"
+                        title={t('Movimento (vale para todas as cópias)')}
                         className="h-7 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-raised)] px-1.5 text-[11px] text-ink outline-none"
                       >
                         {CUSTOM_ANIMS.map((a) => (
                           <option key={a.id} value={a.id}>
-                            {a.label}
+                            {t(a.label)}
                           </option>
                         ))}
                       </select>
                       <button
                         onClick={() => editCustom(custom.id, { outline: !custom.outline })}
-                        title="Contorno branco (vale para todas as cópias)"
+                        title={t('Contorno branco (vale para todas as cópias)')}
                         className={`h-7 rounded-lg px-2 transition-colors ${
                           custom.outline ? 'bg-[var(--accent-soft)] text-ink' : 'hover:bg-[var(--bg-raised)] hover:text-ink'
                         }`}
                       >
-                        Contorno
+                        {t('Contorno')}
                       </button>
                     </>
                   )}
-                  <TrayBtn label="Girar para a esquerda" onClick={() => tweak(selected.key, { r: selected.r - 15 })}>
+                  <TrayBtn label={t('Girar para a esquerda')} onClick={() => tweak(selected.key, { r: selected.r - 15 })}>
                     <RotateCcw size={14} />
                   </TrayBtn>
-                  <TrayBtn label="Girar para a direita" onClick={() => tweak(selected.key, { r: selected.r + 15 })}>
+                  <TrayBtn label={t('Girar para a direita')} onClick={() => tweak(selected.key, { r: selected.r + 15 })}>
                     <RotateCw size={14} />
                   </TrayBtn>
-                  <TrayBtn label="Diminuir" onClick={() => tweak(selected.key, { s: selected.s / 1.15 })}>
+                  <TrayBtn label={t('Diminuir')} onClick={() => tweak(selected.key, { s: selected.s / 1.15 })}>
                     <Minus size={14} />
                   </TrayBtn>
-                  <TrayBtn label="Aumentar" onClick={() => tweak(selected.key, { s: selected.s * 1.15 })}>
+                  <TrayBtn label={t('Aumentar')} onClick={() => tweak(selected.key, { s: selected.s * 1.15 })}>
                     <Plus size={14} />
                   </TrayBtn>
-                  <TrayBtn label="Trazer para a frente" onClick={() => raise(selected.key)}>
+                  <TrayBtn label={t('Trazer para a frente')} onClick={() => raise(selected.key)}>
                     <ArrowUpToLine size={14} />
                   </TrayBtn>
                   <TrayBtn
-                    label="Descolar"
+                    label={t('Descolar')}
                     danger
                     onClick={() => {
                       remove(selected.key)
@@ -358,15 +359,15 @@ export function StickerTray(): JSX.Element {
               ) : (
                 <span>
                   {count > 0
-                    ? 'Clique num adesivo colado para ajustar. Roda do mouse: tamanho · Shift + roda: girar · Delete: descolar.'
-                    : 'Dica: os adesivos animados se mexem sozinhos, e os que pulsam seguem a batida da música.'}
+                    ? t('Clique num adesivo colado para ajustar. Roda do mouse: tamanho · Shift + roda: girar · Delete: descolar.')
+                    : t('Dica: os adesivos animados se mexem sozinhos, e os que pulsam seguem a batida da música.')}
                 </span>
               )}
             </div>
 
             {dropping && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--bg-base)_70%,transparent)] text-sm font-semibold">
-                Solte para adicionar aos seus adesivos
+                {t('Solte para adicionar aos seus adesivos')}
               </div>
             )}
           </div>

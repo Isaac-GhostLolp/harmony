@@ -1,4 +1,5 @@
 import { useBarStore, BAR_STYLES, PROGRESS_STYLES, type BarStyle, type ProgressStyle } from '@/store/barStore'
+import { t } from '@/i18n'
 
 /**
  * Settings → Barra de música: the bar's style, each drawn as a little
@@ -8,31 +9,31 @@ export function BarStylePicker(): JSX.Element {
   const { style, progress, setStyle, setProgress } = useBarStore()
   return (
     <div>
-      <h2 className="text-sm font-semibold">Barra de música</h2>
-      <p className="mb-3 mt-0.5 text-xs text-muted">O jeito do player e da barra de progresso.</p>
+      <h2 className="text-sm font-semibold">{t('Barra de música')}</h2>
+      <p className="mb-3 mt-0.5 text-xs text-muted">{t('O jeito do player e da barra de progresso.')}</p>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
         {BAR_STYLES.map((s) => (
           <button
             key={s.id}
             onClick={() => setStyle(s.id)}
-            title={s.hint}
+            title={t(s.hint)}
             className={`rounded-xl p-1.5 text-left transition-colors ${
               style === s.id ? 'bg-[var(--accent-soft)] ring-2 ring-[var(--accent)]' : 'hover:bg-[var(--bg-raised)]'
             }`}
           >
             <BarMini kind={s.id} />
-            <p className="mt-1.5 px-1 text-[11px] font-medium">{s.name}</p>
+            <p className="mt-1.5 px-1 text-[11px] font-medium">{t(s.name)}</p>
           </button>
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-        Progresso
+        {t('Progresso')}
         <div className="flex flex-wrap gap-1.5">
           {PROGRESS_STYLES.map((p) => (
             <button
               key={p.id}
               onClick={() => setProgress(p.id)}
-              title={p.hint}
+              title={t(p.hint)}
               className={`flex items-center gap-2 rounded-full px-3 py-1.5 transition-colors ${
                 progress === p.id
                   ? 'bg-[var(--accent)] font-semibold text-[var(--on-accent,#fff)]'
@@ -40,7 +41,7 @@ export function BarStylePicker(): JSX.Element {
               }`}
             >
               <ProgressMini kind={p.id} />
-              {p.name}
+              {t(p.name)}
             </button>
           ))}
         </div>

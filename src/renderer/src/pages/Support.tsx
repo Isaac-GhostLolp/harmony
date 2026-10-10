@@ -13,6 +13,8 @@ import {
 import type { MusicProfile } from '@/types'
 import { api } from '@/services/api'
 import { CP405_PHOTO } from '@/assets/supporterCP405'
+import { P4TIW_PHOTO } from '@/assets/supporterP4TIW'
+import { t, locale } from '@/i18n'
 
 // ---- Configure your real links here -------------------------------------
 // Empty strings hide the card, so you can enable each channel when it's ready.
@@ -44,38 +46,38 @@ export function Support(): JSX.Element {
     PIX_KEY && {
       icon: Heart,
       emoji: '❤️',
-      title: 'Doação via PIX',
-      desc: 'A forma mais direta de apoiar, aqui no Brasil.',
+      title: t('Doação via PIX'),
+      desc: t('A forma mais direta de apoiar, aqui no Brasil.'),
       action: () => {
         navigator.clipboard.writeText(PIX_KEY)
         setCopied(true)
         window.setTimeout(() => setCopied(false), 2500)
       },
-      cta: copied ? 'Chave copiada!' : 'Copiar chave PIX'
+      cta: copied ? t('Chave copiada!') : t('Copiar chave PIX')
     },
     SUPPORT_LINKS.kofi && {
       icon: Coffee,
       emoji: '☕',
-      title: 'Me pagar um café',
-      desc: 'Um cafezinho ajuda a manter as madrugadas de código.',
+      title: t('Me pagar um café'),
+      desc: t('Um cafezinho ajuda a manter as madrugadas de código.'),
       action: () => open(SUPPORT_LINKS.kofi),
-      cta: 'Abrir Ko-fi'
+      cta: t('Abrir Ko-fi')
     },
     SUPPORT_LINKS.buymeacoffee && {
       icon: Music4,
       emoji: '🎵',
       title: 'Buy Me a Coffee',
-      desc: 'Apoie por lá se preferir essa plataforma.',
+      desc: t('Apoie por lá se preferir essa plataforma.'),
       action: () => open(SUPPORT_LINKS.buymeacoffee),
-      cta: 'Abrir'
+      cta: t('Abrir')
     },
     SUPPORT_LINKS.githubSponsors && {
       icon: Github,
       emoji: '🌎',
       title: 'GitHub Sponsors',
-      desc: 'Apoio recorrente direto pelo GitHub do projeto.',
+      desc: t('Apoio recorrente direto pelo GitHub do projeto.'),
       action: () => open(SUPPORT_LINKS.githubSponsors),
-      cta: 'Ser sponsor'
+      cta: t('Ser sponsor')
     }
   ].filter(Boolean) as {
     icon: typeof Heart
@@ -87,47 +89,47 @@ export function Support(): JSX.Element {
   }[]
 
   const reasons = [
-    'Desenvolvimento de novas funcionalidades',
-    'Publicação da versão Android',
-    'Novos Mundos vivos e palcos do Visualizer',
-    'Compra de equipamentos para testes',
-    'Hospedagem do marketplace da comunidade',
-    'Tempo dedicado ao projeto'
+    t('Desenvolvimento de novas funcionalidades'),
+    t('Publicação da versão Android'),
+    t('Novos Mundos vivos e palcos do Visualizer'),
+    t('Compra de equipamentos para testes'),
+    t('Hospedagem do marketplace da comunidade'),
+    t('Tempo dedicado ao projeto')
   ]
 
   // done = already in the app · now = being built for the next update ·
   // next = planned, not started yet
   const roadmap: { phase: string; items: { label: string; status: 'done' | 'now' | 'next' }[] }[] = [
     {
-      phase: 'Já chegou',
+      phase: t('Já chegou'),
       items: [
-        { label: 'Player offline com biblioteca inteligente', status: 'done' },
-        { label: 'Letras sincronizadas e modo karaokê', status: 'done' },
-        { label: 'Visualizer com seis palcos e Modo DJ', status: 'done' },
-        { label: 'Mundos vivos que reagem à música', status: 'done' },
-        { label: 'Meu Mundo, Retrospectiva e Cápsulas do tempo', status: 'done' },
-        { label: 'Estúdio de edição de vídeos', status: 'done' },
-        { label: 'Modo Ultra Rápido para máquinas mais fracas', status: 'done' },
-        { label: 'Personalização total: temas, ícones, adesivos e barra de música', status: 'done' },
-        { label: 'Biblioteca em capas, discos e estante de livros', status: 'done' },
-        { label: 'Mundos de datas comemorativas, arcade, deserto e mais', status: 'done' },
-        { label: 'Criador de capas e atalho para a música que está tocando', status: 'done' }
+        { label: t('Player offline com biblioteca inteligente'), status: 'done' },
+        { label: t('Letras sincronizadas e modo karaokê'), status: 'done' },
+        { label: t('Visualizer com seis palcos e Modo DJ'), status: 'done' },
+        { label: t('Mundos vivos que reagem à música'), status: 'done' },
+        { label: t('Meu Mundo, Retrospectiva e Cápsulas do tempo'), status: 'done' },
+        { label: t('Estúdio de edição de vídeos'), status: 'done' },
+        { label: t('Modo Ultra Rápido para máquinas mais fracas'), status: 'done' },
+        { label: t('Personalização total: temas, ícones, adesivos e barra de música'), status: 'done' },
+        { label: t('Biblioteca em capas, discos e estante de livros'), status: 'done' },
+        { label: t('Mundos de datas comemorativas, arcade, deserto e mais'), status: 'done' },
+        { label: t('Criador de capas e atalho para a música que está tocando'), status: 'done' }
       ]
     },
     {
-      phase: 'Próximos passos',
+      phase: t('Próximos passos'),
       items: [
-        { label: 'Mais Mundos vivos: Carnaval, Festa Junina, céu de anime e ilhas flutuantes', status: 'next' },
-        { label: 'Karaokê com ajuste de sincronia no toque', status: 'next' },
-        { label: 'Mundos ainda mais reativos ao refrão e aos drops', status: 'next' }
+        { label: t('Mais Mundos vivos: Carnaval, Festa Junina, céu de anime e ilhas flutuantes'), status: 'next' },
+        { label: t('Karaokê com ajuste de sincronia no toque'), status: 'next' },
+        { label: t('Mundos ainda mais reativos ao refrão e aos drops'), status: 'next' }
       ]
     },
     {
-      phase: 'No horizonte',
+      phase: t('No horizonte'),
       items: [
-        { label: 'Marketplace “Feito pela comunidade”', status: 'next' },
-        { label: 'Versão Android', status: 'next' },
-        { label: 'Sincronização na nuvem (opcional)', status: 'next' }
+        { label: t('Marketplace “Feito pela comunidade”'), status: 'next' },
+        { label: t('Versão Android'), status: 'next' },
+        { label: t('Sincronização na nuvem (opcional)'), status: 'next' }
       ]
     }
   ]
@@ -148,11 +150,9 @@ export function Support(): JSX.Element {
             <HandHeart size={38} className="text-[var(--accent)]" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">❤️ Apoie o Harmony</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('❤️ Apoie o Harmony')}</h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted">
-          O Harmony continuará sendo gratuito e open source. Se ele tornou seus dias um pouco
-          melhores e você quiser ajudar no desenvolvimento, qualquer apoio será muito bem-vindo —
-          mas nunca obrigatório.
+          {t('O Harmony continuará sendo gratuito e open source. Se ele tornou seus dias um pouco melhores e você quiser ajudar no desenvolvimento, qualquer apoio será muito bem-vindo — mas nunca obrigatório.')}
         </p>
       </header>
 
@@ -161,15 +161,15 @@ export function Support(): JSX.Element {
         <div className="fade-rise mb-8 grid gap-3 sm:grid-cols-2">
           <div className="glass rounded-2xl p-5 text-center">
             <p className="text-3xl font-bold text-[var(--accent)]">
-              {hours.toLocaleString('pt-BR')}h
+              {hours.toLocaleString(locale())}h
             </p>
-            <p className="mt-1 text-xs text-muted">🎵 de música você já reproduziu no Harmony</p>
+            <p className="mt-1 text-xs text-muted">{t('🎵 de música você já reproduziu no Harmony')}</p>
           </div>
           <div className="glass rounded-2xl p-5 text-center">
             <p className="text-3xl font-bold text-[var(--accent)]">
-              {songs.toLocaleString('pt-BR')}
+              {songs.toLocaleString(locale())}
             </p>
-            <p className="mt-1 text-xs text-muted">💿 músicas na sua biblioteca</p>
+            <p className="mt-1 text-xs text-muted">{t('💿 músicas na sua biblioteca')}</p>
           </div>
         </div>
       )}
@@ -177,24 +177,20 @@ export function Support(): JSX.Element {
       {/* How it started */}
       <section className="glass fade-rise mb-5 rounded-2xl p-6">
         <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <Sparkles size={15} className="text-[var(--accent)]" /> Como tudo começou
+          <Sparkles size={15} className="text-[var(--accent)]" /> {t('Como tudo começou')}
         </h2>
         <p className="text-sm leading-relaxed text-muted">
-          O Harmony começou como um projeto pessoal porque eu queria um player offline bonito para
-          ouvir minhas próprias músicas — principalmente aquelas que não existiam nas plataformas de
-          streaming. Com o tempo, o projeto cresceu, ganhou novas funcionalidades e acabou se
-          tornando um aplicativo open source para qualquer pessoa utilizar.
+          {t('O Harmony começou como um projeto pessoal porque eu queria um player offline bonito para ouvir minhas próprias músicas — principalmente aquelas que não existiam nas plataformas de streaming. Com o tempo, o projeto cresceu, ganhou novas funcionalidades e acabou se tornando um aplicativo open source para qualquer pessoa utilizar.')}
         </p>
       </section>
 
       {/* Why support */}
       <section className="glass fade-rise mb-5 rounded-2xl p-6">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <Heart size={15} className="text-[var(--accent)]" /> Por que apoiar?
+          <Heart size={15} className="text-[var(--accent)]" /> {t('Por que apoiar?')}
         </h2>
         <p className="mb-4 text-sm leading-relaxed text-muted">
-          Seu apoio ajuda a manter o projeto vivo. De forma transparente, as contribuições poderão
-          ser usadas para:
+          {t('Seu apoio ajuda a manter o projeto vivo. De forma transparente, as contribuições poderão ser usadas para:')}
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {reasons.map((r) => (
@@ -209,7 +205,7 @@ export function Support(): JSX.Element {
       {/* How to support */}
       {supportCards.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-muted">Como apoiar</h2>
+          <h2 className="mb-3 text-sm font-semibold text-muted">{t('Como apoiar')}</h2>
           <div
             className={`grid gap-3 ${
               supportCards.length > 1 ? 'sm:grid-cols-2' : 'mx-auto max-w-md'
@@ -241,7 +237,7 @@ export function Support(): JSX.Element {
       {/* Roadmap */}
       <section className="glass fade-rise mb-5 rounded-2xl p-6">
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <Wrench size={15} className="text-[var(--accent)]" /> Para onde o Harmony vai
+          <Wrench size={15} className="text-[var(--accent)]" /> {t('Para onde o Harmony vai')}
         </h2>
         <div className="flex flex-col gap-5">
           {roadmap.map((phase) => (
@@ -267,7 +263,7 @@ export function Support(): JSX.Element {
                       {item.label}
                       {item.status === 'now' && (
                         <span className="ml-2 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
-                          em construção
+                          {t('em construção')}
                         </span>
                       )}
                     </p>
@@ -284,18 +280,17 @@ export function Support(): JSX.Element {
         className="fade-rise mb-5 rounded-2xl p-6 text-center"
         style={{ background: 'linear-gradient(135deg, var(--accent-soft), transparent)' }}
       >
-        <h2 className="mb-2 text-sm font-semibold">Obrigado 💜</h2>
+        <h2 className="mb-2 text-sm font-semibold">{t('Obrigado 💜')}</h2>
         <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted">
-          O maior apoio que o Harmony já recebeu foi cada pessoa que decidiu baixar o aplicativo,
-          testá-lo e compartilhar sugestões. Muito obrigado por fazer parte dessa jornada.
+          {t('O maior apoio que o Harmony já recebeu foi cada pessoa que decidiu baixar o aplicativo, testá-lo e compartilhar sugestões. Muito obrigado por fazer parte dessa jornada.')}
         </p>
       </section>
 
       {/* Supporters */}
       <section className="glass fade-rise rounded-2xl p-6 text-center">
-        <h2 className="mb-1 text-sm font-semibold">Apoiadores</h2>
+        <h2 className="mb-1 text-sm font-semibold">{t('Apoiadores')}</h2>
         <p className="mb-6 text-xs text-muted">
-          As pessoas que decidiram apoiar oficialmente o Harmony. 💛
+          {t('As pessoas que decidiram apoiar oficialmente o Harmony. 💛')}
         </p>
 
         <div className="flex flex-wrap items-start justify-center gap-6">
@@ -318,23 +313,43 @@ export function Support(): JSX.Element {
               >
                 <img
                   src={CP405_PHOTO}
-                  alt="CP-405"
+                  alt={t('CP-405')}
                   className="h-full w-full rounded-full object-cover"
                 />
               </div>
             </div>
-            <p className="mt-3 text-sm font-semibold">CP-405</p>
+            <p className="mt-3 text-sm font-semibold">{t('CP-405')}</p>
             <span
               className="mt-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-black"
               style={{ background: 'linear-gradient(135deg, #f5c542, #ff8c42)' }}
             >
-              1º apoiador
+              {t('1º apoiador')}
+            </span>
+          </div>
+
+          {/* Second supporter — P4TIW, silver */}
+          <div className="flex flex-col items-center">
+            <div
+              className="grid h-24 w-24 place-items-center rounded-full p-[3px]"
+              style={{
+                background: 'linear-gradient(135deg, #e8edf5, #9aa6b8)',
+                boxShadow: '0 0 24px rgba(200,210,225,0.4)'
+              }}
+            >
+              <img src={P4TIW_PHOTO} alt="P4TIW" className="h-full w-full rounded-full object-cover" />
+            </div>
+            <p className="mt-3 text-sm font-semibold">P4TIW</p>
+            <span
+              className="mt-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold text-black"
+              style={{ background: 'linear-gradient(135deg, #e8edf5, #9aa6b8)' }}
+            >
+              {t('2º apoiador')}
             </span>
           </div>
         </div>
 
         <p className="mt-6 text-xs text-muted">
-          Obrigado, CP-405, por ser o primeiro a acreditar no projeto. ✨
+          {t('Obrigado, CP-405 e P4TIW, por acreditarem no projeto desde o começo. ✨')}
         </p>
       </section>
     </div>

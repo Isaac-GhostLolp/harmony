@@ -3,11 +3,17 @@ import { Search as SearchIcon } from 'lucide-react'
 import type { SearchResults } from '@/types'
 import { api } from '@/services/api'
 import { SongList } from '@/components/SongList'
+import { onFavoriteChange, withFavorite } from '@/utils/favorites'
 import { EmptyState } from '@/components/EmptyState'
+import { t } from '@/i18n'
 
 export function Search(): JSX.Element {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResults | null>(null)
+  useEffect(
+    () => onFavoriteChange((c) => setResults((r) => (r ? { ...r, songs: withFavorite(r.songs, c) } : r))),
+    []
+  )
 
   // Debounced real-time search
   useEffect(() => {
@@ -26,26 +32,26 @@ export function Search(): JSX.Element {
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Pesquisar músicas, álbuns, artistas, playlists…"
+          placeholder={t('Pesquisar músicas, álbuns, artistas, playlists…')}
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted"
         />
       </div>
 
       {!results && (
-        <EmptyState title="O que você quer ouvir?" hint="Pesquise por título, artista, álbum ou gênero." />
+        <EmptyState title={t('O que você quer ouvir?')} hint={t('Pesquise por título, artista, álbum ou gênero.')} />
       )}
 
       {results && (
         <div className="flex flex-col gap-6">
           {results.songs.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-semibold text-muted">Músicas</h2>
+              <h2 className="mb-2 text-sm font-semibold text-muted">{t('Músicas')}</h2>
               <SongList songs={results.songs} />
             </section>
           )}
           {results.artists.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-semibold text-muted">Artistas</h2>
+              <h2 className="mb-2 text-sm font-semibold text-muted">{t('Artistas')}</h2>
               <div className="flex flex-wrap gap-2">
                 {results.artists.map((a) => (
                   <span key={a.id} className="glass rounded-full px-4 py-1.5 text-xs">{a.name}</span>
@@ -55,7 +61,7 @@ export function Search(): JSX.Element {
           )}
           {results.albums.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-semibold text-muted">Álbuns</h2>
+              <h2 className="mb-2 text-sm font-semibold text-muted">{t('Álbuns')}</h2>
               <div className="flex flex-wrap gap-2">
                 {results.albums.map((a) => (
                   <span key={a.id} className="glass rounded-full px-4 py-1.5 text-xs">
@@ -66,7 +72,7 @@ export function Search(): JSX.Element {
             </section>
           )}
           {results.songs.length + results.albums.length + results.artists.length === 0 && (
-            <EmptyState title="Nenhum resultado" hint={`Nada encontrado para "${query}".`} />
+            <EmptyState title={t('Nenhum resultado')} hint={t('Nada encontrado para “{q}”.', { q: query })} />
           )}
         </div>
       )}

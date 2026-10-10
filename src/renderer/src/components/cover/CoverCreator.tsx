@@ -19,6 +19,7 @@ import {
   type Palette,
   type TextPos
 } from '@/utils/coverArt'
+import { t, tk } from '@/i18n'
 
 /**
  * The cover creator: a cover for any album (or single) without one — or to
@@ -38,10 +39,10 @@ export function announceCover(songId: number, albumId: number | null, cover: str
 }
 
 const POSITIONS: [TextPos, string][] = [
-  ['bottom', 'Embaixo'],
-  ['center', 'Centro'],
-  ['top', 'Em cima'],
-  ['none', 'Sem texto']
+  ['bottom', tk('Embaixo')],
+  ['center', tk('Centro')],
+  ['top', tk('Em cima')],
+  ['none', tk('Sem texto')]
 ]
 
 function Creator({ target }: { target: CoverTarget }): JSX.Element {
@@ -98,7 +99,7 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
       announceCover(target.songId, res.albumId, res.cover)
       close()
     } catch {
-      setError('Não consegui salvar a capa. Tente de novo.')
+      setError(t('Não consegui salvar a capa. Tente de novo.'))
       setSaving(false)
     }
   }
@@ -132,7 +133,7 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
             onClick={() => set({ seed: (spec.seed + 0x9e3779b1) >>> 0 })}
             className="press flex items-center gap-2 rounded-full bg-[var(--bg-base)] px-4 py-2 text-xs font-semibold hover:text-[var(--accent)]"
           >
-            <Dices size={14} /> Outra variação
+            <Dices size={14} /> {t('Outra variação')}
           </button>
         </div>
 
@@ -140,24 +141,24 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex items-start justify-between gap-3 p-5 pb-3">
             <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold">🎨 Criador de capas</h2>
+              <h2 className="text-[15px] font-semibold">{t('🎨 Criador de capas')}</h2>
               <p className="truncate text-xs text-muted">
                 {target.title} · {target.artist}
               </p>
             </div>
-            <button onClick={close} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--bg-raised)] text-muted hover:text-ink" aria-label="Fechar">
+            <button onClick={close} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--bg-raised)] text-muted hover:text-ink" aria-label={t('Fechar')}>
               <X size={15} />
             </button>
           </header>
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-5">
-            <Section title="Estilo">
+            <Section title={t('Estilo')}>
               <div className="grid grid-cols-5 gap-2">
                 {COVER_STYLES.map((s) => (
                   <StyleThumb
                     key={s.id}
                     style={s.id}
-                    label={s.label}
+                    label={t(s.label)}
                     spec={spec}
                     active={spec.style === s.id}
                     onClick={() => (s.id === 'photo' && !spec.image ? fileRef.current?.click() : set({ style: s.id }))}
@@ -168,7 +169,7 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
                 onClick={() => fileRef.current?.click()}
                 className="mt-2 flex items-center gap-1.5 text-[11px] text-muted hover:text-ink"
               >
-                <ImagePlus size={13} /> {spec.image ? 'Trocar a foto' : 'Usar uma foto minha'}
+                <ImagePlus size={13} /> {spec.image ? t('Trocar a foto') : t('Usar uma foto minha')}
               </button>
               <input
                 ref={fileRef}
@@ -183,13 +184,13 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
               />
             </Section>
 
-            <Section title="Cores">
+            <Section title={t('Cores')}>
               <div className="flex flex-wrap gap-2">
                 {[0, 1, 2].map((v) => (
                   <PaletteChip
                     key={`auto-${v}`}
                     colors={paletteFor(target.title, v)}
-                    label={v === 0 ? 'Desta música' : `Variação ${v}`}
+                    label={v === 0 ? t('Desta música') : t('Variação {n}', { n: v })}
                     active={paletteId === `auto-${v}`}
                     onClick={() => {
                       setPaletteId(`auto-${v}`)
@@ -201,7 +202,7 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
                   <PaletteChip
                     key={p.name}
                     colors={p.colors}
-                    label={p.name}
+                    label={t(p.name)}
                     active={paletteId === p.name}
                     onClick={() => {
                       setPaletteId(p.name)
@@ -211,13 +212,13 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
                 ))}
               </div>
               <div className="mt-2.5 flex items-center gap-2">
-                <span className="text-[11px] text-muted">Ajustar:</span>
+                <span className="text-[11px] text-muted">{t('Ajustar:')}</span>
                 {spec.palette.map((c, i) => (
                   <label
                     key={i}
                     className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border border-[var(--glass-border)]"
                     style={{ background: c }}
-                    title={i === 0 ? 'Fundo' : `Cor ${i}`}
+                    title={i === 0 ? t('Fundo') : t('Cor {n}', { n: i })}
                   >
                     <input
                       type="color"
@@ -235,40 +236,40 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
               </div>
             </Section>
 
-            <Section title="Texto">
+            <Section title={t('Texto')}>
               <div className="grid gap-2 sm:grid-cols-2">
                 <input
                   value={spec.title}
                   onChange={(e) => set({ title: e.target.value })}
-                  placeholder="Título"
-                  aria-label="Título da capa"
+                  placeholder={t('Título')}
+                  aria-label={t('Título da capa')}
                   className="rounded-lg bg-[var(--bg-raised)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
                 />
                 <input
                   value={spec.artist}
                   onChange={(e) => set({ artist: e.target.value })}
-                  placeholder="Artista"
-                  aria-label="Artista da capa"
+                  placeholder={t('Artista')}
+                  aria-label={t('Artista da capa')}
                   className="rounded-lg bg-[var(--bg-raised)] px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
                 />
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {POSITIONS.map(([id, label]) => (
                   <Chip key={id} active={spec.textPos === id} onClick={() => set({ textPos: id })}>
-                    {label}
+                    {t(label)}
                   </Chip>
                 ))}
                 <Chip active={spec.upper} onClick={() => set({ upper: !spec.upper })}>
-                  MAIÚSCULAS
+                  {t('MAIÚSCULAS')}
                 </Chip>
                 <Chip active={spec.grain} onClick={() => set({ grain: !spec.grain })}>
-                  Textura
+                  {t('Textura')}
                 </Chip>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {FONTS.map((f) => (
                   <Chip key={f.id} active={spec.font === f.family} onClick={() => set({ font: f.family })} style={{ fontFamily: f.family }}>
-                    {f.label}
+                    {t(f.label)}
                   </Chip>
                 ))}
               </div>
@@ -277,16 +278,16 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
 
           <footer className="flex items-center justify-end gap-2 border-t border-[var(--glass-border)] p-4">
             {error && <p className="mr-auto text-xs text-red-400">{error}</p>}
-            <p className="mr-auto hidden text-[11px] text-muted sm:block">{!error && 'A capa vale para o álbum inteiro.'}</p>
+            <p className="mr-auto hidden text-[11px] text-muted sm:block">{!error && t('A capa vale para o álbum inteiro.')}</p>
             <button onClick={close} className="rounded-full px-4 py-2 text-xs text-muted hover:text-ink">
-              Cancelar
+              {t('Cancelar')}
             </button>
             <button
               onClick={save}
               disabled={saving}
               className="press flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white disabled:opacity-60"
             >
-              {saving && <Loader2 size={13} className="animate-spin" />} Usar esta capa
+              {saving && <Loader2 size={13} className="animate-spin" />} {t('Usar esta capa')}
             </button>
           </footer>
         </div>

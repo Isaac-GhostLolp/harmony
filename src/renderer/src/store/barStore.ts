@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persistSettingDebounced } from '@/utils/persistSetting'
+import { tk } from '@/i18n'
 
 /**
  * How the music bar looks: its layout (`style`) and its progress bar
@@ -10,18 +11,18 @@ import { persistSettingDebounced } from '@/utils/persistSetting'
  */
 
 export const BAR_STYLES = [
-  { id: 'classic', name: 'Clássico', hint: 'A barra de sempre, de ponta a ponta.' },
-  { id: 'floating', name: 'Flutuante', hint: 'Uma pílula que flutua sobre o conteúdo.' },
-  { id: 'compact', name: 'Compacto', hint: 'Uma linha fina: controles e progresso lado a lado.' },
-  { id: 'vinyl', name: 'Vinil', hint: 'A capa vira um disco girando no toca-discos.' },
-  { id: 'cover', name: 'Capa', hint: 'A capa da música, desfocada, no fundo da barra.' }
+  { id: 'classic', name: tk('Clássico'), hint: tk('A barra de sempre, de ponta a ponta.') },
+  { id: 'floating', name: tk('Flutuante'), hint: tk('Uma pílula que flutua sobre o conteúdo.') },
+  { id: 'compact', name: tk('Compacto'), hint: tk('Uma linha fina: controles e progresso lado a lado.') },
+  { id: 'vinyl', name: tk('Vinil'), hint: tk('A capa vira um disco girando no toca-discos.') },
+  { id: 'cover', name: tk('Capa'), hint: tk('A capa da música, desfocada, no fundo da barra.') }
 ] as const
 export type BarStyle = (typeof BAR_STYLES)[number]['id']
 
 export const PROGRESS_STYLES = [
-  { id: 'line', name: 'Linha', hint: 'Uma linha simples.' },
-  { id: 'wave', name: 'Onda', hint: 'O que já tocou vira uma onda que balança com a música.' },
-  { id: 'peaks', name: 'Forma de onda', hint: 'O desenho real do som da música.' }
+  { id: 'line', name: tk('Linha'), hint: tk('Uma linha simples.') },
+  { id: 'wave', name: tk('Onda'), hint: tk('O que já tocou vira uma onda que balança com a música.') },
+  { id: 'peaks', name: tk('Forma de onda'), hint: tk('O desenho real do som da música.') }
 ] as const
 export type ProgressStyle = (typeof PROGRESS_STYLES)[number]['id']
 

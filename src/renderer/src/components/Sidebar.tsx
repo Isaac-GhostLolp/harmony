@@ -3,20 +3,21 @@ import { LogoLed } from './LogoLed'
 import { StickerZone } from './stickers/StickerZone'
 import { AppIcon } from './icons/AppIcon'
 import type { IconSlot } from './icons/slots'
+import { t, tk } from '@/i18n'
 
 const items: { to: string; label: string; slot: IconSlot }[] = [
-  { to: '/', label: 'Biblioteca', slot: 'library' },
-  { to: '/my-world', label: 'Meu Mundo', slot: 'myworld' },
-  { to: '/search', label: 'Pesquisar', slot: 'search' },
-  { to: '/playlists', label: 'Playlists', slot: 'playlists' },
-  { to: '/artists', label: 'Artistas', slot: 'artists' },
-  { to: '/albums', label: 'Álbuns', slot: 'albums' },
-  { to: '/favorites', label: 'Favoritos', slot: 'favorites' },
-  { to: '/visualizer', label: 'Visualizer', slot: 'visualizer' },
-  { to: '/history', label: 'Histórico', slot: 'history' },
-  { to: '/equalizer', label: 'Equalizador', slot: 'equalizer' },
-  { to: '/personalize', label: 'Personalização', slot: 'personalize' },
-  { to: '/settings', label: 'Configurações', slot: 'settings' }
+  { to: '/', label: tk('Biblioteca'), slot: 'library' },
+  { to: '/my-world', label: tk('Meu Mundo'), slot: 'myworld' },
+  { to: '/search', label: tk('Pesquisar'), slot: 'search' },
+  { to: '/playlists', label: tk('Playlists'), slot: 'playlists' },
+  { to: '/artists', label: tk('Artistas'), slot: 'artists' },
+  { to: '/albums', label: tk('Álbuns'), slot: 'albums' },
+  { to: '/favorites', label: tk('Favoritos'), slot: 'favorites' },
+  { to: '/visualizer', label: tk('Visualizer'), slot: 'visualizer' },
+  { to: '/history', label: tk('Histórico'), slot: 'history' },
+  { to: '/equalizer', label: tk('Equalizador'), slot: 'equalizer' },
+  { to: '/personalize', label: tk('Personalização'), slot: 'personalize' },
+  { to: '/settings', label: tk('Configurações'), slot: 'settings' }
 ]
 
 const linkClass = (isActive: boolean): string =>
@@ -32,7 +33,7 @@ export function Sidebar(): JSX.Element {
       {/* Brand — fixed at top */}
       <div className="mb-4 flex shrink-0 items-center gap-4 px-3 pt-2">
         <LogoLed />
-        <span className="text-lg font-semibold tracking-tight">Harmony</span>
+        <span className="text-lg font-semibold tracking-tight">{t('Harmony')}</span>
       </div>
 
       {/* Navigation — scrolls if the window is short, so nothing gets cut off */}
@@ -43,7 +44,7 @@ export function Sidebar(): JSX.Element {
         {items.map(({ to, label, slot }) => (
           <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => linkClass(isActive)}>
             <AppIcon slot={slot} size={17} strokeWidth={1.8} />
-            {label}
+            {t(label)}
           </NavLink>
         ))}
       </nav>
@@ -66,11 +67,11 @@ export function Sidebar(): JSX.Element {
             strokeWidth={1.8}
             className="text-[var(--accent)] transition-transform group-hover:scale-110"
           />
-          Apoie o Harmony
+          {t('Apoie o Harmony')}
         </NavLink>
       </div>
 
-      <StickerZone zone="sidebar" label="Barra lateral" />
+      <StickerZone zone="sidebar" label={t('Barra lateral')} />
     </aside>
   )
 }

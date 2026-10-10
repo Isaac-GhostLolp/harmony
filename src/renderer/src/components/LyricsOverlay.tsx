@@ -10,11 +10,12 @@ import { parseLrc, activeLineIndex, type LrcLine } from '@/utils/lrc'
 import { EditStudio } from '@/components/edit/EditStudio'
 import { KaraokeView } from '@/components/karaoke/KaraokeView'
 import type { LyricsResult } from '@/types'
+import { t, tk } from '@/i18n'
 
 const MODES: { id: LyricsMode; label: string }[] = [
-  { id: 'synced', label: 'Sincronizada' },
-  { id: 'karaoke', label: 'Karaokê' },
-  { id: 'edit', label: 'Edit' }
+  { id: 'synced', label: tk('Sincronizada') },
+  { id: 'karaoke', label: tk('Karaokê') },
+  { id: 'edit', label: tk('Edit') }
 ]
 
 export function LyricsOverlay(): JSX.Element {
@@ -66,7 +67,7 @@ export function LyricsOverlay(): JSX.Element {
               <h2 className="truncate text-lg font-semibold">{song?.title ?? 'Letras'}</h2>
               <p className="truncate text-xs text-muted">
                 {song?.artist ?? ''}
-                {result && <span className="ml-2 opacity-70">· fonte: {result.source}</span>}
+                {result && <span className="ml-2 opacity-70">{t('· fonte:')} {result.source}</span>}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -74,8 +75,8 @@ export function LyricsOverlay(): JSX.Element {
                 onClick={() => fetchLyrics(true)}
                 disabled={loading}
                 className="text-muted transition-colors hover:text-ink disabled:opacity-40"
-                title="Buscar letra novamente online"
-                aria-label="Buscar letra novamente"
+                title={t('Buscar letra novamente online')}
+                aria-label={t('Buscar letra novamente')}
               >
                 {loading ? <Spinner size={15} icon="rotate" /> : <RotateCw size={15} />}
               </button>
@@ -88,11 +89,11 @@ export function LyricsOverlay(): JSX.Element {
                       mode === m.id ? 'bg-[var(--accent)] text-white' : 'text-muted hover:text-ink'
                     }`}
                   >
-                    {m.label}
+                    {t(m.label)}
                   </button>
                 ))}
               </div>
-              <button onClick={toggle} className="text-muted hover:text-ink" aria-label="Fechar letras">
+              <button onClick={toggle} className="text-muted hover:text-ink" aria-label={t('Fechar letras')}>
                 <X size={18} />
               </button>
             </div>
@@ -101,7 +102,7 @@ export function LyricsOverlay(): JSX.Element {
           <div className="min-h-0 flex-1">
             {loading && (
               <div className="flex h-full items-center justify-center gap-2 text-sm text-muted">
-                <Spinner size={16} /> Procurando letra…
+                <Spinner size={16} /> {t('Procurando letra…')}
               </div>
             )}
 
@@ -133,9 +134,9 @@ function NoLyrics(): JSX.Element {
     <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
       <MicVocal size={28} className="text-muted" />
       <p className="text-sm text-muted">
-        Nenhuma letra encontrada — nem local, nem nos provedores online.
+        {t('Nenhuma letra encontrada — nem local, nem nos provedores online.')}
         <br />
-        Você também pode colocar um arquivo <code className="text-ink">.lrc</code> ao lado da música.
+        {t('Você também pode colocar um arquivo')} <code className="text-ink">{t('.lrc')}</code> {t('ao lado da música.')}
       </p>
     </div>
   )
@@ -146,8 +147,7 @@ function PlainLyrics({ text, needsSync }: { text: string; needsSync: boolean }):
     <div className="h-full overflow-y-auto pr-2">
       {needsSync && (
         <p className="mb-4 rounded-xl bg-[var(--bg-raised)] px-4 py-2 text-xs text-muted">
-          Esta letra não tem marcações de tempo, então Karaokê e Edit não podem sincronizar.
-          Exibindo em modo estático.
+          {t('Esta letra não tem marcações de tempo, então Karaokê e Edit não podem sincronizar. Exibindo em modo estático.')}
         </p>
       )}
       <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-muted">{text}</pre>

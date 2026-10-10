@@ -5,6 +5,7 @@ import { useIconStore, BUILTIN_PACKS, ICON_EXT, MAX_ICON_MB } from '@/store/icon
 import { useEscape } from '@/components/views/useEscape'
 import { AppIcon } from './AppIcon'
 import { SLOTS, PACK_NAMES, type IconSlot } from './slots'
+import { t } from '@/i18n'
 
 /**
  * Making an icon pack from your own images. Every slot of the sidebar and
@@ -64,7 +65,7 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
                   setOver(null)
                   void bring([...e.dataTransfer.files].slice(0, 1), s.id)
                 }}
-                title={has ? `Trocar a imagem de ${s.label}` : `Escolher uma imagem para ${s.label}`}
+                title={has ? t('Trocar a imagem de {name}', { name: t(s.label) }) : t('Escolher uma imagem para {name}', { name: t(s.label) })}
                 className={`flex w-full flex-col items-center gap-1.5 rounded-xl border px-1 pb-1.5 pt-2.5 transition-colors ${
                   over === s.id
                     ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
@@ -76,13 +77,13 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
                 <span className={`grid h-7 place-items-center ${has ? 'text-ink' : 'text-muted opacity-60'}`}>
                   <AppIcon slot={s.id} pack={`mine:${pack.id}`} size={22} />
                 </span>
-                <span className="w-full truncate text-center text-[10px] text-muted">{s.label}</span>
+                <span className="w-full truncate text-center text-[10px] text-muted">{t(s.label)}</span>
               </button>
               {has && (
                 <button
                   onClick={() => clearSlot(pack.id, s.id)}
-                  title="Voltar ao ícone do pacote base"
-                  aria-label={`Tirar a imagem de ${s.label}`}
+                  title={t('Voltar ao ícone do pacote base')}
+                  aria-label={t('Tirar a imagem de {name}', { name: t(s.label) })}
                   className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-[var(--bg-base)] text-muted opacity-0 shadow transition-opacity hover:text-red-400 group-hover:opacity-100"
                 >
                   <X size={11} />
@@ -123,20 +124,20 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
               onChange={(e) => editPack(pack.id, { name: e.target.value })}
               maxLength={40}
               className="w-full bg-transparent text-lg font-semibold outline-none"
-              aria-label="Nome do pacote"
+              aria-label={t('Nome do pacote')}
             />
             <p className="text-[11px] text-muted">
-              {filled} de {SLOTS.length} ícones com imagem sua · os outros vêm do pacote base
+              {t('{done} de {total} ícones com imagem sua · os outros vêm do pacote base', { done: filled, total: SLOTS.length })}
             </p>
           </div>
-          <button onClick={close} aria-label="Fechar" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-[var(--bg-raised)] hover:text-ink">
+          <button onClick={close} aria-label={t('Fechar')} className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-[var(--bg-raised)] hover:text-ink">
             <X size={16} />
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--glass-border)] px-4 py-3 text-xs">
           <label className="flex items-center gap-2 text-muted">
-            Pacote base
+            {t('Pacote base')}
             <select
               value={pack.base}
               onChange={(e) => editPack(pack.id, { base: e.target.value })}
@@ -144,43 +145,43 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
             >
               {BUILTIN_PACKS.map((b) => (
                 <option key={b} value={b}>
-                  {PACK_NAMES[b]}
+                  {t(PACK_NAMES[b])}
                 </option>
               ))}
             </select>
           </label>
-          <label className="flex cursor-pointer items-center gap-2 text-muted" title="Para ícones de uma cor só: eles ganham a cor do texto e do destaque do tema, como os outros">
+          <label className="flex cursor-pointer items-center gap-2 text-muted" title={t('Para ícones de uma cor só: eles ganham a cor do texto e do destaque do tema, como os outros')}>
             <input type="checkbox" checked={pack.tint} onChange={(e) => editPack(pack.id, { tint: e.target.checked })} className="accent-[var(--accent)]" />
-            Pintar com as cores do tema
+            {t('Pintar com as cores do tema')}
           </label>
           <span className="flex-1" />
           <button
             onClick={() => bulkRef.current?.click()}
             className="flex items-center gap-1.5 rounded-full bg-[var(--bg-raised)] px-3 py-1.5 font-medium hover:text-ink"
-            title="Dê aos arquivos o nome do ícone: play.png, biblioteca.svg, favoritos.gif…"
+            title={t('Dê aos arquivos o nome do ícone: play.png, biblioteca.svg, favoritos.gif…')}
           >
-            <Upload size={13} /> Importar vários
+            <Upload size={13} /> {t('Importar vários')}
           </button>
         </div>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin' }}>
           <p className="text-[11px] leading-relaxed text-muted">
-            Clique num ícone para escolher a imagem, ou solte o arquivo em cima dele. PNG, SVG, WebP, GIF animado e outros, até{' '}
-            {MAX_ICON_MB} MB. Para trazer vários de uma vez, dê aos arquivos o nome do ícone (<b>play.png</b>, <b>biblioteca.svg</b>,{' '}
-            <b>favoritos.gif</b>…) e use <b>Importar vários</b> ou solte todos nesta janela.
+            {t('Clique num ícone para escolher a imagem, ou solte o arquivo em cima dele. PNG, SVG, WebP, GIF animado e outros, até {mb} MB.', { mb: MAX_ICON_MB })}{' '}
+            {t('Para trazer vários de uma vez, dê aos arquivos o nome do ícone')} (<b>{t('play.png')}</b>, <b>{t('biblioteca.svg')}</b>,{' '}
+            <b>{t('favoritos.gif')}</b>…) {t('e use')} <b>{t('Importar vários')}</b> {t('ou solte todos nesta janela.')}
           </p>
-          {group('sidebar', 'Barra lateral')}
-          {group('player', 'Player')}
+          {group('sidebar', t('Barra lateral'))}
+          {group('player', t('Player'))}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-[var(--glass-border)] p-3 text-xs">
           {confirmDelete ? (
             <>
               <span className="min-w-0 flex-1 text-muted">
-                Excluir <b className="text-ink">{pack.name}</b> e as imagens dele?
+                {t('Excluir “{name}” e as imagens dele?', { name: pack.name })}
               </span>
               <button onClick={() => setConfirmDelete(false)} className="rounded-full px-3 py-1.5 hover:bg-[var(--bg-raised)]">
-                Cancelar
+                {t('Cancelar')}
               </button>
               <button
                 onClick={() => {
@@ -189,7 +190,7 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
                 }}
                 className="rounded-full bg-red-500/90 px-3 py-1.5 font-semibold text-white"
               >
-                Excluir
+                {t('Excluir')}
               </button>
             </>
           ) : (
@@ -198,7 +199,7 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
                 onClick={() => setConfirmDelete(true)}
                 className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-muted hover:bg-[var(--bg-raised)] hover:text-red-400"
               >
-                <Trash2 size={13} /> Excluir pacote
+                <Trash2 size={13} /> {t('Excluir pacote')}
               </button>
               <span className={`min-w-0 flex-1 truncate ${notice ? 'text-[var(--accent)]' : ''}`}>{notice}</span>
               <button
@@ -208,7 +209,7 @@ export function IconPackEditor({ id, onClose }: { id: string; onClose: () => voi
                 }}
                 className="press flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-1.5 font-semibold text-[var(--on-accent,#fff)]"
               >
-                <Check size={13} /> {using ? 'Pronto' : 'Usar este pacote'}
+                <Check size={13} /> {using ? t('Pronto') : t('Usar este pacote')}
               </button>
             </>
           )}

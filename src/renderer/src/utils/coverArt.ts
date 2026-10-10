@@ -1,3 +1,4 @@
+import { tk } from '@/i18n'
 /**
  * Cover art generator — draws an album cover on a canvas from a style, a
  * palette, a seed and the album's own text. Everything is procedural (no
@@ -19,32 +20,32 @@ export type CoverStyle =
   | 'photo'
 
 export const COVER_STYLES: { id: CoverStyle; label: string }[] = [
-  { id: 'gradient', label: 'Degradê' },
-  { id: 'waves', label: 'Ondas' },
-  { id: 'bauhaus', label: 'Bauhaus' },
-  { id: 'sunset', label: 'Retrô' },
-  { id: 'rings', label: 'Anéis' },
-  { id: 'mosaic', label: 'Mosaico' },
-  { id: 'type', label: 'Tipografia' },
-  { id: 'topo', label: 'Linhas' },
-  { id: 'night', label: 'Noite' },
-  { id: 'photo', label: 'Minha foto' }
+  { id: 'gradient', label: tk('Degradê') },
+  { id: 'waves', label: tk('Ondas') },
+  { id: 'bauhaus', label: tk('Bauhaus') },
+  { id: 'sunset', label: tk('Retrô') },
+  { id: 'rings', label: tk('Anéis') },
+  { id: 'mosaic', label: tk('Mosaico') },
+  { id: 'type', label: tk('Tipografia') },
+  { id: 'topo', label: tk('Linhas') },
+  { id: 'night', label: tk('Noite') },
+  { id: 'photo', label: tk('Minha foto') }
 ]
 
 /** background, then three colours */
 export type Palette = [string, string, string, string]
 
 export const PALETTES: { name: string; colors: Palette }[] = [
-  { name: 'Pôr do sol', colors: ['#2b0f3a', '#ff6b6b', '#ffb36b', '#ffe29a'] },
-  { name: 'Oceano', colors: ['#03203c', '#1e6fa8', '#3ec1d3', '#e0fbfc'] },
-  { name: 'Neon', colors: ['#0b0221', '#ff2a6d', '#05d9e8', '#d1f7ff'] },
-  { name: 'Pastel', colors: ['#fdf0f5', '#f7a8c4', '#a8d8f7', '#c9f0d4'] },
-  { name: 'Floresta', colors: ['#0f2417', '#2d6a4f', '#95d5b2', '#f1e3c2'] },
-  { name: 'Café', colors: ['#2a1a12', '#8b5a3c', '#d4a373', '#faedcd'] },
-  { name: 'Mono', colors: ['#111111', '#444444', '#9a9a9a', '#f2f2f2'] },
-  { name: 'Algodão-doce', colors: ['#2d1b4e', '#c77dff', '#ff9ecd', '#fff1a8'] },
-  { name: 'Vintage', colors: ['#f1e6d0', '#d1495b', '#edae49', '#00798c'] },
-  { name: 'Lava', colors: ['#120404', '#7a0b0b', '#ff4d1a', '#ffc53d'] }
+  { name: tk('Pôr do sol'), colors: ['#2b0f3a', '#ff6b6b', '#ffb36b', '#ffe29a'] },
+  { name: tk('Oceano'), colors: ['#03203c', '#1e6fa8', '#3ec1d3', '#e0fbfc'] },
+  { name: tk('Neon'), colors: ['#0b0221', '#ff2a6d', '#05d9e8', '#d1f7ff'] },
+  { name: tk('Pastel'), colors: ['#fdf0f5', '#f7a8c4', '#a8d8f7', '#c9f0d4'] },
+  { name: tk('Floresta'), colors: ['#0f2417', '#2d6a4f', '#95d5b2', '#f1e3c2'] },
+  { name: tk('Café'), colors: ['#2a1a12', '#8b5a3c', '#d4a373', '#faedcd'] },
+  { name: tk('Mono'), colors: ['#111111', '#444444', '#9a9a9a', '#f2f2f2'] },
+  { name: tk('Algodão-doce'), colors: ['#2d1b4e', '#c77dff', '#ff9ecd', '#fff1a8'] },
+  { name: tk('Vintage'), colors: ['#f1e6d0', '#d1495b', '#edae49', '#00798c'] },
+  { name: tk('Lava'), colors: ['#120404', '#7a0b0b', '#ff4d1a', '#ffc53d'] }
 ]
 
 export type TextPos = 'bottom' | 'center' | 'top' | 'none'

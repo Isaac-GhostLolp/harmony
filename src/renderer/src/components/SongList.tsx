@@ -9,6 +9,7 @@ import { CoverArt } from '@/components/CoverArt'
 import { api } from '@/services/api'
 import { ConfirmDialog } from '@/components/InputDialog'
 import { useCoverCreator } from '@/store/coverCreatorStore'
+import { t, tn } from '@/i18n'
 
 interface Props {
   songs: Song[]
@@ -197,8 +198,8 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
 
   const toggleFav = async (song: Song): Promise<void> => {
     const fav = (await api.favorites.toggle(song.id)) as boolean
+    // announces the change: this list and every other screen update in place
     setFavoriteFlag(song.id, fav)
-    onChanged?.()
   }
 
   return (
@@ -212,15 +213,15 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             onClick={selectAll}
             className="rounded-full bg-[var(--bg-raised)] px-3 py-1.5 text-xs font-semibold text-ink hover:bg-[var(--accent-soft)]"
           >
-            {allSelected ? 'Desmarcar todas' : 'Selecionar todas'}
+            {allSelected ? t('Desmarcar todas') : t('Selecionar todas')}
           </button>
-          <span className="text-xs text-muted">{selected.size} selecionada(s)</span>
+          <span className="text-xs text-muted">{tn(selected.size, '{n} selecionada', '{n} selecionadas')}</span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <button
               onClick={() => playQueue(selectedSongs(), 0)}
               className="rounded-full bg-[var(--bg-raised)] px-3 py-1.5 text-xs font-semibold text-ink hover:bg-[var(--accent-soft)]"
             >
-              Tocar
+              {t('Tocar')}
             </button>
             <button
               onClick={async () => {
@@ -229,7 +230,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               }}
               className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white"
             >
-              Adicionar à playlist
+              {t('Adicionar à playlist')}
             </button>
             <button
               onClick={() => {
@@ -238,19 +239,19 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               }}
               className="rounded-full bg-[var(--bg-raised)] px-3 py-1.5 text-xs font-semibold text-ink hover:bg-[var(--accent-soft)]"
             >
-              Sincronizar
+              {t('Sincronizar')}
             </button>
             <button
               onClick={() => setPendingBulkDelete({ fromDisk: false })}
               className="rounded-full bg-red-500/80 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
             >
-              Excluir
+              {t('Excluir')}
             </button>
             <button
               onClick={clearSelection}
               className="rounded-full px-3 py-1.5 text-xs text-muted hover:text-ink"
             >
-              Cancelar
+              {t('Cancelar')}
             </button>
           </div>
         </div>
@@ -292,7 +293,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             <button
               onClick={() => playQueue(songs, i)}
               className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-md"
-              aria-label={`Tocar ${song.title}`}
+              aria-label={t('Tocar {title}', { title: song.title })}
             >
               <CoverArt src={song.coverPath} title={song.title} size="sm" rounded="lg" />
               <Play
@@ -316,7 +317,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               onClick={() => toggleFav(song)}
               className="justify-self-center text-muted opacity-0 transition-opacity hover:text-[var(--accent)] group-hover:opacity-100"
               style={{ opacity: song.favorite ? 1 : undefined }}
-              aria-label="Favoritar"
+              aria-label={t('Favoritar')}
             >
               <Heart
                 size={15}
@@ -341,7 +342,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                       ? 'border-[var(--accent)] bg-[var(--accent)]'
                       : 'border-white/40 hover:border-[var(--accent)]'
                   }`}
-                  aria-label="Selecionar música"
+                  aria-label={t('Selecionar música')}
                 >
                   {isSelected && <Check size={13} className="text-white" />}
                 </button>
@@ -353,12 +354,12 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                       toggleSelect(song.id, i, e.shiftKey)
                     }}
                     className="hidden h-5 w-5 place-items-center rounded-md border border-white/40 hover:border-[var(--accent)] group-hover:grid"
-                    aria-label="Selecionar música"
+                    aria-label={t('Selecionar música')}
                   />
                   <button
                     onClick={(e) => openMenu(song.id, e)}
                     className="opacity-0 group-hover:opacity-100"
-                    aria-label="Mais opções"
+                    aria-label={t('Mais opções')}
                   >
                     <MoreHorizontal size={16} />
                   </button>
@@ -373,11 +374,11 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 }`}
                 onMouseLeave={() => setMenuFor(null)}
               >
-                <MenuItem label="Tocar em seguida" onClick={() => { addNext(song); setMenuFor(null) }} />
-                <MenuItem label="Adicionar à fila" onClick={() => { addToQueue(song); setMenuFor(null) }} />
-                <MenuItem label="📮 Criar cápsula do tempo" onClick={() => { useCapsuleStore.getState().openSeal(song); setMenuFor(null) }} />
+                <MenuItem label={t('Tocar em seguida')} onClick={() => { addNext(song); setMenuFor(null) }} />
+                <MenuItem label={t('Adicionar à fila')} onClick={() => { addToQueue(song); setMenuFor(null) }} />
+                <MenuItem label={t('📮 Criar cápsula do tempo')} onClick={() => { useCapsuleStore.getState().openSeal(song); setMenuFor(null) }} />
                 <MenuItem
-                  label={song.coverPath ? '🎨 Criar outra capa' : '🎨 Criar capa'}
+                  label={song.coverPath ? t('🎨 Criar outra capa') : t('🎨 Criar capa')}
                   onClick={() => {
                     useCoverCreator.getState().open({ songId: song.id, title: song.album ?? song.title, artist: song.artist ?? '', coverPath: song.coverPath })
                     setMenuFor(null)
@@ -391,35 +392,35 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 )}
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
-                  label="Sincronizar capa e letra online"
+                  label={t('Sincronizar capa e letra online')}
                   onClick={() => { researchOnline(song); setMenuFor(null) }}
                 />
                 {song.albumId && (
                   <>
                     <MenuItem
-                      label="Capa: usar original (metadados)"
+                      label={t('Capa: usar original (metadados)')}
                       onClick={() => { setCoverSource(song, 'embedded'); setMenuFor(null) }}
                     />
                     <MenuItem
-                      label="Capa: usar da internet"
+                      label={t('Capa: usar da internet')}
                       onClick={() => { setCoverSource(song, 'online'); setMenuFor(null) }}
                     />
                   </>
                 )}
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
-                  label="Remover da biblioteca"
+                  label={t('Remover da biblioteca')}
                   onClick={() => { deleteSong(song, false); setMenuFor(null) }}
                 />
                 <MenuItem
-                  label="Excluir do dispositivo (lixeira)"
+                  label={t('Excluir do dispositivo (lixeira)')}
                   onClick={() => { deleteSong(song, true); setMenuFor(null) }}
                 />
                 {playlists.length > 0 && (
                   <>
                     <div className="my-1 h-px bg-[var(--glass-border)]" />
                     <p className="px-3 py-1 text-[10px] uppercase tracking-wide text-muted">
-                      Adicionar à playlist
+                      {t('Adicionar à playlist')}
                     </p>
                     {playlists.map((p) => (
                       <MenuItem
@@ -447,13 +448,13 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             onClick={jumpToCurrent}
             aria-hidden={!offscreen}
             tabIndex={offscreen ? 0 : -1}
-            title="Voltar para a música que está tocando"
+            title={t('Voltar para a música que está tocando')}
             className={`flex -translate-y-full items-center gap-2 rounded-full bg-[var(--accent)] py-1.5 pl-1.5 pr-3.5 text-xs font-semibold text-white shadow-[0_8px_24px_rgb(0_0_0/0.45)] transition-all duration-300 hover:scale-[1.04] ${
               offscreen ? 'pointer-events-auto opacity-100' : 'translate-x-3 opacity-0'
             }`}
           >
             <CoverArt src={currentSong.coverPath} title={currentSong.title} size="sm" rounded="full" className="!h-7 !w-7" />
-            <span className="max-w-[180px] truncate">Tocando agora</span>
+            <span className="max-w-[180px] truncate">{t('Tocando agora')}</span>
             {currentIdx < range.first ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
           </button>
         </div>
@@ -461,24 +462,24 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
     </div>
     <ConfirmDialog
       open={pendingDelete !== null}
-      title={pendingDelete?.fromDisk ? 'Enviar para a lixeira' : 'Remover da biblioteca'}
+      title={pendingDelete?.fromDisk ? t('Enviar para a lixeira') : t('Remover da biblioteca')}
       message={
         pendingDelete
           ? pendingDelete.fromDisk
-            ? `Enviar "${pendingDelete.song.title}" para a lixeira e remover da biblioteca?`
-            : `Remover "${pendingDelete.song.title}" da biblioteca? (o arquivo permanece no disco)`
+            ? t('Enviar “{title}” para a lixeira e remover da biblioteca?', { title: pendingDelete.song.title })
+            : t('Remover “{title}” da biblioteca? (o arquivo permanece no disco)', { title: pendingDelete.song.title })
           : ''
       }
-      confirmLabel={pendingDelete?.fromDisk ? 'Enviar à lixeira' : 'Remover'}
+      confirmLabel={pendingDelete?.fromDisk ? t('Enviar à lixeira') : t('Remover')}
       danger
       onConfirm={performDelete}
       onCancel={() => setPendingDelete(null)}
     />
     <ConfirmDialog
       open={pendingBulkDelete !== null}
-      title="Excluir músicas selecionadas"
-      message={`Remover ${selected.size} música(s) da biblioteca? (os arquivos permanecem no disco)`}
-      confirmLabel="Remover"
+      title={t('Excluir músicas selecionadas')}
+      message={tn(selected.size, 'Remover {n} música da biblioteca? (o arquivo permanece no disco)', 'Remover {n} músicas da biblioteca? (os arquivos permanecem no disco)')}
+      confirmLabel={t('Remover')}
       danger
       onConfirm={() => runBulkDelete(false)}
       onCancel={() => setPendingBulkDelete(null)}
@@ -493,10 +494,10 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             className="glass max-h-[70vh] w-[min(92vw,360px)] overflow-y-auto rounded-2xl p-4"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <h2 className="mb-1 text-sm font-semibold">Adicionar {selected.size} música(s)</h2>
-            <p className="mb-3 text-xs text-muted">Escolha uma playlist:</p>
+            <h2 className="mb-1 text-sm font-semibold">{tn(selected.size, 'Adicionar {n} música', 'Adicionar {n} músicas')}</h2>
+            <p className="mb-3 text-xs text-muted">{t('Escolha uma playlist:')}</p>
             {playlists.length === 0 ? (
-              <p className="text-xs text-muted">Nenhuma playlist ainda. Crie uma primeiro.</p>
+              <p className="text-xs text-muted">{t('Nenhuma playlist ainda. Crie uma primeiro.')}</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {playlists.map((pl) => (

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { locale, tk } from '@/i18n'
 
 /** A time capsule as `capsules:list` returns it (see main/ipc/handlers.ts). */
 export interface Capsule {
@@ -53,7 +54,7 @@ export const useCapsuleStore = create<CapsuleState>((set) => ({
 
 // ---- time words -------------------------------------------------------------
 
-const rtf = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto' })
+const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' })
 
 /** "há 1 ano", "em 3 meses", "amanhã"… for a unix time relative to now. */
 export function relativeTime(unix: number): string {
@@ -74,16 +75,16 @@ export function relativeTime(unix: number): string {
 }
 
 export function longDate(unix: number): string {
-  return new Date(unix * 1000).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(unix * 1000).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 /** Open dates offered when sealing, as months from today. */
 export const SEAL_OPTIONS: { months: number; label: string }[] = [
-  { months: 1, label: '1 mês' },
-  { months: 3, label: '3 meses' },
-  { months: 6, label: '6 meses' },
-  { months: 12, label: '1 ano' },
-  { months: 24, label: '2 anos' }
+  { months: 1, label: tk('1 mês') },
+  { months: 3, label: tk('3 meses') },
+  { months: 6, label: tk('6 meses') },
+  { months: 12, label: tk('1 ano') },
+  { months: 24, label: tk('2 anos') }
 ]
 
 /** Unix time `months` from now (same day of the month, at the start of the day). */

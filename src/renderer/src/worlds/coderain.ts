@@ -1,5 +1,6 @@
 import type { World, WorldContext } from './types'
 import { canvasDpr } from '@/utils/perf'
+import { t } from '@/i18n'
 
 /**
  * 🟩 Code Rain — falling green code, in three depths.
@@ -26,8 +27,9 @@ const LAYERS = [
   { size: 24, speed: 1.1, color: '#3dff88', alpha: 1, density: 0.45 }
 ]
 const GLYPHS = 56
-const PHRASES = ['HARMONY', 'NAO HA COLHER', 'ACORDE', 'SIGA O COELHO BRANCO', 'LIBERTE SUA MENTE']
-const TERMINAL = ['> acorde...', '> a musica te encontrou.', '> siga o coelho branco_']
+// in the app's language, read when the world starts (no accents: the glyph rain has none)
+const PHRASES = (): string[] => ['HARMONY', t('NAO HA COLHER'), t('ACORDE'), t('SIGA O COELHO BRANCO'), t('LIBERTE SUA MENTE')]
+const TERMINAL = (): string[] => [t('> acorde...'), t('> a musica te encontrou.'), t('> siga o coelho branco_')]
 
 // ---------------------------------------------------------------------------
 // glyphs: made of strokes on a 4×6 grid, katakana-like, mirrored
@@ -283,7 +285,7 @@ export const codeRainWorld: World = {
     // ---- a phrase decoding in the middle of the rain
     st.nextPhrase -= dt
     if (!st.phrase && (st.nextPhrase <= 0 || (c.impactHit && st.nextPhrase < 8))) {
-      st.phrase = { text: PHRASES[Math.floor(Math.random() * PHRASES.length)], t: 0, row: 0 }
+      st.phrase = { text: ((ph) => ph[Math.floor(Math.random() * ph.length)])(PHRASES()), t: 0, row: 0 }
       st.nextPhrase = 26 + Math.random() * 20
     }
     if (st.phrase) {
@@ -357,7 +359,7 @@ export const codeRainWorld: World = {
     if (st.term) {
       const tm = st.term
       tm.t += dt
-      const text = TERMINAL[tm.line]
+      const text = TERMINAL()[tm.line]
       tm.chars = Math.min(text.length, Math.floor(tm.t * 11))
       ctx.font = `15px 'JetBrains Mono Variable', ui-monospace, monospace`
       ctx.textBaseline = 'top'
@@ -376,7 +378,7 @@ export const codeRainWorld: World = {
         tm.line++
         tm.t = 0
         tm.chars = 0
-        if (tm.line >= TERMINAL.length) {
+        if (tm.line >= TERMINAL().length) {
           st.term = null
           st.nextTerm = 40 + Math.random() * 30
         }

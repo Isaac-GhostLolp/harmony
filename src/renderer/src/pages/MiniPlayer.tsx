@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Play, Pause, SkipBack, SkipForward, X, Music2 } from 'lucide-react'
 import { api } from '@/services/api'
+import { t } from '@/i18n'
 
 interface MiniState {
   title: string | null
@@ -44,7 +45,7 @@ export function MiniPlayer(): JSX.Element {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{state.title ?? 'Nada tocando'}</p>
+        <p className="truncate text-sm font-medium">{state.title ?? t('Nada tocando')}</p>
         <p className="truncate text-xs text-muted">{state.artist ?? 'Harmony'}</p>
         <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--bg-raised)]">
           <div className="h-full bg-[var(--accent)] transition-[width]" style={{ width: `${pct}%` }} />
@@ -55,21 +56,21 @@ export function MiniPlayer(): JSX.Element {
         className="flex items-center gap-2"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
-        <button onClick={() => api.player.sendCommand('prev')} className="text-muted hover:text-ink" aria-label="Anterior">
+        <button onClick={() => api.player.sendCommand('prev')} className="text-muted hover:text-ink" aria-label={t('Anterior')}>
           <SkipBack size={16} fill="currentColor" />
         </button>
         <button
           onClick={() => api.player.sendCommand('toggle')}
           className="grid h-9 w-9 place-items-center rounded-full"
           style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
-          aria-label={state.isPlaying ? 'Pausar' : 'Tocar'}
+          aria-label={state.isPlaying ? t('Pausar') : t('Tocar')}
         >
           {state.isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
         </button>
-        <button onClick={() => api.player.sendCommand('next')} className="text-muted hover:text-ink" aria-label="Próxima">
+        <button onClick={() => api.player.sendCommand('next')} className="text-muted hover:text-ink" aria-label={t('Próxima')}>
           <SkipForward size={16} fill="currentColor" />
         </button>
-        <button onClick={() => api.player.toggleMini()} className="ml-1 text-muted hover:text-ink" aria-label="Fechar mini player">
+        <button onClick={() => api.player.toggleMini()} className="ml-1 text-muted hover:text-ink" aria-label={t('Fechar mini player')}>
           <X size={15} />
         </button>
       </div>

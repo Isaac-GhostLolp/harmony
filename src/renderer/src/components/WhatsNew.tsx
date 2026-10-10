@@ -5,6 +5,7 @@ import { Check, Sparkles, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { useUiStore } from '@/store/uiStore'
 import { APP_VERSION, compareVersions, RELEASES, releasesSince, type Release, type WhatsNewAction } from '@/whatsNew'
+import { t } from '@/i18n'
 
 /** Dispatch on window to show the current release's notes again (Settings). */
 export const WHATS_NEW_EVENT = 'harmony:whats-new'
@@ -80,7 +81,7 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4 backdrop-blur-md" onMouseDown={close}>
       <div
         role="dialog"
-        aria-label="Novidades do Harmony"
+        aria-label={t('Novidades do Harmony')}
         className="glass fade-rise flex max-h-[86vh] w-[min(94vw,560px)] flex-col overflow-hidden rounded-3xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -91,14 +92,14 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
           <button
             onClick={close}
             className="absolute right-4 top-4 rounded-full p-1.5 text-muted hover:bg-white/10 hover:text-ink"
-            aria-label="Fechar"
+            aria-label={t('Fechar')}
           >
             <X size={16} />
           </button>
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
-            <Sparkles size={13} /> Novidades da v{releases[0].version}
+            <Sparkles size={13} /> {t('Novidades da v{v}', { v: releases[0].version })}
           </p>
-          <h2 className="mt-1 pr-8 text-xl font-bold tracking-tight text-ink">{releases[0].title}</h2>
+          <h2 className="mt-1 pr-8 text-xl font-bold tracking-tight text-ink">{t(releases[0].title)}</h2>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">
@@ -106,7 +107,7 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
             <div key={r.version}>
               {ri > 0 && (
                 <p className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  v{r.version} · {r.title}
+                  v{r.version} · {t(r.title)}
                 </p>
               )}
               <div className="flex flex-col gap-2.5">
@@ -122,8 +123,8 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
                         {it.emoji}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink">{it.title}</p>
-                        <p className="mt-0.5 text-xs leading-relaxed text-muted">{it.text}</p>
+                        <p className="text-sm font-semibold text-ink">{t(it.title)}</p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-muted">{t(it.text)}</p>
                         {it.action && (
                           <button
                             onClick={() => run(it.action!, key)}
@@ -132,10 +133,10 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
                           >
                             {done.has(key) ? (
                               <>
-                                <Check size={12} /> Ativado
+                                <Check size={12} /> {t('Ativado')}
                               </>
                             ) : (
-                              `${it.action.label} →`
+                              `${t(it.action.label)} →`
                             )}
                           </button>
                         )}
@@ -150,7 +151,7 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
 
         <div className="flex justify-end px-6 py-4">
           <button onClick={close} className="rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-semibold text-white">
-            Bora! 🎶
+            {t('Bora! 🎶')}
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { announceFavorite } from '@/utils/favorites'
 import type { Song, RepeatMode } from '@/types'
 
 interface PlayerState {
@@ -158,10 +159,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return { queue: q, currentIndex: ci }
     }),
 
-  setFavoriteFlag: (songId, fav) =>
+  setFavoriteFlag: (songId, fav) => {
+    const flag: 0 | 1 = fav ? 1 : 0
     set((s) => ({
-      queue: s.queue.map((sg) => (sg.id === songId ? { ...sg, favorite: fav ? 1 : 0 } : sg))
-    })),
+      queue: s.queue.map((sg) => (sg.id === songId ? { ...sg, favorite: flag } : sg)),
+      originalQueue: s.originalQueue.map((sg) => (sg.id === songId ? { ...sg, favorite: flag } : sg))
+    }))
+    // every screen showing this song updates its heart (utils/favorites)
+    announceFavorite(songId, fav)
+  },
 
   updateSongCover: (songId, coverPath) =>
     set((s) => ({

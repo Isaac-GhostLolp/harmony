@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Download, RefreshCw, X } from 'lucide-react'
 import { api } from '@/services/api'
+import { t } from '@/i18n'
 
 type UpdateStatus =
   | { state: 'checking' }
@@ -52,7 +53,7 @@ export function UpdateNotice(): JSX.Element | null {
         <div className="min-w-0 flex-1">
           {status.state === 'downloading' ? (
             <>
-              <p className="text-xs font-semibold text-ink">Baixando atualização…</p>
+              <p className="text-xs font-semibold text-ink">{t('Baixando atualização…')}</p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--bg-raised)]">
                 <div
                   className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
@@ -63,16 +64,16 @@ export function UpdateNotice(): JSX.Element | null {
           ) : (
             <>
               <p className="text-xs font-semibold text-ink">
-                Atualização pronta{status.state === 'ready' ? ` (v${status.version})` : ''}
+                {t('Atualização pronta')}{status.state === 'ready' ? ` (v${status.version})` : ''}
               </p>
               <p className="mt-0.5 text-[11px] text-muted">
-                Reinicie para aplicar. Seus dados são preservados.
+                {t('Reinicie para aplicar. Seus dados são preservados.')}
               </p>
               <button
                 onClick={() => api.updater?.install()}
                 className="mt-2 w-full rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:scale-[1.02]"
               >
-                Reiniciar e atualizar
+                {t('Reiniciar e atualizar')}
               </button>
             </>
           )}
@@ -80,7 +81,7 @@ export function UpdateNotice(): JSX.Element | null {
         <button
           onClick={() => setDismissed(true)}
           className="text-muted hover:text-ink"
-          aria-label="Dispensar"
+          aria-label={t('Dispensar')}
         >
           <X size={14} />
         </button>

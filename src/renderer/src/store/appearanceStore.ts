@@ -8,6 +8,7 @@ import {
   type Look
 } from '@/utils/appearance'
 import { refreshCoverAccent } from '@/utils/color'
+import { t } from '@/i18n'
 
 /**
  * The look of the app: which theme is on, the user's edits to it, the themes
@@ -64,9 +65,10 @@ export function lookFor(source: string, mine: SavedLook[]): Look | null {
 }
 
 export function sourceName(source: string, mine: SavedLook[]): string {
-  if (source.startsWith('preset:')) return findPreset(source.slice(7))?.name ?? 'Tema'
-  if (source.startsWith('mine:')) return mine.find((m) => `mine:${m.id}` === source)?.name ?? 'Meu tema'
-  return 'Tema'
+  // built-in themes in the app's language; the user's own keep their name
+  if (source.startsWith('preset:')) return t(findPreset(source.slice(7))?.name ?? 'Tema')
+  if (source.startsWith('mine:')) return mine.find((m) => `mine:${m.id}` === source)?.name ?? t('Meu tema')
+  return t('Tema')
 }
 
 const newId = (): string => Math.random().toString(36).slice(2, 10)

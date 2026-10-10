@@ -10,6 +10,7 @@ import { VirtualRows, useContainerWidth } from './VirtualRows'
 import { useEscape } from './useEscape'
 import { CoverButton } from './CoverButton'
 import { albumDuration, groupAlbums, hueOf, type AlbumGroup } from './albums'
+import { t, tn } from '@/i18n'
 
 const MIN_W = 156
 const GAP = 34 // room for a record to slide out over the gap
@@ -134,7 +135,7 @@ function Turntable({ group, onClose }: { group: AlbumGroup; onClose: () => void 
         <button
           onClick={onClose}
           className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-full bg-[var(--bg-raised)] text-muted hover:text-ink"
-          aria-label="Fechar"
+          aria-label={t('Fechar')}
         >
           <X size={15} />
         </button>
@@ -156,7 +157,7 @@ function Turntable({ group, onClose }: { group: AlbumGroup; onClose: () => void 
             <span className="deck-arm-rod" />
             <span className="deck-arm-head" />
           </div>
-          <button onClick={play} className="deck-button keep-round" aria-label={spinning ? 'Pausar' : 'Tocar'}>
+          <button onClick={play} className="deck-button keep-round" aria-label={spinning ? t('Pausar') : t('Tocar')}>
             {spinning ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
           </button>
           <span className="deck-speed">33⅓</span>
@@ -166,20 +167,20 @@ function Turntable({ group, onClose }: { group: AlbumGroup; onClose: () => void 
         {/* the sleeve's back */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="flex items-center gap-3 pr-10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">Disco</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">{t('Disco')}</p>
             <CoverButton group={group} />
           </div>
           <h2 className="mt-1 truncate pr-10 text-2xl font-bold tracking-tight">{group.title}</h2>
           <p className="mt-0.5 text-sm text-muted">
-            {group.artist ?? 'Artista desconhecido'}
-            {group.year ? ` · ${group.year}` : ''} · {group.songs.length} faixas · {formatDuration(albumDuration(group))}
+            {group.artist ?? t('Artista desconhecido')}
+            {group.year ? ` · ${group.year}` : ''} · {tn(group.songs.length, '{n} faixa', '{n} faixas')} · {formatDuration(albumDuration(group))}
           </p>
           <button
             onClick={play}
             className="press mt-4 flex w-fit items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white"
           >
             {spinning ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-            {spinning ? 'Pausar' : onThis ? 'Continuar' : 'Tocar o disco'}
+            {spinning ? t('Pausar') : onThis ? t('Continuar') : t('Tocar o disco')}
           </button>
           <div className="mt-5 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {sides.map(([label, list, offset]) =>

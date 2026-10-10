@@ -1,3 +1,5 @@
+// the scenes use `t` for their own clock, so translations are `tr`/`trn` here
+import { locale, t as tr, tn as trn, tk } from '@/i18n'
 /**
  * Retrospectiva renderer — draws one frame of the year-in-music video.
  *
@@ -80,13 +82,13 @@ const SCENE_LEN: Record<SceneId, number> = {
   outro: 4.6
 }
 const SCENE_LABEL: Record<SceneId, string> = {
-  intro: 'Abertura',
-  minutes: 'Minutos',
-  genres: 'Gêneros',
-  artists: 'Artistas',
-  songs: 'Músicas',
-  clock: 'Horários',
-  outro: 'Resumo'
+  intro: tk('Abertura'),
+  minutes: tk('Minutos'),
+  genres: tk('Gêneros'),
+  artists: tk('Artistas'),
+  songs: tk('Músicas'),
+  clock: tk('Horários'),
+  outro: tk('Resumo')
 }
 
 /** The scenes this recap has (no data, no scene) with their start times. */
@@ -98,7 +100,7 @@ export function scenesFor(d: RecapData): Scene[] {
   ids.push('clock', 'outro')
   let t = 0
   return ids.map((id) => {
-    const s = { id, label: SCENE_LABEL[id], start: t, dur: SCENE_LEN[id] }
+    const s = { id, label: tr(SCENE_LABEL[id]), start: t, dur: SCENE_LEN[id] }
     t += s.dur
     return s
   })
@@ -110,7 +112,7 @@ export function recapLength(scenes: Scene[]): number {
 }
 
 export function periodLabel(p: number | 'all'): string {
-  return p === 'all' ? 'Todo o tempo' : String(p)
+  return p === 'all' ? tr('Todo o tempo') : String(p)
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +190,7 @@ function enter(t: number, delay: number, dur = 0.6): number {
   return easeOut((t - delay) / dur)
 }
 
-const fmt = (n: number): string => Math.round(n).toLocaleString('pt-BR')
+const fmt = (n: number): string => Math.round(n).toLocaleString(locale())
 
 function hsl(h: number, s: number, l: number, a = 1): string {
   return `hsla(${Math.round(h)}, ${s}%, ${l}%, ${a})`
@@ -379,7 +381,7 @@ interface Ctx {
 function sceneIntro({ ctx, d, A, S, t, h }: Ctx): void {
   const cx = RECAP_W / 2
   ctx.globalAlpha = enter(t, 0.1)
-  text(ctx, 'SUA RETROSPECTIVA', cx, 560, { size: 40, weight: 700, color: 'rgba(255,255,255,0.8)', spacing: 12 })
+  text(ctx, tr('SUA RETROSPECTIVA'), cx, 560, { size: 40, weight: 700, color: 'rgba(255,255,255,0.8)', spacing: 12 })
 
   // avatar with a glowing ring
   const k = easeBack((t - 0.3) / 0.7)
@@ -432,7 +434,7 @@ function sceneIntro({ ctx, d, A, S, t, h }: Ctx): void {
     ctx.restore()
   }
   ctx.globalAlpha = enter(t, 1.7)
-  text(ctx, d.period === 'all' ? 'Toda a sua história em música' : 'Seu ano em música', cx, 1450, {
+  text(ctx, d.period === 'all' ? tr('Toda a sua história em música') : tr('Seu ano em música'), cx, 1450, {
     size: 48,
     weight: 500,
     color: 'rgba(255,255,255,0.8)'
@@ -444,7 +446,7 @@ function sceneMinutes({ ctx, d, S, t, h }: Ctx): void {
   const cx = RECAP_W / 2
   const minutes = d.seconds / 60
   ctx.globalAlpha = enter(t, 0.05)
-  text(ctx, 'Você ouviu', cx, 620, { size: 64, weight: 600, color: 'rgba(255,255,255,0.85)' })
+  text(ctx, tr('Você ouviu'), cx, 620, { size: 64, weight: 600, color: 'rgba(255,255,255,0.85)' })
 
   // the counter rolls up
   const roll = easeOut((t - 0.3) / 1.8)
@@ -456,12 +458,12 @@ function sceneMinutes({ ctx, d, S, t, h }: Ctx): void {
   text(ctx, fmt(minutes * roll), 0, 0, { size: 230, weight: 900, gradient: h, maxW: 980 })
   ctx.restore()
   ctx.globalAlpha = enter(t, 0.6)
-  text(ctx, 'minutos de música', cx, 1010, { size: 58, weight: 700 })
+  text(ctx, tr('minutos de música'), cx, 1010, { size: 58, weight: 700 })
 
   const stats: [string, string][] = [
-    [fmt(d.totalPlays), 'plays'],
-    [fmt(d.activeDays), d.activeDays === 1 ? 'dia ativo' : 'dias ativos'],
-    [fmt(d.songsPlayed), d.songsPlayed === 1 ? 'música' : 'músicas']
+    [fmt(d.totalPlays), tr('plays')],
+    [fmt(d.activeDays), d.activeDays === 1 ? tr('dia ativo') : tr('dias ativos')],
+    [fmt(d.songsPlayed), d.songsPlayed === 1 ? tr('música') : tr('músicas')]
   ]
   stats.forEach(([v, l], i) => {
     const k = enter(t, 1.3 + i * 0.18)
@@ -482,15 +484,17 @@ function sceneMinutes({ ctx, d, S, t, h }: Ctx): void {
   const days = minutes / 1440
   const fact =
     days >= 1
-      ? `Isso dá ${days.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ${days < 2 ? 'dia' : 'dias'} inteiros de música!`
+      ? trn(days < 2 ? 1 : 2, 'Isso dá {d} dia inteiro de música!', 'Isso dá {d} dias inteiros de música!', {
+          d: days.toLocaleString(locale(), { maximumFractionDigits: 1 })
+        })
       : minutes >= 60
-        ? `São ${(minutes / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} horas de trilha sonora.`
-        : 'Todo grande ano começa com o primeiro play.'
+        ? tr('São {h} horas de trilha sonora.', { h: (minutes / 60).toLocaleString(locale(), { maximumFractionDigits: 1 }) })
+        : tr('Todo grande ano começa com o primeiro play.')
   ctx.globalAlpha = enter(t, 2.1)
   text(ctx, fact, cx, 1580, { size: 44, weight: 600, color: hsl(h + 30, 90, 82), maxW: 920 })
   if (d.newSongs > 0) {
     ctx.globalAlpha = enter(t, 2.4)
-    text(ctx, `e descobriu ${fmt(d.newSongs)} ${d.newSongs === 1 ? 'música nova' : 'músicas novas'}`, cx, 1650, {
+    text(ctx, trn(d.newSongs, 'e descobriu {count} música nova', 'e descobriu {count} músicas novas', { count: fmt(d.newSongs) }), cx, 1650, {
       size: 40,
       weight: 500,
       color: 'rgba(255,255,255,0.7)',
@@ -519,7 +523,7 @@ function sceneGenres({ ctx, d, t, h }: Ctx): void {
   const g = d.topGenres
   const total = g.reduce((a, b) => a + b.plays, 0) || 1
   ctx.globalAlpha = enter(t, 0.05)
-  text(ctx, 'Seu som teve a cara de', cx, 480, { size: 52, weight: 600, color: 'rgba(255,255,255,0.85)' })
+  text(ctx, tr('Seu som teve a cara de'), cx, 480, { size: 52, weight: 600, color: 'rgba(255,255,255,0.85)' })
   const k = easeBack((t - 0.35) / 0.7)
   if (k > 0) {
     ctx.globalAlpha = clamp01(k)
@@ -556,7 +560,7 @@ function sceneArtists({ ctx, d, A, S, t, h }: Ctx): void {
   const cx = RECAP_W / 2
   const list = d.topArtists
   ctx.globalAlpha = enter(t, 0.05)
-  text(ctx, list.length > 1 ? 'Seus artistas favoritos' : 'Seu artista favorito', cx, 330, {
+  text(ctx, list.length > 1 ? tr('Seus artistas favoritos') : tr('Seu artista favorito'), cx, 330, {
     size: 56,
     weight: 700,
     color: 'rgba(255,255,255,0.9)'
@@ -617,7 +621,7 @@ function sceneSongs({ ctx, d, A, S, t, h }: Ctx): void {
   const cx = RECAP_W / 2
   const list = d.topSongs
   ctx.globalAlpha = enter(t, 0.05)
-  text(ctx, d.period === 'all' ? 'As músicas da sua história' : list.length > 1 ? 'As músicas do seu ano' : 'A música do seu ano', cx, 330, {
+  text(ctx, d.period === 'all' ? tr('As músicas da sua história') : list.length > 1 ? tr('As músicas do seu ano') : tr('A música do seu ano'), cx, 330, {
     size: 56,
     weight: 700,
     color: 'rgba(255,255,255,0.9)'
@@ -684,17 +688,17 @@ function sceneSongs({ ctx, d, A, S, t, h }: Ctx): void {
 function clockLine(hours: number[]): { emoji: string; text: string; peak: number } {
   let peak = 0
   for (let i = 1; i < 24; i++) if (hours[i] > hours[peak]) peak = i
-  if (peak < 5) return { emoji: '🌙', text: 'Você é da turma da madrugada', peak }
-  if (peak < 12) return { emoji: '☀️', text: 'Você é da turma da manhã', peak }
-  if (peak < 18) return { emoji: '🌤️', text: 'Você é da turma da tarde', peak }
-  return { emoji: '🌆', text: 'Você é da turma da noite', peak }
+  if (peak < 5) return { emoji: '🌙', text: tr('Você é da turma da madrugada'), peak }
+  if (peak < 12) return { emoji: '☀️', text: tr('Você é da turma da manhã'), peak }
+  if (peak < 18) return { emoji: '🌤️', text: tr('Você é da turma da tarde'), peak }
+  return { emoji: '🌆', text: tr('Você é da turma da noite'), peak }
 }
 
 function sceneClock({ ctx, d, S, t, h }: Ctx): void {
   const cx = RECAP_W / 2
   const cy = 790
   ctx.globalAlpha = enter(t, 0.05)
-  text(ctx, 'Quando você dá o play', cx, 360, { size: 56, weight: 700, color: 'rgba(255,255,255,0.9)' })
+  text(ctx, tr('Quando você dá o play'), cx, 360, { size: 56, weight: 700, color: 'rgba(255,255,255,0.9)' })
 
   const max = Math.max(1, ...d.hours)
   const R0 = 175
@@ -737,10 +741,10 @@ function sceneClock({ ctx, d, S, t, h }: Ctx): void {
   text(ctx, line.text, cx, 1360, { size: 52, weight: 800, maxW: 960 })
 
   const facts: string[] = []
-  if (d.bestStreak >= 2) facts.push(`🔥 ${d.bestStreak} dias seguidos de música`)
+  if (d.bestStreak >= 2) facts.push(tr('🔥 {n} dias seguidos de música', { n: d.bestStreak }))
   if (d.bestDay && d.bestDay.plays >= 2) {
-    const day = new Date(d.bestDay.d + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
-    facts.push(`⭐ Seu maior dia: ${day}, ${fmt(d.bestDay.plays)} plays`)
+    const day = new Date(d.bestDay.d + 'T12:00:00').toLocaleDateString(locale(), { day: 'numeric', month: 'long' })
+    facts.push(tr('⭐ Seu maior dia: {day}, {plays} plays', { day, plays: fmt(d.bestDay.plays) }))
   }
   facts.forEach((f, i) => {
     ctx.globalAlpha = enter(t, 1.6 + i * 0.25)
@@ -789,7 +793,7 @@ function sceneOutro({ ctx, d, A, S, t, h }: Ctx): void {
   ctx.stroke()
 
   text(ctx, A.name, cx, 420, { size: 56, weight: 800, maxW: 820 })
-  text(ctx, `Retrospectiva ${periodLabel(d.period)}`, cx, 485, {
+  text(ctx, tr('Retrospectiva {period}', { period: periodLabel(d.period) }), cx, 485, {
     size: 40,
     weight: 700,
     gradient: h,
@@ -809,10 +813,10 @@ function sceneOutro({ ctx, d, A, S, t, h }: Ctx): void {
   ctx.globalAlpha = clamp01(k)
 
   const cells: [string, string][] = [
-    ['Minutos', fmt(d.seconds / 60)],
-    ['Plays', fmt(d.totalPlays)],
-    ['Top artista', d.topArtists[0]?.name ?? '—'],
-    ['Top gênero', d.topGenres[0] ? cap(d.topGenres[0].genre) : '—']
+    [tr('Minutos'), fmt(d.seconds / 60)],
+    [tr('Plays'), fmt(d.totalPlays)],
+    [tr('Top artista'), d.topArtists[0]?.name ?? '—'],
+    [tr('Top gênero'), d.topGenres[0] ? cap(d.topGenres[0].genre) : '—']
   ]
   cells.forEach(([label, value], i) => {
     const kk = enter(t, 0.9 + i * 0.12)
@@ -835,7 +839,7 @@ function sceneOutro({ ctx, d, A, S, t, h }: Ctx): void {
   const top = d.topSongs[0]
   if (top) {
     ctx.globalAlpha = clamp01(k) * enter(t, 1.5)
-    text(ctx, d.period === 'all' ? 'MÚSICA DA SUA VIDA' : 'MÚSICA DO ANO', cx, 1300, { size: 26, weight: 700, color: 'rgba(255,255,255,0.55)', spacing: 3 })
+    text(ctx, d.period === 'all' ? tr('MÚSICA DA SUA VIDA') : tr('MÚSICA DO ANO'), cx, 1300, { size: 26, weight: 700, color: 'rgba(255,255,255,0.55)', spacing: 3 })
     text(ctx, top.title, cx, 1375, { size: 58, weight: 900, maxW: 820, minScale: 0.7 })
     text(ctx, top.artist ?? '', cx, 1430, { size: 36, weight: 500, color: 'rgba(255,255,255,0.7)', maxW: 820 })
   }
@@ -846,9 +850,9 @@ function sceneOutro({ ctx, d, A, S, t, h }: Ctx): void {
   ctx.translate(cx, 1700)
   const p = 1 + S.pulse * 0.05
   ctx.scale(p, p)
-  text(ctx, 'Feito com ♪ Harmony', 0, 0, { size: 46, weight: 800 })
+  text(ctx, tr('Feito com ♪ Harmony'), 0, 0, { size: 46, weight: 800 })
   ctx.restore()
-  text(ctx, '#MinhaRetrospectiva', cx, 1770, { size: 36, weight: 600, color: hsl(h + 30, 90, 80) })
+  text(ctx, tr('#MinhaRetrospectiva'), cx, 1770, { size: 36, weight: 600, color: hsl(h + 30, 90, 80) })
   ctx.globalAlpha = 1
 }
 

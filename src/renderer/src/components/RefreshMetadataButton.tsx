@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Spinner } from '@/components/Spinner'
 import { api } from '@/services/api'
+import { t } from '@/i18n'
 
 /**
  * "✨ Atualizar Metadados" — fetches artist photos and missing covers online,
@@ -24,7 +25,7 @@ export function RefreshMetadataButton({ onDone }: { onDone?: () => void }): JSX.
     if (running) return
     setRunning(true)
     setResult(null)
-    setProgress({ done: 0, total: 0, label: 'Preparando…' })
+    setProgress({ done: 0, total: 0, label: t('Preparando…') })
     try {
       const r = (await api.metadata.refresh()) as {
         artistsUpdated: number
@@ -34,12 +35,12 @@ export function RefreshMetadataButton({ onDone }: { onDone?: () => void }): JSX.
       }
       setResult(
         r.total === 0
-          ? 'Tudo já estava atualizado!'
-          : `${r.artistsUpdated} fotos, ${r.coversUpdated} capas e ${r.genresUpdated} gêneros atualizados.`
+          ? t('Tudo já estava atualizado!')
+          : t('{photos} fotos, {covers} capas e {genres} gêneros atualizados.', { photos: r.artistsUpdated, covers: r.coversUpdated, genres: r.genresUpdated })
       )
       onDone?.()
     } catch {
-      setResult('Não foi possível atualizar agora.')
+      setResult(t('Não foi possível atualizar agora.'))
     } finally {
       setRunning(false)
       setProgress(null)
@@ -70,7 +71,7 @@ export function RefreshMetadataButton({ onDone }: { onDone?: () => void }): JSX.
         className="press flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
       >
         {running ? <Spinner size={14} /> : <Sparkles size={14} />}
-        Atualizar Metadados
+        {t('Atualizar Metadados')}
       </button>
     </div>
   )
