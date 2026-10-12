@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+export interface WindowState {
+  maximized: boolean
+  fullScreen: boolean
+  focused: boolean
+}
+
 const invoke = (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
 
 const api = {
@@ -128,7 +134,25 @@ const api = {
     set: (key: string, value: unknown) => invoke('settings:set', key, value)
   },
   app: {
-    openExternal: (url: string) => ipcRenderer.send('app:openExternal', url)
+    openExternal: (url: string) => ipcRenderer.send('app:openExternal', url),
+    /** closes and reopens the Harmony (the title bar choice needs a new window) */
+    relaunch: () => ipcRenderer.send('app:relaunch')
+  },
+  window: {
+    /** 'custom' when the window has no system frame and the page draws the title bar */
+    frame: (process.argv.includes('--harmony-frame=custom') ? 'custom' : 'system') as 'custom' | 'system',
+    platform: process.platform,
+    minimize: () => ipcRenderer.send('window:minimize'),
+    toggleMaximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close'),
+    getState: () => invoke('window:state') as Promise<WindowState>,
+    onState: (cb: (state: WindowState) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, state: WindowState): void => cb(state)
+      ipcRenderer.on('window:state', listener)
+      return () => {
+        ipcRenderer.removeListener('window:state', listener)
+      }
+    }
   },
   wallpaper: {
     save: (data: ArrayBuffer, ext: string, type: 'image' | 'video') =>

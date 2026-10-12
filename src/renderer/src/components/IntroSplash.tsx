@@ -547,5 +547,5 @@ export function IntroSplash({ onDone }: { onDone: () => void }): JSX.Element {
     }
   }, [])
 
-  return <canvas ref={canvasRef} aria-hidden className="fixed inset-0 z-[300] h-full w-full" />
+  return <canvas ref={canvasRef} aria-hidden className="under-bar fixed inset-0 z-[300] h-full w-full" />
 }

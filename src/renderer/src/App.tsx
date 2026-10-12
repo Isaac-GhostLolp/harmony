@@ -34,6 +34,8 @@ import { StickerTray } from '@/components/stickers/StickerTray'
 import { useStickerStore } from '@/store/stickerStore'
 import { useIconStore } from '@/store/iconStore'
 import { useBarStore } from '@/store/barStore'
+import { useTitleBarStore } from '@/store/titleBarStore'
+import { TitleBar } from '@/components/TitleBar'
 import { IconDefs } from '@/components/icons/AppIcon'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
@@ -68,6 +70,7 @@ export function App(): JSX.Element {
       useStickerStore.getState().hydrate(s.stickers, s.stickerLibrary)
       useIconStore.getState().hydrate(s.iconPack)
       useBarStore.getState().hydrate(s.playerBar)
+      useTitleBarStore.getState().hydrate(s.titleBar)
       if (typeof s.ultraFast === 'boolean') setUltraFast(s.ultraFast)
       if (typeof s.world === 'string' || s.world === null)
         useUiStore.getState().setWorld((s.world as string | null) ?? null)
@@ -155,6 +158,7 @@ export function App(): JSX.Element {
 
   return (
     <>
+      <TitleBar />
       {intro && <IntroSplash onDone={() => setIntro(false)} />}
       <HashRouter>
         <AudioBridge />
@@ -164,7 +168,7 @@ export function App(): JSX.Element {
           {bgCover && !ultraFast && (
             <div
               aria-hidden
-              className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-25 transition-[background-image] duration-700"
+              className="under-bar pointer-events-none fixed inset-0 z-0 bg-cover bg-center opacity-25 transition-[background-image] duration-700"
               style={{ backgroundImage: `url(${bgCover})`, filter: 'blur(64px) saturate(1.2)' }}
             />
           )}

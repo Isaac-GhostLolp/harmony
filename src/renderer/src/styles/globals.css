@@ -1325,3 +1325,185 @@ html[data-bar-style='floating'] .now-playing-pill {
 .bar-vinyl.is-playing .bar-tonearm {
   transform: rotate(0deg);
 }
+
+/* ---------- The Harmony's own title bar (components/TitleBar.tsx) ---------- */
+html[data-titlebar] {
+  --tb-h: 34px;
+}
+html[data-titlebar] #root {
+  height: calc(100% - var(--tb-h));
+  margin-top: var(--tb-h);
+}
+/* full-window overlays start below the bar, so its buttons stay reachable;
+   backgrounds (worlds, the blurred cover) still run under it */
+html[data-titlebar] .fixed.inset-0:not(.under-bar) {
+  top: var(--tb-h);
+}
+html[data-titlebar] .studio {
+  top: calc(var(--tb-h) + 0.75rem);
+}
+.tb-drag {
+  -webkit-app-region: drag;
+}
+.tb-nodrag,
+.tb-nodrag * {
+  -webkit-app-region: no-drag;
+}
+.titlebar {
+  height: var(--tb-h, 34px);
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--bg-base) 55%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  transition: opacity 200ms ease;
+}
+.titlebar.tb-blur .tb-title,
+.titlebar.tb-blur .tb-buttons {
+  opacity: 0.55;
+}
+.tb-title {
+  max-width: 100%;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.tb-artist {
+  opacity: 0.7;
+}
+/* a tiny equalizer next to the playing song */
+.tb-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+  flex-shrink: 0;
+}
+.tb-eq i {
+  width: 2px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+.tb-eq.is-playing i {
+  animation: tb-eq 900ms ease-in-out infinite;
+}
+.tb-eq.is-playing i:nth-child(2) {
+  animation-delay: -300ms;
+}
+.tb-eq.is-playing i:nth-child(3) {
+  animation-delay: -600ms;
+}
+@keyframes tb-eq {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: 10px;
+  }
+}
+html.ultra-fast .tb-eq i {
+  animation: none !important;
+}
+
+.tb-buttons {
+  display: flex;
+  align-items: center;
+}
+.tb-btn {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+}
+.tb-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Harmony: soft glass squares, close goes red */
+.tb-harmony {
+  gap: 2px;
+}
+.tb-harmony .tb-btn {
+  width: 34px;
+  height: 26px;
+  border-radius: 8px;
+}
+.tb-harmony .tb-btn:hover {
+  background: var(--bg-raised);
+}
+.tb-harmony .tb-close:hover {
+  background: #e5484d;
+  color: #fff;
+}
+
+/* Dots: macOS-style, symbols on hover */
+.tb-dots {
+  gap: 8px;
+  padding-left: 8px;
+}
+.tb-dots .tb-btn {
+  width: 13px;
+  height: 13px;
+  border-radius: 9999px;
+  color: transparent;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.25);
+}
+.tb-dots .tb-btn svg {
+  width: 7px;
+  height: 7px;
+  stroke-width: 1.6;
+}
+.tb-dots .tb-close {
+  background: #ff5f57;
+}
+.tb-dots .tb-min {
+  background: #febc2e;
+}
+.tb-dots .tb-max {
+  background: #28c840;
+}
+.tb-dots:hover .tb-btn {
+  color: rgb(0 0 0 / 0.6);
+}
+.titlebar.tb-blur .tb-dots:not(:hover) .tb-btn {
+  background: var(--bg-raised);
+}
+
+/* Minimal: just the lines */
+.tb-minimal {
+  gap: 4px;
+}
+.tb-minimal .tb-btn {
+  width: 30px;
+  height: 26px;
+  opacity: 0.65;
+}
+.tb-minimal .tb-btn:hover {
+  opacity: 1;
+}
+.tb-minimal .tb-close:hover {
+  color: #ff5f57;
+}
+
+/* Pill: one capsule in the theme's colour */
+.tb-pill {
+  gap: 0;
+  padding: 2px;
+  border-radius: 9999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--glass-border);
+}
+.tb-pill .tb-btn {
+  width: 30px;
+  height: 20px;
+  border-radius: 9999px;
+  color: var(--text-primary);
+}
+.tb-pill .tb-btn:hover {
+  background: var(--accent);
+  color: var(--on-accent, #fff);
+}

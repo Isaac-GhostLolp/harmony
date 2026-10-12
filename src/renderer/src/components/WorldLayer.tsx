@@ -63,7 +63,7 @@ export function WorldLayer(): JSX.Element | null {
       {isVideo && customMedia && (
         <video
           key={customMedia.url}
-          className="pointer-events-none fixed inset-0 h-full w-full object-cover"
+          className="under-bar pointer-events-none fixed inset-0 h-full w-full object-cover"
           style={{ zIndex: 0 }}
           src={customMedia.url}
           autoPlay
@@ -74,7 +74,7 @@ export function WorldLayer(): JSX.Element | null {
       )}
       <canvas
         ref={canvasRef}
-        className="pointer-events-none fixed inset-0 h-full w-full transition-opacity duration-700"
+        className="under-bar pointer-events-none fixed inset-0 h-full w-full transition-opacity duration-700"
         style={{ opacity: world && !isVideo ? 1 : 0, zIndex: 0 }}
         aria-hidden
       />

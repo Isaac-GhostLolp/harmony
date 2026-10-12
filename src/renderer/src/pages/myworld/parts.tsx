@@ -124,5 +124,5 @@ export const Confetti = forwardRef<ConfettiHandle>(function Confetti(_props, ref
 
   useEffect(() => () => cancelAnimationFrame(raf.current), [])
 
-  return <canvas ref={canvasRef} aria-hidden className="pointer-events-none fixed inset-0 z-[150] h-full w-full" />
+  return <canvas ref={canvasRef} aria-hidden className="under-bar pointer-events-none fixed inset-0 z-[150] h-full w-full" />
 })

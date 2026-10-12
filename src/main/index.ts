@@ -2,7 +2,7 @@ import { app, BrowserWindow, Menu, protocol, shell, ipcMain, type WebContents } 
 import { createReadStream, promises as fsp } from 'fs'
 import { Readable } from 'stream'
 import { join, extname } from 'path'
-import { initDatabase } from './db/database'
+import { initDatabase, getDb } from './db/database'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initDiscord, updatePresence, type PresenceState } from './services/discord'
 import { initAutoUpdate } from './services/updater'
@@ -137,22 +137,45 @@ function loadRenderer(win: BrowserWindow, hash = ''): void {
 // dev the window uses it directly on Linux/Windows.
 const devIconPath = join(__dirname, '../../resources/icon.png')
 
+/**
+ * Whether the main window wears the Harmony's own title bar (drawn by the
+ * renderer) instead of the system's. Saved by Personalização as the
+ * 'titleBar' setting; read once, when the window is made, so changing it
+ * takes a restart. macOS keeps its native bar.
+ */
+function customFrame(): boolean {
+  if (process.platform === 'darwin') return false
+  try {
+    const row = getDb().prepare("SELECT value FROM settings WHERE key = 'titleBar'").get() as
+      | { value: string }
+      | undefined
+    const v = row ? (JSON.parse(row.value) as { mode?: unknown }) : undefined
+    return v?.mode !== 'system'
+  } catch {
+    return true
+  }
+}
+
 function createWindow(): void {
+  const custom = customFrame()
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 960,
     minHeight: 640,
     show: false,
+    frame: !custom,
     backgroundColor: '#0b0b10',
     ...(app.isPackaged ? {} : { icon: devIconPath }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      additionalArguments: [`--harmony-frame=${custom ? 'custom' : 'system'}`]
     }
   })
+  windowStateEvents(mainWindow)
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
   mainWindow.on('closed', () => {
@@ -195,6 +218,21 @@ function toggleMiniPlayer(): void {
     miniWindow = null
   })
   loadRenderer(miniWindow, '/mini')
+}
+
+/** Tells the page when the window is maximized, full screen or focused, so
+ * the Harmony's title bar can show the right buttons (and hide in full screen). */
+function windowStateEvents(win: BrowserWindow): void {
+  const send = (): void => {
+    if (!win.isDestroyed())
+      win.webContents.send('window:state', {
+        maximized: win.isMaximized(),
+        fullScreen: win.isFullScreen(),
+        focused: win.isFocused()
+      })
+  }
+  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'focus', 'blur'] as const)
+    win.on(ev as 'maximize', send)
 }
 
 /**
@@ -254,6 +292,31 @@ app.whenReady().then(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('player:command', cmd)
     }
+  })
+
+  // ---- The Harmony's own title bar ----
+  const sender = (e: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent): BrowserWindow | null =>
+    BrowserWindow.fromWebContents(e.sender)
+  ipcMain.on('window:minimize', (e) => sender(e)?.minimize())
+  ipcMain.on('window:maximize', (e) => {
+    const win = sender(e)
+    if (!win) return
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  })
+  ipcMain.on('window:close', (e) => sender(e)?.close())
+  ipcMain.handle('window:state', (e) => {
+    const win = sender(e)
+    return {
+      maximized: win?.isMaximized() ?? false,
+      fullScreen: win?.isFullScreen() ?? false,
+      focused: win?.isFocused() ?? true
+    }
+  })
+  // switching between the system bar and the Harmony's needs a new window
+  ipcMain.on('app:relaunch', () => {
+    app.relaunch()
+    app.exit(0)
   })
 
   ipcMain.on('discord:configure', (_e, enabled: boolean, clientId: string) => {

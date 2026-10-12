@@ -8,6 +8,7 @@ import { ThemeGallery } from '@/components/appearance/ThemeGallery'
 import { StickerArt } from '@/components/stickers/art'
 import { IconGallery } from '@/components/icons/IconGallery'
 import { BarStylePicker } from '@/components/BarStylePicker'
+import { TitleBarPicker } from '@/components/TitleBarPicker'
 import { useStickerStore } from '@/store/stickerStore'
 import { findWorld } from '@/worlds/registry'
 import { WorldGrid } from '@/components/WorldGrid'
@@ -30,6 +31,7 @@ const PARTS = [
   { id: 'adesivos', label: tk('Adesivos') },
   { id: 'icones', label: tk('Ícones') },
   { id: 'barra', label: tk('Barra de música') },
+  { id: 'janela', label: tk('Barra da janela') },
   { id: 'abertura', label: tk('Abertura') }
 ] as const
 type Part = (typeof PARTS)[number]['id']
@@ -296,6 +298,10 @@ export function Personalize(): JSX.Element {
 
       <Section id="barra">
         <BarStylePicker />
+      </Section>
+
+      <Section id="janela">
+        <TitleBarPicker />
       </Section>
 
       <Section id="abertura">

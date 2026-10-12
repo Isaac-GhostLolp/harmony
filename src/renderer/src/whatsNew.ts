@@ -39,6 +39,19 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.18.6',
+    title: tk('Uma janela com a cara do Harmony'),
+    date: '2026-10-12',
+    items: [
+      {
+        emoji: '🪟',
+        title: tk('Nova barra da janela'),
+        text: tk('A barra do topo agora é do próprio Harmony: tem as cores do tema, deixa os mundos aparecerem por trás e mostra a música que está tocando. Escolha entre quatro estilos de botões (Harmony, Bolinhas, Mínimo e Cápsula) em Personalização → Barra da janela. Prefere a barra antiga? A opção "Do sistema" continua lá.'),
+        action: { kind: 'route', label: tk('Abrir Personalização'), to: '/personalize' }
+      }
+    ]
+  },
+  {
     version: '0.18.5',
     title: tk('Harmony em inglês'),
     date: '2026-10-10',
