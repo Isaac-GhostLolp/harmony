@@ -323,6 +323,21 @@ src/
 3. In Harmony: Settings → Discord Rich Presence → paste the ID and flip the toggle
 4. (Optional) In the Discord app settings, upload an art asset named `harmony` for the large icon
 
+## Pharaf — listen together in voice calls (0.19+)
+
+**Pharaf** is a voice, video and text chat app (similar to Discord) made by Harmony's creator. It is **not open
+to the public yet** — for now a closed group of friends uses it — but Harmony is already ready for it:
+
+- In a Pharaf voice call, the Pharaf desktop app can connect to the Harmony running on the same computer.
+  Harmony stays the player: its sound (after the equalizer, with crossfade) goes to the call as music, and
+  everyone in the room sees what's playing, the queue and the library (songs, albums, artists, playlists,
+  search) — and can play, queue, skip and reorder. Everything shows up in Harmony instantly, with an
+  "In Pharaf" badge telling who did what. Pharaf has an "Only I control" lock.
+- **Nothing changes without Pharaf.** The link is a small server on `127.0.0.1` (ports 47823–47827) that
+  refuses any request from a web page or another host, and only talks to Pharaf after you click **Allow** in
+  Harmony the first time. No file paths leave your computer — friends only get titles, artists, durations
+  and small covers. See `src/main/services/pharafBridge.ts` and `src/renderer/src/components/PharafLink.tsx`.
+
 ## Roadmap (v0.3+)
 
 | Feature | Where to plug in |

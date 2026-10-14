@@ -321,6 +321,21 @@ export class AudioEngine {
 
   /** Direct access for the StageDirector: it reads frequency data into its
    *  own preallocated buffers every frame (no per-frame allocations). */
+  /**
+   * The music as a MediaStream, for Pharaf (friends' voice calls). Taken after
+   * the equalizer and before the volume: friends hear Harmony's sound, but each
+   * one sets their own volume. Created on first use and kept.
+   */
+  private shareDest: MediaStreamAudioDestinationNode | null = null
+  getShareStream(): MediaStream {
+    if (!this.shareDest) {
+      this.shareDest = this.ctx.createMediaStreamDestination()
+      this.filters[this.filters.length - 1].connect(this.shareDest)
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {})
+    return this.shareDest.stream
+  }
+
   getAnalyserNode(): AnalyserNode {
     return this.analyser
   }

@@ -6,6 +6,7 @@ import { PlayerBar } from '@/components/PlayerBar'
 import { QueuePanel } from '@/components/QueuePanel'
 import { LyricsOverlay } from '@/components/LyricsOverlay'
 import { UpdateNotice } from '@/components/UpdateNotice'
+import { PharafLink } from '@/components/PharafLink'
 import { DjMode } from '@/components/DjMode'
 import { WorldLayer } from '@/components/WorldLayer'
 import { IntroSplash, introEnabled, INTRO_REPLAY_EVENT } from '@/components/IntroSplash'
@@ -202,6 +203,7 @@ export function App(): JSX.Element {
           </div>
           <PlayerBar />
           <UpdateNotice />
+          <PharafLink />
           <DjMode />
           <CapsuleLayer />
           <WhatsNew ready={!intro} />

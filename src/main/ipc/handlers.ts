@@ -13,7 +13,7 @@ import {
   EFFECTIVE_COVER_SQL
 } from '../services/online'
 
-const SONG_SELECT = `
+export const SONG_SELECT = `
   SELECT s.id, s.path, s.title, s.genre, s.year, s.duration, s.track_no as trackNo,
          s.added_at as addedAt,
          ar.name as artist, ar.id as artistId,

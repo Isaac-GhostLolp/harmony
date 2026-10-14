@@ -129,6 +129,27 @@ const api = {
     configureDiscord: (enabled: boolean, clientId: string) =>
       ipcRenderer.send('discord:configure', enabled, clientId)
   },
+  /** Pharaf bridge (see src/main/services/pharafBridge.ts) */
+  pharaf: {
+    /** Requests from Pharaf that the player/audio must answer (player commands, audio link, toasts). */
+    onRequest: (
+      cb: (req: { rid: string; method: string; params: Record<string, unknown> }) => void
+    ): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        req: { rid: string; method: string; params: Record<string, unknown> }
+      ): void => cb(req)
+      ipcRenderer.on('pharaf:request', listener)
+      return () => {
+        ipcRenderer.removeListener('pharaf:request', listener)
+      }
+    },
+    respond: (rid: string, result: unknown, error?: string) =>
+      ipcRenderer.send('pharaf:response', { rid, result, error }),
+    /** The player state friends see (no file paths). */
+    pushState: (state: unknown) => ipcRenderer.send('pharaf:state', state),
+    info: () => invoke('pharaf:info') as Promise<{ port: number; connected: boolean }>
+  },
   settings: {
     get: () => invoke('settings:get'),
     set: (key: string, value: unknown) => invoke('settings:set', key, value)

@@ -39,6 +39,33 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.19.0',
+    title: tk('Harmony na chamada do Pharaf'),
+    date: '2026-10-14',
+    items: [
+      {
+        emoji: '💬',
+        title: tk('O que é o Pharaf?'),
+        text: tk('O Pharaf é um app de conversa por voz, vídeo e texto, parecido com o Discord, feito pelo mesmo criador do Harmony. Ele ainda não está aberto ao público: por enquanto é usado por um grupo fechado de amigos. Esta versão já deixa o Harmony pronto para quando ele abrir.'),
+      },
+      {
+        emoji: '🎧',
+        title: tk('Ouça junto com os amigos'),
+        text: tk('Numa chamada do Pharaf, quem conecta o Harmony toca para a sala toda: o som do Harmony (com o seu equalizador e crossfade) vai para a chamada, e os amigos veem o que está tocando, a fila e a sua biblioteca.'),
+      },
+      {
+        emoji: '🎛️',
+        title: tk('Todo mundo escolhe'),
+        text: tk('Os amigos podem tocar, pôr na fila, pular e reordenar as músicas, e tudo aparece aqui na hora. Quer o controle só para você? Ligue "Só eu controlo" no Pharaf.'),
+      },
+      {
+        emoji: '🔒',
+        title: tk('Só com a sua permissão'),
+        text: tk('Sem o Pharaf, nada muda no Harmony. Na primeira vez que o Pharaf tenta se conectar, o Harmony pergunta se pode. A ligação fica só no seu computador: nenhum site consegue usar.'),
+      }
+    ]
+  },
+  {
     version: '0.18.6',
     title: tk('Uma janela com a cara do Harmony'),
     date: '2026-10-12',

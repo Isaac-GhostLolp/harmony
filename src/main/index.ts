@@ -5,6 +5,7 @@ import { join, extname } from 'path'
 import { initDatabase, getDb } from './db/database'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initDiscord, updatePresence, type PresenceState } from './services/discord'
+import { startPharafBridge, stopPharafBridge } from './services/pharafBridge'
 import { initAutoUpdate } from './services/updater'
 
 // Pin the app name so the userData folder is ALWAYS "harmony" — in dev it
@@ -267,6 +268,10 @@ function windowShortcuts(win: BrowserWindow): void {
   })
 }
 
+// The sound goes to Pharaf over a local WebRTC link. Without this, Chromium hides
+// this computer's address behind an mDNS name, which often doesn't resolve locally.
+app.commandLine.appendSwitch('disable-features', 'WebRtcHideLocalIpsWithMdns')
+
 app.whenReady().then(() => {
   // no File/Edit/View bar: the Harmony has its own UI for everything. macOS
   // keeps its menu (the app menu holds Quit and the Edit shortcuts there).
@@ -274,6 +279,9 @@ app.whenReady().then(() => {
   initDatabase()
   protocol.handle('harmony', handleMediaRequest)
   createWindow()
+  // Pharaf (friends' voice app) can show and control this Harmony in a call — see pharafBridge.ts
+  startPharafBridge(() => mainWindow)
+  app.on('before-quit', stopPharafBridge)
 
   // ---- Mini player + Discord relay ----
   ipcMain.on('mini:toggle', () => toggleMiniPlayer())
