@@ -39,6 +39,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.19.1',
+    title: tk('Harmony e Pharaf mais firmes'),
+    date: '2026-10-14',
+    items: [
+      {
+        emoji: '🔧',
+        title: tk('Obedece mesmo em segundo plano'),
+        text: tk('Com o Pharaf conectado, o Harmony continua atendendo os amigos mesmo minimizado ou atrás de um jogo — antes ele podia guardar os pedidos até você abrir a janela de novo.'),
+      }
+    ]
+  },
+  {
     version: '0.19.0',
     title: tk('Harmony na chamada do Pharaf'),
     date: '2026-10-14',

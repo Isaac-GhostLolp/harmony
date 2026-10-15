@@ -106,6 +106,14 @@ function askRenderer(method: string, params: unknown, timeoutMs = 10_000): Promi
   })
 }
 
+// While Pharaf is linked, the window must not be throttled in the background: friends keep sending
+// commands with Harmony minimized or behind a game, and a throttled (hidden, paused) window used to
+// sit on them until it was opened again.
+function keepAwake(): void {
+  const w = win()
+  if (w && !w.isDestroyed()) w.webContents.setBackgroundThrottling(streams.size === 0)
+}
+
 export function broadcast(event: string, data: unknown): void {
   const chunk = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
   for (const res of streams) res.write(chunk)
@@ -323,11 +331,13 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
     res.write(`event: state\ndata: ${JSON.stringify(lastState)}\n\n`)
     streams.add(res)
+    keepAwake()
     const ping = setInterval(() => res.write(': ping\n\n'), 15_000)
     req.on('close', () => {
       clearInterval(ping)
       streams.delete(res)
       if (!streams.size) askRenderer('disconnected', {}).catch(() => {})
+      keepAwake()
     })
     return
   }
