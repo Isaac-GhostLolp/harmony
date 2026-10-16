@@ -7,6 +7,7 @@ import { CoverArt } from '@/components/CoverArt'
 import { SeekBar } from '@/components/SeekBar'
 import { useBreathe } from '@/hooks/useBreathe'
 import { t } from '@/i18n'
+import { mediaUrl } from '@/utils/format'
 
 /**
  * DJ Mode — a fully immersive, near-empty stage meant to be left running on a
@@ -72,7 +73,7 @@ export function DjMode(): JSX.Element | null {
       <div className="absolute inset-0">
         {cover && !ultraFast ? (
           <img
-            src={`harmony://${cover}`}
+            src={mediaUrl(cover)}
             alt=""
             className="h-full w-full scale-110 object-cover opacity-30 blur-3xl"
           />

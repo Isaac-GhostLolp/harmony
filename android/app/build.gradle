@@ -1,0 +1,72 @@
+apply plugin: 'com.android.application'
+
+// the same version as the desktop app (package.json): 0.18.6 → versionCode 1806
+def harmonyVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version as String
+def harmonyCode = harmonyVersion.tokenize('.').collect { it.replaceAll('[^0-9]', '') as int }.with { it[0] * 10000 + it[1] * 100 + it[2] }
+
+android {
+    namespace "dev.aisaac.harmony"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "dev.aisaac.harmony"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode harmonyCode
+        versionName harmonyVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Test builds share one fixed key (app/harmony-test.p12), so each new APK
+    // installs over the last one and keeps the library. Not for store releases.
+    signingConfigs {
+        harmonyTest {
+            storeFile file('harmony-test.p12')
+            storeType 'pkcs12'
+            storePassword 'harmony-test'
+            keyAlias 'harmony-test'
+            keyPassword 'harmony-test'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.harmonyTest
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

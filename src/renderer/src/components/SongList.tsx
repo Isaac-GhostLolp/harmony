@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Play, Heart, MoreHorizontal, Check, ArrowUp, ArrowDown } from 'lucide-react'
 import type { Song, Playlist } from '@/types'
@@ -10,6 +10,8 @@ import { api } from '@/services/api'
 import { ConfirmDialog } from '@/components/InputDialog'
 import { useCoverCreator } from '@/store/coverCreatorStore'
 import { t, tn } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
+import { useBackCloses } from '@/components/mobile/back'
 
 interface Props {
   songs: Song[]
@@ -153,6 +155,19 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
     setDragIndex(null)
   }
 
+  const closeMenu = useCallback(() => setMenuFor(null), [])
+  useBackCloses(menuFor !== null, closeMenu)
+  // a touch screen has no mouse leaving the menu: a tap anywhere else closes it
+  useEffect(() => {
+    if (!IS_ANDROID || menuFor === null) return
+    const away = (e: PointerEvent): void => {
+      const el = e.target as HTMLElement
+      if (!el.closest('.song-menu, .song-more')) setMenuFor(null)
+    }
+    document.addEventListener('pointerdown', away, true)
+    return () => document.removeEventListener('pointerdown', away, true)
+  }, [menuFor])
+
   const openMenu = async (id: number, e: React.MouseEvent): Promise<void> => {
     if (menuFor === id) return setMenuFor(null)
     // Open upward when the button is in the lower part of the viewport, so the
@@ -264,7 +279,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
         return (
           <div
             key={song.id}
-            className={`group relative grid h-[52px] ${foundId === song.id ? 'row-found' : ''} grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
+            className={`song-row group relative grid h-[52px] ${foundId === song.id ? 'row-found' : ''} grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
               isSelected ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent)]' : active ? 'bg-[var(--accent-soft)]' : ''
             }`}
             onDoubleClick={() => playQueue(songs, i)}
@@ -283,6 +298,9 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 e.preventDefault()
                 setSelected(new Set([song.id]))
                 setLastClicked(song.id)
+              } else if (IS_ANDROID && !(e.target as HTMLElement).closest('button')) {
+                // on the phone a tap plays (there is no double click)
+                playQueue(songs, i)
               }
             }}
             draggable={Boolean(onReorder)}
@@ -311,7 +329,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               <p className="truncate text-xs text-muted">{song.artist ?? '—'}</p>
             </div>
 
-            <p className="truncate text-xs text-muted">{song.album ?? '—'}</p>
+            <p className="song-album truncate text-xs text-muted">{song.album ?? '—'}</p>
 
             <button
               onClick={() => toggleFav(song)}
@@ -358,7 +376,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                   />
                   <button
                     onClick={(e) => openMenu(song.id, e)}
-                    className="opacity-0 group-hover:opacity-100"
+                    className="song-more opacity-0 group-hover:opacity-100"
                     aria-label={t('Mais opções')}
                   >
                     <MoreHorizontal size={16} />
@@ -369,7 +387,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
 
             {menuFor === song.id && (
               <div
-                className={`glass absolute right-2 z-30 flex w-56 flex-col rounded-xl p-1 text-xs ${
+                className={`song-menu glass absolute right-2 z-30 flex w-56 flex-col rounded-xl p-1 text-xs ${
                   menuUp ? 'bottom-11' : 'top-11'
                 }`}
                 onMouseLeave={() => setMenuFor(null)}
@@ -390,6 +408,8 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                     onClick={() => { extraAction.run(song); setMenuFor(null) }}
                   />
                 )}
+                {!IS_ANDROID && (
+                <>
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
                   label={t('Sincronizar capa e letra online')}
@@ -407,15 +427,19 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                     />
                   </>
                 )}
+                </>
+                )}
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
                   label={t('Remover da biblioteca')}
                   onClick={() => { deleteSong(song, false); setMenuFor(null) }}
                 />
-                <MenuItem
-                  label={t('Excluir do dispositivo (lixeira)')}
-                  onClick={() => { deleteSong(song, true); setMenuFor(null) }}
-                />
+                {!IS_ANDROID && (
+                  <MenuItem
+                    label={t('Excluir do dispositivo (lixeira)')}
+                    onClick={() => { deleteSong(song, true); setMenuFor(null) }}
+                  />
+                )}
                 {playlists.length > 0 && (
                   <>
                     <div className="my-1 h-px bg-[var(--glass-border)]" />

@@ -21,6 +21,7 @@ import { createHash } from 'crypto'
 import { writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { getDb, coversDir } from '../db/database'
+import { EFFECTIVE_COVER_SQL } from '../../core/library'
 
 const UA = 'Harmony/0.5 (desktop offline music player)'
 const TIMEOUT_MS = 8000
@@ -463,13 +464,8 @@ export async function fetchCoverOnline(local: LocalTrack): Promise<CoverResult |
 // DB helpers used by the IPC layer
 // ---------------------------------------------------------------------------
 
-/** Effective cover honoring the user's per-album preference. */
-export const EFFECTIVE_COVER_SQL = `CASE
-  WHEN al.preferred_cover = 'custom' THEN COALESCE(al.custom_cover_path, al.cover_path, al.online_cover_path)
-  WHEN al.preferred_cover = 'embedded' THEN al.cover_path
-  WHEN al.preferred_cover = 'online' THEN COALESCE(al.online_cover_path, al.cover_path)
-  ELSE COALESCE(al.cover_path, al.online_cover_path, al.custom_cover_path)
-END`
+/** Effective cover honoring the user's per-album preference (see src/core/library.ts). */
+export { EFFECTIVE_COVER_SQL }
 
 export function applyCoverToSong(songId: number, result: CoverResult): string | null {
   const db = getDb()

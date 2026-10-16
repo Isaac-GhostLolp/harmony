@@ -200,7 +200,7 @@ export function Equalizer(): JSX.Element {
       <div
         className={`glass rounded-2xl p-6 transition-opacity ${enabled ? '' : 'opacity-50'}`}
       >
-        <div className="flex items-stretch justify-between gap-2">
+        <div className="eq-bands flex items-stretch justify-between gap-2">
           {gains.map((g, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-2">
               <span

@@ -37,6 +37,11 @@ import { useIconStore } from '@/store/iconStore'
 import { useBarStore } from '@/store/barStore'
 import { useTitleBarStore } from '@/store/titleBarStore'
 import { TitleBar } from '@/components/TitleBar'
+import { ScreenGuard } from '@/components/ScreenGuard'
+import { IS_ANDROID } from '@/platform'
+import { BottomNav } from '@/components/mobile/BottomNav'
+import { MobilePlayer } from '@/components/mobile/MobilePlayer'
+import { AndroidSystem } from '@/components/mobile/AndroidSystem'
 import { IconDefs } from '@/components/icons/AppIcon'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
@@ -131,8 +136,11 @@ export function App(): JSX.Element {
     const offCmd = api.player.onCommand((cmd) => {
       const s = usePlayerStore.getState()
       if (cmd === 'toggle') s.togglePlay()
+      else if (cmd === 'play' && !s.isPlaying) s.togglePlay()
+      else if (cmd === 'pause' && s.isPlaying) s.togglePlay()
       else if (cmd === 'next') s.next()
       else if (cmd === 'prev') s.previous()
+      else if (cmd.startsWith('seek:')) s.seek(Number(cmd.slice(5)) || 0)
     })
     return () => {
       unsub()
@@ -175,41 +183,59 @@ export function App(): JSX.Element {
           )}
 
           <div className="relative flex min-h-0 flex-1">
-            <Sidebar />
-            <main ref={mainRef} className="glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6">
-              <Routes>
-                <Route path="/" element={<Library />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/albums" element={<Albums />} />
-                <Route path="/artists" element={<Artists />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/favorites" element={<Favorites />} />
-                <Route path="/history" element={<History />} />
-                {/* the old Estatísticas tab: all of it lives in Meu Mundo now */}
-                <Route path="/stats" element={<Navigate to="/my-world" replace />} />
-                <Route path="/personalize" element={<Personalize />} />
-                <Route path="/visualizer" element={<Visualizer />} />
-                <Route path="/cinema" element={<Visualizer />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/equalizer" element={<Equalizer />} />
-                <Route path="/my-world" element={<MyWorld />} />
-                <Route path="/support" element={<Support />} />
-              </Routes>
+            {!IS_ANDROID && <Sidebar />}
+            <main
+              ref={mainRef}
+              className={
+                IS_ANDROID
+                  ? 'm-main z-10 min-w-0 flex-1 overflow-y-auto'
+                  : 'glass glass-panel z-10 m-3 ml-0 min-w-0 flex-1 overflow-y-auto rounded-2xl p-6'
+              }
+            >
+              <ScreenGuard>
+                <Routes>
+                  <Route path="/" element={<Library />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/albums" element={<Albums />} />
+                  <Route path="/artists" element={<Artists />} />
+                  <Route path="/playlists" element={<Playlists />} />
+                  <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/history" element={<History />} />
+                  {/* the old Estatísticas tab: all of it lives in Meu Mundo now */}
+                  <Route path="/stats" element={<Navigate to="/my-world" replace />} />
+                  <Route path="/personalize" element={<Personalize />} />
+                  <Route path="/visualizer" element={<Visualizer />} />
+                  <Route path="/cinema" element={<Visualizer />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/equalizer" element={<Equalizer />} />
+                  <Route path="/my-world" element={<MyWorld />} />
+                  <Route path="/support" element={<Support />} />
+                </Routes>
+              </ScreenGuard>
             </main>
             {/* after <main>, so its ref is set when this runs */}
             <ScrollMemory target={mainRef} />
             <QueuePanel />
-            <LyricsOverlay />
+            {!IS_ANDROID && <LyricsOverlay />}
           </div>
-          <PlayerBar />
+          {IS_ANDROID ? (
+            <>
+              <MobilePlayer />
+              <BottomNav />
+              <AndroidSystem />
+            </>
+          ) : (
+            <PlayerBar />
+          )}
           <UpdateNotice />
-          <PharafLink />
+          {/* Pharaf is a desktop app: the phone has no link to it */}
+          {!IS_ANDROID && <PharafLink />}
           <DjMode />
           <CapsuleLayer />
           <WhatsNew ready={!intro} />
           <AppearanceStudio />
           <CoverCreator />
-          <StickerTray />
+          {!IS_ANDROID && <StickerTray />}
           <IconDefs />
         </div>
       </HashRouter>

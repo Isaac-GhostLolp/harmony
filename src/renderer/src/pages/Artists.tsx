@@ -7,6 +7,7 @@ import { SongList } from '@/components/SongList'
 import { CoverArt } from '@/components/CoverArt'
 import { useFavoriteSync } from '@/utils/favorites'
 import { RefreshMetadataButton } from '@/components/RefreshMetadataButton'
+import { IS_ANDROID } from '@/platform'
 import { t, tn } from '@/i18n'
 
 export function Artists(): JSX.Element {
@@ -51,7 +52,7 @@ export function Artists(): JSX.Element {
       <PageHeader
         title={t('Artistas')}
         subtitle={tn(artists.length, '{n} artista', '{n} artistas')}
-        actions={<RefreshMetadataButton onDone={load} />}
+        actions={IS_ANDROID ? undefined : <RefreshMetadataButton onDone={load} />}
       />
       {artists.length === 0 ? (
         <EmptyState title={t('Nenhum artista ainda')} hint={t('Importe músicas para popular esta página.')} />

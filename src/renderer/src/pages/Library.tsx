@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { useFavoriteSync } from '@/utils/favorites'
 import { FilterChips, type FilterChip } from '@/components/FilterChips'
 import { t, tn } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
 
 type LibFilter =
   | 'all'
@@ -102,7 +103,9 @@ export function Library(): JSX.Element {
       const r = (await api.library.refresh()) as { added: number; removed: number }
       setRefreshMsg(
         r.added === 0 && r.removed === 0
-          ? t('Tudo em dia — nenhuma mudança nas pastas.')
+          ? IS_ANDROID
+            ? t('Tudo em dia — nenhuma música nova no celular.')
+            : t('Tudo em dia — nenhuma mudança nas pastas.')
           : t('{added} adicionada(s), {removed} removida(s).', { added: r.added, removed: r.removed })
       )
       await load()
@@ -155,7 +158,10 @@ export function Library(): JSX.Element {
       <PageHeader
         title={t('Biblioteca')}
         subtitle={
-          refreshMsg ?? tn(songs.length, '{n} música · arraste arquivos ou pastas para importar', '{n} músicas · arraste arquivos ou pastas para importar')
+          refreshMsg ??
+          (IS_ANDROID
+            ? tn(songs.length, '{n} música', '{n} músicas')
+            : tn(songs.length, '{n} música · arraste arquivos ou pastas para importar', '{n} músicas · arraste arquivos ou pastas para importar'))
         }
         actions={
           <div className="flex items-center gap-2">
@@ -178,7 +184,9 @@ export function Library(): JSX.Element {
               ? progress
                 ? t('Analisando {done}/{total}', { done: progress.processed, total: progress.total })
                 : t('Importando…')
-              : t('Importar pasta')}
+              : IS_ANDROID
+                ? t('Procurar músicas')
+                : t('Importar pasta')}
           </button>
           </div>
         }
@@ -189,7 +197,11 @@ export function Library(): JSX.Element {
       {songs.length === 0 && !scanning ? (
         <EmptyState
           title={t('Sua biblioteca está vazia')}
-          hint={t('Clique em Importar pasta ou arraste seus arquivos MP3, FLAC, WAV, OGG, AAC ou M4A para cá.')}
+          hint={
+            IS_ANDROID
+              ? t('Toque em Procurar músicas para trazer as músicas guardadas no celular.')
+              : t('Clique em Importar pasta ou arraste seus arquivos MP3, FLAC, WAV, OGG, AAC ou M4A para cá.')
+          }
         />
       ) : (
         <>

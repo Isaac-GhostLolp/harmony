@@ -7,6 +7,7 @@ import { WHATS_NEW_EVENT } from '@/components/WhatsNew'
 import { PatchNotesArchive } from '@/components/PatchNotesArchive'
 import { APP_VERSION } from '@/whatsNew'
 import { t, LANGUAGES, setLang, useLang } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
 
 /**
  * What makes the app work: performance, audio, online lookups, the library
@@ -77,6 +78,7 @@ export function Settings(): JSX.Element {
         </div>
       </section>
 
+      {!IS_ANDROID && (
       <a
         href="#/personalize"
         className="glass mb-4 flex items-center gap-4 rounded-2xl p-5 transition-colors hover:bg-[var(--bg-raised)]"
@@ -94,6 +96,7 @@ export function Settings(): JSX.Element {
           {t('Abrir Personalização')}
         </span>
       </a>
+      )}
 
       <section className="glass mb-4 rounded-2xl p-5">
         <div className="flex items-center justify-between gap-4">
@@ -145,6 +148,7 @@ export function Settings(): JSX.Element {
       </section>
 
 
+      {!IS_ANDROID && (
       <section className="glass mb-4 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <div>
@@ -173,6 +177,7 @@ export function Settings(): JSX.Element {
           </button>
         </div>
       </section>
+      )}
 
       <section className="glass mb-4 flex items-center justify-between rounded-2xl p-5">
         <div>
@@ -205,6 +210,7 @@ export function Settings(): JSX.Element {
         />
       </section>
 
+      {!IS_ANDROID && (
       <section className="glass mb-4 rounded-2xl p-5">
         <h2 className="text-sm font-semibold">{t('Discord Rich Presence')}</h2>
         <p className="mb-3 mt-0.5 text-xs text-muted">
@@ -233,7 +239,9 @@ export function Settings(): JSX.Element {
           />
         </div>
       </section>
+      )}
 
+      {!IS_ANDROID && (
       <section className="glass rounded-2xl p-5">
         <h2 className="text-sm font-semibold">{t('Biblioteca')}</h2>
         <p className="mt-0.5 text-xs text-muted">
@@ -252,6 +260,7 @@ export function Settings(): JSX.Element {
           {t('Para adicionar novas pastas, use o botão Importar na Biblioteca.')}
         </p>
       </section>
+      )}
     </div>
   )
 }

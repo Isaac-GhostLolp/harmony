@@ -1167,4 +1167,11 @@ export const en: Record<string, string> = {
   "Harmony e Pharaf mais firmes": "Harmony and Pharaf, more reliable",
   "Obedece mesmo em segundo plano": "Listens even in the background",
   "Com o Pharaf conectado, o Harmony continua atendendo os amigos mesmo minimizado ou atrás de um jogo — antes ele podia guardar os pedidos até você abrir a janela de novo.": "With Pharaf connected, Harmony keeps answering your friends even when minimized or behind a game — before, it could hold their requests until you opened the window again.",
+  "Mais": "More",
+  "Abrir o player": "Open the player",
+  "Tudo em dia — nenhuma música nova no celular.": "All up to date — no new music on the phone.",
+  "Procurar músicas": "Find music",
+  "Toque em Procurar músicas para trazer as músicas guardadas no celular.": "Tap Find music to bring in the music stored on your phone.",
+  "Esta tela tropeçou": "This screen tripped",
+  "Algo deu errado ao mostrar esta parte do Harmony. A música continua tocando.": "Something went wrong showing this part of Harmony. The music keeps playing."
 }

@@ -4,6 +4,7 @@ import { App } from './App'
 import { MiniPlayer } from './pages/MiniPlayer'
 import './styles/globals.css'
 import { useLang } from './i18n'
+import { IS_ANDROID } from './platform'
 
 // The mini player runs in a second window (#/mini) with no audio engine —
 // it mirrors the main window's state via IPC.
@@ -16,8 +17,19 @@ function LangRoot(): JSX.Element {
   return isMini ? <MiniPlayer key={lang} /> : <App key={lang} />
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <LangRoot />
-  </React.StrictMode>
-)
+async function start(): Promise<void> {
+  // on Android the platform API (database, music, player notification) is
+  // set up in the page first; the desktop gets it from Electron's preload
+  if (IS_ANDROID) {
+    document.documentElement.classList.add('platform-android')
+    const { installAndroidApi } = await import('./platform/android/api')
+    await installAndroidApi()
+  }
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <LangRoot />
+    </React.StrictMode>
+  )
+}
+
+void start()

@@ -98,6 +98,8 @@ export function Roulette({
     if (!c || !ctx) return
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     const size = c.clientWidth
+    // not laid out yet (0 wide): the wheel's radius would come out negative
+    if (size < 60) return
     if (c.width !== Math.round(size * dpr)) {
       c.width = Math.round(size * dpr)
       c.height = Math.round(size * dpr)

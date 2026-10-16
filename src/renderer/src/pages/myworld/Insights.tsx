@@ -89,7 +89,7 @@ export function Podium({ w }: { w: WorldStats }): JSX.Element {
         <>
           <div className="flex items-end justify-center gap-3">
             {steps.map(({ artist, place, h, medal }) => (
-              <div key={place} className="flex w-28 flex-col items-center">
+              <div key={place} className="flex w-28 min-w-0 flex-col items-center">
                 {artist ? (
                   <>
                     <span className="mb-1 text-2xl">{medal}</span>
@@ -119,7 +119,7 @@ export function Podium({ w }: { w: WorldStats }): JSX.Element {
             ))}
           </div>
           {w.topArtists.length > 3 && (
-            <div className="mt-3 flex justify-center gap-4 text-xs text-muted">
+            <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted">
               {w.topArtists.slice(3).map((x, i) => (
                 <span key={x.id}>
                   {i + 4}º <span className="text-ink">{x.name}</span>

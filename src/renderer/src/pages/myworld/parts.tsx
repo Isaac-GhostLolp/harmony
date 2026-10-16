@@ -25,7 +25,7 @@ export function useCountUp(target: number, ms = 1200): number {
 
 export function SectionTitle({ emoji, title, hint }: { emoji: string; title: string; hint?: string }): JSX.Element {
   return (
-    <div className="mb-3 flex items-baseline gap-2">
+    <div className="mb-3 flex flex-wrap items-baseline gap-x-2">
       <h3 className="text-base font-semibold tracking-tight text-ink">
         <span className="mr-1.5">{emoji}</span>
         {title}

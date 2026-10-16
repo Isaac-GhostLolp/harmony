@@ -15,6 +15,7 @@ import { WorldGrid } from '@/components/WorldGrid'
 import { getAutoPick, onAutoPick, type AutoPick } from '@/worlds/auto'
 import { INTRO_PREF_KEY, INTRO_REPLAY_EVENT } from '@/components/IntroSplash'
 import { t, tk } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
 
 /**
  * Everything about how the Harmony looks, in one place: themes, living
@@ -36,8 +37,13 @@ const PARTS = [
 ] as const
 type Part = (typeof PARTS)[number]['id']
 
+// on the phone: no stickers, player bar styles or window bar (yet)
+const HIDDEN_ON_ANDROID = new Set<Part>(['adesivos', 'barra', 'janela'])
+const SHOWN = PARTS.filter((p) => !(IS_ANDROID && HIDDEN_ON_ANDROID.has(p.id)))
+
 /** one part of the page; parts whose component brings its own header pass no title */
-function Section({ id, title, hint, children }: { id: Part; title?: string; hint?: string; children: ReactNode }): JSX.Element {
+function Section({ id, title, hint, children }: { id: Part; title?: string; hint?: string; children: ReactNode }): JSX.Element | null {
+  if (IS_ANDROID && HIDDEN_ON_ANDROID.has(id)) return null
   return (
     <section
       id={`p-${id}`}
@@ -92,10 +98,10 @@ export function Personalize(): JSX.Element {
       raf = 0
       if (Date.now() < jumping.current) return
       const line = scroller.getBoundingClientRect().top + (parseFloat(getComputedStyle(scroller).getPropertyValue('--sticky-h')) || 38) + 24
-      let current: Part = PARTS[0].id
+      let current: Part = SHOWN[0].id
       for (const el of root.querySelectorAll<HTMLElement>('[data-part]')) if (el.getBoundingClientRect().top <= line) current = el.dataset.part as Part
       // at the very bottom, the last part counts even if it's short
-      if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4) current = PARTS[PARTS.length - 1].id
+      if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4) current = SHOWN[SHOWN.length - 1].id
       setPart(current)
     }
     const onScroll = (): void => {
@@ -118,7 +124,7 @@ export function Personalize(): JSX.Element {
   return (
     <div ref={rootRef}>
       <PageHeader title={t('Personalização')} subtitle={t('Deixe o Harmony com a sua cara')}>
-        <FilterChips chips={PARTS.map((p) => ({ id: p.id, label: t(p.label) }))} active={part} onChange={jump} />
+        <FilterChips chips={SHOWN.map((p) => ({ id: p.id, label: t(p.label) }))} active={part} onChange={jump} />
       </PageHeader>
 
       <Section id="temas">

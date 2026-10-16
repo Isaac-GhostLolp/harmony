@@ -3,7 +3,8 @@ import { join, extname } from 'path'
 import { createHash } from 'crypto'
 import type * as MusicMetadata from 'music-metadata'
 import { getDb, coversDir } from '../db/database'
-import { splitArtists } from './artistNames'
+import { hasSong, insertSong } from '../../core/songs'
+import type { Db } from '../../core/db'
 
 const SUPPORTED = new Set(['.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a'])
 
@@ -41,25 +42,6 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc
 }
 
-/**
- * Resolves all artists from a raw tag into individual artist rows and returns
- * their ids (main artist first). See splitArtists for the parsing rules.
- */
-function upsertArtist(name: string | undefined): number | null {
-  if (!name) return null
-  const db = getDb()
-  db.prepare('INSERT OR IGNORE INTO artists (name) VALUES (?)').run(name)
-  const row = db.prepare('SELECT id FROM artists WHERE name = ?').get(name) as { id: number }
-  return row.id
-}
-
-/** Resolves all artists from a raw tag, returns their ids (main first). */
-function upsertArtists(raw: string | undefined): number[] {
-  return splitArtists(raw)
-    .map((n) => upsertArtist(n))
-    .filter((id): id is number => id !== null)
-}
-
 function saveCover(albumKey: string, data: Uint8Array, format: string): string {
   const ext = format.includes('png') ? 'png' : 'jpg'
   const hash = createHash('md5').update(albumKey).digest('hex')
@@ -68,67 +50,29 @@ function saveCover(albumKey: string, data: Uint8Array, format: string): string {
   return file
 }
 
-function upsertAlbum(
-  title: string | undefined,
-  artistId: number | null,
-  year: number | undefined,
-  cover: { data: Uint8Array; format: string } | null
-): number | null {
-  if (!title) return null
-  const db = getDb()
-  db.prepare('INSERT OR IGNORE INTO albums (title, artist_id, year) VALUES (?, ?, ?)').run(
-    title,
-    artistId,
-    year ?? null
-  )
-  const row = db
-    .prepare('SELECT id, cover_path FROM albums WHERE title = ? AND artist_id IS ?')
-    .get(title, artistId) as { id: number; cover_path: string | null }
-
-  if (cover && !row.cover_path) {
-    const path = saveCover(`${title}::${artistId ?? 'unknown'}`, cover.data, cover.format)
-    db.prepare('UPDATE albums SET cover_path = ? WHERE id = ?').run(path, row.id)
-  }
-  return row.id
-}
-
 async function processFile(path: string): Promise<'added' | 'skipped'> {
-  const db = getDb()
-  if (db.prepare('SELECT 1 FROM songs WHERE path = ?').get(path)) return 'skipped'
+  const db = getDb() as unknown as Db
+  if (hasSong(db, path)) return 'skipped'
   try {
     const { parseFile } = await loadMM()
     const meta = await parseFile(path, { duration: true })
     const c = meta.common
     const picture = c.picture?.[0]
-    const artistIds = upsertArtists(c.artist ?? c.albumartist)
-    const artistId = artistIds[0] ?? null
-    const albumId = upsertAlbum(
-      c.album,
-      upsertArtist(splitArtists(c.albumartist ?? c.artist)[0]),
-      c.year,
-      picture ? { data: picture.data, format: picture.format } : null
-    )
-    const info = db
-      .prepare(
-        `INSERT INTO songs (path, title, artist_id, album_id, genre, year, duration, track_no)
-      VALUES (@path, @title, @artist_id, @album_id, @genre, @year, @duration, @track_no)`
-      )
-      .run({
+    insertSong(
+      db,
+      {
         path,
         title: c.title ?? path.split(/[\\/]/).pop()!.replace(extname(path), ''),
-        artist_id: artistId,
-        album_id: albumId,
-        genre: c.genre?.[0] ?? null,
-        year: c.year ?? null,
+        artist: c.artist,
+        albumArtist: c.albumartist,
+        album: c.album,
+        genre: c.genre?.[0],
+        year: c.year,
         duration: meta.format.duration ?? 0,
-        track_no: c.track.no ?? null
-      })
-    // link every credited artist to the song (feat. included)
-    const songId = Number(info.lastInsertRowid)
-    const link = db.prepare(
-      'INSERT OR IGNORE INTO song_artists (song_id, artist_id, position) VALUES (?, ?, ?)'
+        trackNo: c.track.no
+      },
+      picture ? (key) => saveCover(key, picture.data, picture.format) : undefined
     )
-    artistIds.forEach((aid, i) => link.run(songId, aid, i))
     return 'added'
   } catch {
     return 'skipped'
