@@ -217,7 +217,7 @@ export function App(): JSX.Element {
             {/* after <main>, so its ref is set when this runs */}
             <ScrollMemory target={mainRef} />
             <QueuePanel />
-            {!IS_ANDROID && <LyricsOverlay />}
+            <LyricsOverlay />
           </div>
           {IS_ANDROID ? (
             <>

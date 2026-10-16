@@ -7,6 +7,8 @@ import { openDatabase, toBase64 } from './database'
 import { HarmonyMedia, type DeviceSong } from './media'
 import { updateSession, onSessionCommand, type PlayerState } from './session'
 import { askForFolders, isInside } from './folders'
+import { onlineHandlers, type SaveImage } from '../../../../core/online'
+import { getLang } from '../../i18n'
 
 /**
  * The Android side of `window.harmony`: what Electron's main process does on
@@ -33,6 +35,13 @@ function clean(s: DeviceSong): DeviceSong {
     year: s.year && s.year > 0 ? s.year : null,
     trackNo: s.trackNo && s.trackNo > 0 ? s.trackNo % 1000 : null
   }
+}
+
+/** a short, stable file name for a downloaded image (FNV-1a) */
+function hashKey(key: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193)
+  return (h >>> 0).toString(16).padStart(8, '0') + key.length.toString(16)
 }
 
 const fileTitle = (path: string): string => (path.split('/').pop() ?? path).replace(/\.[^.]+$/, '')
@@ -160,6 +169,26 @@ export async function installAndroidApi(): Promise<void> {
     return { albumId, cover: row.cover }
   }
 
+  // ---- online lookups: the same providers and matching as the desktop (src/core/online.ts) ----
+  const metadataListeners = new Set<(p: { done: number; total: number; label: string }) => void>()
+  /** images downloaded from the web go to the app's covers folder, named after what they show */
+  const saveImage: SaveImage = async (data, ext, key) => {
+    const path = `covers/online-${hashKey(key)}.${ext}`
+    try {
+      const { uri } = await Filesystem.stat({ path, directory: Directory.Data })
+      return uri.replace(/^file:\/\//, '')
+    } catch {
+      // not saved yet
+    }
+    const { uri } = await Filesystem.writeFile({ path, data: toBase64(data), directory: Directory.Data, recursive: true })
+    return uri.replace(/^file:\/\//, '')
+  }
+  const online = onlineHandlers(() => db, {
+    saveImage,
+    progress: (p) => metadataListeners.forEach((cb) => cb(p)),
+    tr: (pt, en) => (getLang() === 'en' ? en : pt)
+  })
+
   const none = async (): Promise<null> => null
   const nothing = (): void => undefined
   const unsubscribe = (): (() => void) => () => undefined
@@ -220,14 +249,19 @@ export async function installAndroidApi(): Promise<void> {
       markOpened: q('capsules:markOpened')
     },
     metadata: {
-      refresh: async () => ({ artistsUpdated: 0, coversUpdated: 0, genresUpdated: 0, total: 0 }),
-      onProgress: unsubscribe
+      refresh: online['metadata:refresh'],
+      onProgress: (cb: (p: { done: number; total: number; label: string }) => void) => {
+        metadataListeners.add(cb)
+        return () => {
+          metadataListeners.delete(cb)
+        }
+      }
     },
-    lyrics: { resolve: none },
+    lyrics: { resolve: online['lyrics:resolve'] },
     covers: { saveCustom: saveCustomCover },
     stickers: { save: none, remove: async () => false },
     icons: { save: none, remove: async () => false },
-    online: { fetchCover: none },
+    online: { fetchCover: online['online:fetchCover'] },
     player: {
       toggleMini: nothing,
       sendState: (state: unknown) => updateSession(state as PlayerState),

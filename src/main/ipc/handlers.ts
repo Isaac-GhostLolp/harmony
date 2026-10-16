@@ -4,16 +4,16 @@ import { extname, join, resolve, dirname } from 'path'
 import { app } from 'electron'
 import { getDb, coversDir, stickersDir, iconsDir } from '../db/database'
 import { scanFolder, importFiles } from '../services/scanner'
-import { libraryHandlers, pruneOrphans as prune, getSetting as readSetting, setSetting as writeSetting } from '../../core/library'
-import type { Db } from '../../core/db'
 import {
-  fetchLyricsOnline,
-  fetchCoverOnline,
-  applyCoverToSong,
-  fetchArtistPhoto,
-  fetchGenre,
+  libraryHandlers,
+  pruneOrphans as prune,
+  getSetting as readSetting,
+  setSetting as writeSetting,
   EFFECTIVE_COVER_SQL
-} from '../services/online'
+} from '../../core/library'
+import type { Db } from '../../core/db'
+import { saveImage } from '../services/online'
+import { onlineHandlers } from '../../core/online'
 
 // the song query lives in src/core (shared with Android); the Pharaf bridge imports it from here
 export { SONG_SELECT } from '../../core/library'
@@ -237,17 +237,7 @@ export function registerIpcHandlers(win: BrowserWindow): void {
   imageStore('stickers', stickersDir)
   imageStore('icons', iconsDir)
 
-  // ---------- Lyrics ----------
-  // Resolution order: sidecar .lrc file → cache → online providers.
-  const onlineEnabled = (): boolean => {
-    const row = db().prepare("SELECT value FROM settings WHERE key = 'onlineEnabled'").get() as
-      | { value: string }
-      | undefined
-    return row ? JSON.parse(row.value) !== false : true
-  }
-
-  const NOT_FOUND_RETRY_S = 3 * 24 * 3600 // re-query providers after 3 days
-
+  // ---------- Lyrics, online covers, metadata refresh (src/core/online.ts) ----------
   // Reads a sidecar .lrc trying multiple naming conventions:
   //   song.lrc, song.LRC, song.mp3.lrc — with BOM stripped.
   const readSidecarLrc = (songPath: string): string | null => {
@@ -262,187 +252,12 @@ export function registerIpcHandlers(win: BrowserWindow): void {
     }
     return null
   }
-
-  // Resolution order (per Isaac): ONLINE first — providers usually have
-  // better-synced lyrics — falling back to the local sidecar .lrc.
-  // A synced result always beats a plain-text one, whatever the source.
-  ipcMain.handle('lyrics:resolve', async (_e, songId: number, force = false) => {
-    if (force) db().prepare('DELETE FROM lyrics_cache WHERE song_id = ?').run(songId)
-    const song = db()
-      .prepare(
-        `SELECT s.path, s.title, s.duration, ar.name as artist, al.title as album
-         FROM songs s
-         LEFT JOIN artists ar ON ar.id = s.artist_id
-         LEFT JOIN albums al ON al.id = s.album_id
-         WHERE s.id = ?`
-      )
-      .get(songId) as
-      | { path: string; title: string; duration: number; artist: string | null; album: string | null }
-      | undefined
-    if (!song) return null
-
-    // 1) Online (through cache)
-    let online: { source: string; synced: string | null; plain: string | null } | null = null
-    const cached = db()
-      .prepare('SELECT found, source, synced, plain, fetched_at FROM lyrics_cache WHERE song_id = ?')
-      .get(songId) as
-      | { found: number; source: string | null; synced: string | null; plain: string | null; fetched_at: number }
-      | undefined
-
-    if (cached?.found) {
-      online = { source: cached.source ?? 'cache', synced: cached.synced, plain: cached.plain }
-    } else if (
-      onlineEnabled() &&
-      (!cached || Date.now() / 1000 - cached.fetched_at >= NOT_FOUND_RETRY_S)
-    ) {
-      online = await fetchLyricsOnline({
-        title: song.title,
-        artist: song.artist,
-        album: song.album,
-        duration: song.duration
-      })
-      db()
-        .prepare(
-          `INSERT INTO lyrics_cache (song_id, found, source, synced, plain, fetched_at)
-           VALUES (?, ?, ?, ?, ?, unixepoch())
-           ON CONFLICT(song_id) DO UPDATE SET
-             found = excluded.found, source = excluded.source, synced = excluded.synced,
-             plain = excluded.plain, fetched_at = excluded.fetched_at`
-        )
-        .run(songId, online ? 1 : 0, online?.source ?? null, online?.synced ?? null, online?.plain ?? null)
-    }
-
-    if (online?.synced) return online
-
-    // 2) Sidecar .lrc fallback (synced by nature)
-    const sidecar = readSidecarLrc(song.path)
-    if (sidecar) return { source: 'Arquivo local (.lrc)', synced: sidecar, plain: null }
-
-    // 3) Plain-text online lyrics, better than nothing
-    return online
+  const online = onlineHandlers(core, {
+    saveImage,
+    readSidecarLrc,
+    progress: (p) => win.webContents.send('metadata:progress', p),
+    tr
   })
-
-  // ---------- Online covers / album enrichment ----------
-  ipcMain.handle('online:fetchCover', async (_e, songId: number, force = false) => {
-    if (!onlineEnabled()) return null
-    const song = db()
-      .prepare(
-        `SELECT s.id, s.title, s.duration, ${EFFECTIVE_COVER_SQL} as coverPath,
-                ar.name as artist, al.title as album
-         FROM songs s
-         LEFT JOIN artists ar ON ar.id = s.artist_id
-         LEFT JOIN albums al ON al.id = s.album_id
-         WHERE s.id = ?`
-      )
-      .get(songId) as
-      | { id: number; title: string; duration: number; coverPath: string | null; artist: string | null; album: string | null }
-      | undefined
-    if (!song) return null
-    if (song.coverPath && !force) return song.coverPath
-
-    const result = await fetchCoverOnline({
-      title: song.title,
-      artist: song.artist,
-      album: song.album,
-      duration: song.duration
-    })
-    if (!result) return song.coverPath ?? null
-    return applyCoverToSong(songId, result)
-  })
-
-  // Bulk metadata refresh: artist photos + missing covers + genres, with
-  // progress events. Never overwrites data the user already has.
-  ipcMain.handle('metadata:refresh', async () => {
-    const send = (done: number, total: number, label: string): void =>
-      win.webContents.send('metadata:progress', { done, total, label })
-
-    // 1) artist photos for artists without one
-    const artists = db()
-      .prepare(`SELECT id, name FROM artists WHERE image_path IS NULL OR image_path = ''`)
-      .all() as { id: number; name: string }[]
-    // 2) songs whose effective cover is missing
-    const songs = db()
-      .prepare(
-        `SELECT s.id, s.title, s.duration, ar.name as artist, al.title as album,
-                ${EFFECTIVE_COVER_SQL} as coverPath
-         FROM songs s
-         LEFT JOIN artists ar ON ar.id = s.artist_id
-         LEFT JOIN albums al ON al.id = s.album_id`
-      )
-      .all() as {
-      id: number
-      title: string
-      duration: number
-      artist: string | null
-      album: string | null
-      coverPath: string | null
-    }[]
-    const missingCovers = songs.filter((s) => !s.coverPath)
-
-    // 3) songs missing a usable genre (empty or the useless "Music" catch-all)
-    const missingGenre = db()
-      .prepare(
-        `SELECT s.id, s.title, ar.name as artist
-         FROM songs s LEFT JOIN artists ar ON ar.id = s.artist_id
-         WHERE s.genre IS NULL OR TRIM(s.genre) = '' OR LOWER(s.genre) = 'music'`
-      )
-      .all() as { id: number; title: string; artist: string | null }[]
-
-    const total = artists.length + missingCovers.length + missingGenre.length
-    let done = 0
-    let artistsUpdated = 0
-    let coversUpdated = 0
-    let genresUpdated = 0
-
-    for (const ar of artists) {
-      send(done, total, `${tr('Artista', 'Artist')}: ${ar.name}`)
-      try {
-        const photo = await fetchArtistPhoto(ar.name)
-        if (photo) {
-          db().prepare('UPDATE artists SET image_path = ? WHERE id = ?').run(photo, ar.id)
-          artistsUpdated++
-        }
-      } catch {
-        /* network hiccup — skip this artist */
-      }
-      done++
-    }
-
-    for (const s of missingCovers) {
-      send(done, total, `${tr('Capa', 'Cover')}: ${s.title}`)
-      try {
-        const result = await fetchCoverOnline({
-          title: s.title,
-          artist: s.artist,
-          album: s.album,
-          duration: s.duration
-        })
-        if (result) {
-          applyCoverToSong(s.id, result)
-          coversUpdated++
-        }
-      } catch {
-        /* skip */
-      }
-      done++
-    }
-
-    for (const s of missingGenre) {
-      send(done, total, `${tr('Gênero', 'Genre')}: ${s.title}`)
-      try {
-        const genre = await fetchGenre(s.title, s.artist)
-        if (genre) {
-          db().prepare('UPDATE songs SET genre = ? WHERE id = ?').run(genre, s.id)
-          genresUpdated++
-        }
-      } catch {
-        /* skip */
-      }
-      done++
-    }
-
-    send(total, total, tr('Concluído', 'Done'))
-    return { artistsUpdated, coversUpdated, genresUpdated, total }
-  })
+  for (const [channel, handler] of Object.entries(online)) ipcMain.handle(channel, (_e, ...args) => handler(...args))
 
 }

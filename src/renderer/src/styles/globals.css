@@ -1693,3 +1693,16 @@ html.platform-android .song-menu {
   border-radius: 18px;
   padding: 6px;
 }
+/* lyrics: a full screen of their own */
+html.platform-android .lyrics-panel {
+  position: fixed;
+  inset: 0 0 var(--nav-h) 0;
+  z-index: 140;
+  border-radius: 0;
+  background: var(--bg-base);
+  padding: 18px 18px 12px;
+}
+html.platform-android .lyrics-panel button.text-lg {
+  font-size: 1.15rem;
+  padding-block: 8px;
+}

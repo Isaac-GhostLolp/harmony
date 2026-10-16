@@ -83,22 +83,34 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
       {cover && <div aria-hidden className="m-now-bg" style={{ backgroundImage: `url(${cover})` }} />}
 
       <div className="relative flex items-center justify-between px-3 pt-3">
-        <button onClick={onClose} className="grid h-11 w-11 place-items-center" aria-label={t('Fechar')}>
+        <button onClick={onClose} className="grid h-11 w-[88px] place-items-center justify-start pl-2.5" aria-label={t('Fechar')}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{t('Tocando agora')}</p>
-        <button
-          onClick={() => {
-            onClose()
-            useUiStore.getState().toggleQueue()
-          }}
-          className="grid h-11 w-11 place-items-center"
-          aria-label={t('Fila')}
-        >
-          <AppIcon slot="queue" size={21} />
-        </button>
+        <div className="flex">
+          <button
+            onClick={() => {
+              onClose()
+              if (!useUiStore.getState().lyricsOpen) useUiStore.getState().toggleLyrics()
+            }}
+            className="grid h-11 w-11 place-items-center"
+            aria-label={t('Letras')}
+          >
+            <AppIcon slot="lyrics" size={21} />
+          </button>
+          <button
+            onClick={() => {
+              onClose()
+              useUiStore.getState().toggleQueue()
+            }}
+            className="grid h-11 w-11 place-items-center"
+            aria-label={t('Fila')}
+          >
+            <AppIcon slot="queue" size={21} />
+          </button>
+        </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-8 py-4">

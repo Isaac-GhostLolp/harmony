@@ -151,7 +151,6 @@ export function Settings(): JSX.Element {
       </section>
 
 
-      {!IS_ANDROID && (
       <section className="glass mb-4 rounded-2xl p-5">
         <div className="flex items-center justify-between">
           <div>
@@ -180,7 +179,6 @@ export function Settings(): JSX.Element {
           </button>
         </div>
       </section>
-      )}
 
       <section className="glass mb-4 flex items-center justify-between rounded-2xl p-5">
         <div>

@@ -408,8 +408,6 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                     onClick={() => { extraAction.run(song); setMenuFor(null) }}
                   />
                 )}
-                {!IS_ANDROID && (
-                <>
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
                   label={t('Sincronizar capa e letra online')}
@@ -426,8 +424,6 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                       onClick={() => { setCoverSource(song, 'online'); setMenuFor(null) }}
                     />
                   </>
-                )}
-                </>
                 )}
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem

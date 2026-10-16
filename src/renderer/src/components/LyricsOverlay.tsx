@@ -11,6 +11,8 @@ import { EditStudio } from '@/components/edit/EditStudio'
 import { KaraokeView } from '@/components/karaoke/KaraokeView'
 import type { LyricsResult } from '@/types'
 import { t, tk } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
+import { useBackCloses } from '@/components/mobile/back'
 
 const MODES: { id: LyricsMode; label: string }[] = [
   { id: 'synced', label: tk('Sincronizada') },
@@ -21,9 +23,12 @@ const MODES: { id: LyricsMode; label: string }[] = [
 export function LyricsOverlay(): JSX.Element {
   const open = useUiStore((s) => s.lyricsOpen)
   const toggle = useUiStore((s) => s.toggleLyrics)
-  const mode = useUiStore((s) => s.lyricsMode)
+  // the phone has the synced lyrics only (karaoke and Edit come later)
+  const chosenMode = useUiStore((s) => s.lyricsMode)
+  const mode: LyricsMode = IS_ANDROID ? 'synced' : chosenMode
   const setMode = useUiStore((s) => s.setLyricsMode)
   const song = usePlayerStore((s) => s.queue[s.currentIndex] ?? null)
+  useBackCloses(open, toggle)
 
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<LyricsResult | null>(null)
@@ -57,7 +62,7 @@ export function LyricsOverlay(): JSX.Element {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
-          className={`absolute inset-3 bottom-[112px] z-30 flex flex-col rounded-2xl p-6 ${
+          className={`lyrics-panel absolute inset-3 bottom-[112px] z-30 flex flex-col rounded-2xl p-6 ${
             // the edit studio is a dark room: no app or world showing through
             mode === 'edit' ? 'border border-white/10 bg-[#07070a] shadow-2xl' : 'glass'
           }`}
@@ -80,6 +85,7 @@ export function LyricsOverlay(): JSX.Element {
               >
                 {loading ? <Spinner size={15} icon="rotate" /> : <RotateCw size={15} />}
               </button>
+              {!IS_ANDROID && (
               <div className="flex rounded-full bg-[var(--bg-raised)] p-1">
                 {MODES.map((m) => (
                   <button
@@ -93,6 +99,7 @@ export function LyricsOverlay(): JSX.Element {
                   </button>
                 ))}
               </div>
+              )}
               <button onClick={toggle} className="text-muted hover:text-ink" aria-label={t('Fechar letras')}>
                 <X size={18} />
               </button>
