@@ -22,23 +22,44 @@
  * downloaded images in its own folder (SaveImage).
  */
 import type { Db } from './db'
-import { EFFECTIVE_COVER_SQL } from './library'
+import { EFFECTIVE_COVER_SQL, getSetting, setSetting } from './library'
 
 const UA = 'Harmony/0.5 (offline music player)'
 const TIMEOUT_MS = 8000
 
+/**
+ * Marks a lookup that couldn't ask a provider (offline, timed out, or the
+ * site overloaded): its "nothing found" isn't trusted, so it isn't remembered.
+ */
+export interface LookupTrace {
+  failed: boolean
+}
+
+const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * A provider's JSON, or null. A real "no" (404 and the like) is final; a
+ * busy or unreachable site (429, 5xx, network) is asked again twice before
+ * the lookup is marked as failed — once failed, later requests try only once.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getJson(url: string): Promise<any | null> {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': UA, Accept: 'application/json' },
-      signal: AbortSignal.timeout(TIMEOUT_MS)
-    })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
+async function getJson(url: string, trace?: LookupTrace): Promise<any | null> {
+  const tries = trace?.failed ? 1 : 3
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': UA, Accept: 'application/json' },
+        signal: AbortSignal.timeout(TIMEOUT_MS)
+      })
+      if (res.ok) return await res.json()
+      if (res.status !== 429 && res.status < 500) return null
+    } catch {
+      /* offline or timed out: try again */
+    }
+    if (i < tries - 1) await wait(700 * (i + 1) * (i + 1))
   }
+  if (trace) trace.failed = true
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +227,19 @@ interface Candidate {
 
 const MATCH_THRESHOLD = 0.62
 
+const words = (text: string): string[] => normalize(text).split(' ').filter(Boolean)
+
+/** How well a free-text name ("Espresso Sabrina Carpenter") covers a candidate's title + artist. */
+function wordsScore(name: string, cand: Candidate): number {
+  const mine = new Set(words(name))
+  const theirs = [...new Set([...words(cand.title), ...words(cand.artist)])]
+  if (mine.size === 0 || theirs.length === 0 || words(cand.artist).length === 0) return 0
+  const found = theirs.filter((w) => mine.has(w)).length
+  const covered = found / theirs.length // all of their words are in the name
+  const used = found / mine.size // and the name is mostly them
+  return covered * 0.55 + used * 0.3
+}
+
 export function scoreCandidate(
   attempt: Attempt,
   localVariants: Set<string>,
@@ -222,6 +256,11 @@ export function scoreCandidate(
   let score =
     similarity(normalize(attempt.title), normalize(cand.title)) * wTitle +
     (attempt.artist ? similarity(normalize(attempt.artist), normalize(cand.artist)) * wArtist : 0)
+
+  // No artist: the name may hold it too, in any order and with no dash —
+  // "Espresso Sabrina Carpenter". Then every word of the candidate's title
+  // and artist should be in the name, and most of the name in them.
+  if (!attempt.artist) score = Math.max(score, wordsScore(attempt.title, cand))
 
   if (cand.duration && duration > 0) {
     const diff = Math.abs(cand.duration - duration)
@@ -261,55 +300,65 @@ export interface OnlineLyrics {
   plain: string | null
 }
 
-export async function fetchLyricsOnline(local: LocalTrack): Promise<OnlineLyrics | null> {
+interface LrclibRow {
+  trackName?: string
+  artistName?: string
+  duration?: number
+  syncedLyrics?: string | null
+  plainLyrics?: string | null
+}
+
+export async function fetchLyricsOnline(local: LocalTrack, trace?: LookupTrace): Promise<OnlineLyrics | null> {
   const enc = encodeURIComponent
   const localVariants = extractVariants(local.title)
   const attempts = deriveAttempts(local)
+  // plain text found on the way, used only if no synced lyrics turn up
+  let plain: OnlineLyrics | null = null
+  const found = (r: { syncedLyrics?: string | null; plainLyrics?: string | null }): OnlineLyrics => ({
+    source: 'LRCLIB',
+    synced: r.syncedLyrics ?? null,
+    plain: r.plainLyrics ?? null
+  })
 
   for (const attempt of attempts) {
     // 1) LRCLIB exact lookup (needs an artist)
     if (attempt.artist) {
       const exact = await getJson(
         `https://lrclib.net/api/get?artist_name=${enc(attempt.artist)}&track_name=${enc(attempt.title)}` +
-          (local.duration > 0 ? `&duration=${Math.round(local.duration)}` : '')
+          (local.duration > 0 ? `&duration=${Math.round(local.duration)}` : ''),
+        trace
       )
-      if (exact && (exact.syncedLyrics || exact.plainLyrics)) {
-        return {
-          source: 'LRCLIB',
-          synced: exact.syncedLyrics ?? null,
-          plain: exact.plainLyrics ?? null
-        }
-      }
+      if (exact?.syncedLyrics) return found(exact)
+      if (exact?.plainLyrics) plain ??= found(exact)
     }
 
-    // 2) LRCLIB search + variant-aware scoring
+    // 2) LRCLIB search + variant-aware scoring; a synced match wins over a better-scored plain one
     const results = await getJson(
-      `https://lrclib.net/api/search?track_name=${enc(attempt.title)}` +
-        (attempt.artist ? `&artist_name=${enc(attempt.artist)}` : '')
+      attempt.artist
+        ? `https://lrclib.net/api/search?track_name=${enc(attempt.title)}&artist_name=${enc(attempt.artist)}`
+        : // no artist: search every field, so a name like "Espresso Sabrina Carpenter" finds the song
+          `https://lrclib.net/api/search?q=${enc(attempt.title)}`,
+      trace
     )
     if (Array.isArray(results)) {
-      const usable = results.filter((r) => r.syncedLyrics || r.plainLyrics)
-      const best = pickBest(attempt, localVariants, local.duration, usable, (r) => ({
+      const rows = results as LrclibRow[]
+      const asCandidate = (r: LrclibRow): Candidate => ({
         title: String(r.trackName ?? ''),
         artist: String(r.artistName ?? ''),
         duration: typeof r.duration === 'number' ? r.duration : undefined
-      }))
-      if (best) {
-        return {
-          source: 'LRCLIB',
-          synced: best.syncedLyrics ?? null,
-          plain: best.plainLyrics ?? null
-        }
-      }
+      })
+      const synced = pickBest(attempt, localVariants, local.duration, rows.filter((r) => r.syncedLyrics), asCandidate)
+      if (synced) return found(synced)
+      const text = pickBest(attempt, localVariants, local.duration, rows.filter((r) => r.plainLyrics), asCandidate)
+      if (text) plain ??= found(text)
     }
   }
+  if (plain) return plain
 
   // 3) lyrics.ovh plain-text fallback (first attempt with an artist)
   const withArtist = attempts.find((a) => a.artist)
   if (withArtist) {
-    const ovh = await getJson(
-      `https://api.lyrics.ovh/v1/${enc(withArtist.artist!)}/${enc(withArtist.title)}`
-    )
+    const ovh = await getJson(`https://api.lyrics.ovh/v1/${enc(withArtist.artist!)}/${enc(withArtist.title)}`, trace)
     if (ovh?.lyrics && typeof ovh.lyrics === 'string' && ovh.lyrics.trim()) {
       return { source: 'lyrics.ovh', synced: null, plain: ovh.lyrics.trim() }
     }
@@ -569,6 +618,18 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
 
   const NOT_FOUND_RETRY_S = 3 * 24 * 3600 // re-query providers after 3 days
 
+  // When the search gets better, songs it missed (or matched without timing)
+  // are looked up again instead of waiting for their 3 days.
+  const MATCHER_VERSION = 2
+  try {
+    if (getSetting(db(), 'lyricsMatcher') !== MATCHER_VERSION) {
+      db().prepare('DELETE FROM lyrics_cache WHERE found = 0 OR synced IS NULL').run()
+      setSetting(db(), 'lyricsMatcher', MATCHER_VERSION)
+    }
+  } catch {
+    /* the cache just stays as it is */
+  }
+
   return {
     // Resolution order (per Isaac): ONLINE first — providers usually have
     // better-synced lyrics — falling back to the local sidecar .lrc.
@@ -602,21 +663,22 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
         onlineEnabled() &&
         (!cached || Date.now() / 1000 - cached.fetched_at >= NOT_FOUND_RETRY_S)
       ) {
-        online = await fetchLyricsOnline({
-          title: song.title,
-          artist: song.artist,
-          album: song.album,
-          duration: song.duration
-        })
-        db()
-          .prepare(
-            `INSERT INTO lyrics_cache (song_id, found, source, synced, plain, fetched_at)
-             VALUES (?, ?, ?, ?, ?, unixepoch())
-             ON CONFLICT(song_id) DO UPDATE SET
-               found = excluded.found, source = excluded.source, synced = excluded.synced,
-               plain = excluded.plain, fetched_at = excluded.fetched_at`
-          )
-          .run(songId, online ? 1 : 0, online?.source ?? null, online?.synced ?? null, online?.plain ?? null)
+        const trace: LookupTrace = { failed: false }
+        online = await fetchLyricsOnline(
+          { title: song.title, artist: song.artist, album: song.album, duration: song.duration },
+          trace
+        )
+        // "nothing found" is remembered only when the providers really answered
+        if (online || !trace.failed)
+          db()
+            .prepare(
+              `INSERT INTO lyrics_cache (song_id, found, source, synced, plain, fetched_at)
+               VALUES (?, ?, ?, ?, ?, unixepoch())
+               ON CONFLICT(song_id) DO UPDATE SET
+                 found = excluded.found, source = excluded.source, synced = excluded.synced,
+                 plain = excluded.plain, fetched_at = excluded.fetched_at`
+            )
+            .run(songId, online ? 1 : 0, online?.source ?? null, online?.synced ?? null, online?.plain ?? null)
       }
 
       if (online?.synced) return online
