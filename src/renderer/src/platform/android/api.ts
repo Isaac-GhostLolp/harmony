@@ -6,6 +6,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem'
 import { openDatabase, toBase64 } from './database'
 import { HarmonyMedia, type DeviceSong } from './media'
 import { updateSession, onSessionCommand, type PlayerState } from './session'
+import { askForFolders, isInside } from './folders'
 
 /**
  * The Android side of `window.harmony`: what Electron's main process does on
@@ -48,11 +49,23 @@ export async function installAndroidApi(): Promise<void> {
   const scanListeners = new Set<(p: Progress) => void>()
   const progress = (p: Progress): void => scanListeners.forEach((cb) => cb(p))
 
-  /** brings the library in line with the phone: new songs in, deleted ones out, covers */
-  async function sync(): Promise<{ added: number; removed: number } | null> {
+  /**
+   * Brings the library in line with the phone: new songs from the chosen
+   * folders in, songs gone (or outside them) out, covers. `choose` shows the
+   * folder picker first (it also shows when no folder was ever chosen).
+   */
+  async function sync(choose: boolean): Promise<{ added: number; removed: number } | null> {
     const { granted } = await HarmonyMedia.requestAccess()
     if (!granted) return null
-    const { songs } = await HarmonyMedia.scan()
+    const { songs: all } = await HarmonyMedia.scan()
+    let folders = (getSetting(db, 'androidFolders') as string[] | undefined) ?? []
+    if (choose || folders.length === 0) {
+      const picked = await askForFolders(all, folders)
+      if (!picked) return null
+      folders = picked
+      setSetting(db, 'androidFolders', folders)
+    }
+    const songs = all.filter((s) => folders.some((f) => isInside(s.path, f)))
     const onPhone = new Set(songs.map((s) => s.path))
     const known = new Set((db.prepare('SELECT path FROM songs').all() as { path: string }[]).map((r) => r.path))
     const hidden = new Set((getSetting(db, 'androidHidden') as string[] | undefined) ?? [])
@@ -154,12 +167,12 @@ export async function installAndroidApi(): Promise<void> {
   const api = {
     library: {
       selectAndScan: async () => {
-        const r = await sync()
+        const r = await sync(true)
         return r ? { folder: 'android', added: r.added, skipped: 0 } : null
       },
       importPaths: async () => ({ added: 0, skipped: 0 }),
       getSongs: q('library:getSongs'),
-      refresh: async () => (await sync()) ?? { added: 0, removed: 0 },
+      refresh: async () => (await sync(false)) ?? { added: 0, removed: 0 },
       // only from the library (and kept out of later scans): the phone's files are never touched
       deleteSong: async (songId: number) => {
         const row = db.prepare('SELECT path FROM songs WHERE id = ?').get(songId) as { path: string } | undefined

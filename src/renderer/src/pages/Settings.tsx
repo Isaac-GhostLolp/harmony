@@ -8,6 +8,7 @@ import { PatchNotesArchive } from '@/components/PatchNotesArchive'
 import { APP_VERSION } from '@/whatsNew'
 import { t, LANGUAGES, setLang, useLang } from '@/i18n'
 import { IS_ANDROID } from '@/platform'
+import { AndroidFolders } from '@/components/mobile/AndroidFolders'
 
 /**
  * What makes the app work: performance, audio, online lookups, the library
@@ -77,6 +78,8 @@ export function Settings(): JSX.Element {
           </div>
         </div>
       </section>
+
+      {IS_ANDROID && <AndroidFolders />}
 
       {!IS_ANDROID && (
       <a

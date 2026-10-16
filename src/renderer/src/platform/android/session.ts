@@ -1,4 +1,6 @@
 import { MediaSession } from '@jofr/capacitor-media-session'
+import { autoSpec, drawCover } from '@/utils/coverArt'
+import { FONTS } from '@/utils/appearance'
 
 /**
  * The player notification, lock screen and headset buttons: Android's media
@@ -38,27 +40,41 @@ function wire(): void {
   on('seekto', (d) => `seek:${d.seekTime ?? 0}`)
 }
 
-/** a small JPEG data URL of the cover (the notification can't read the app's local URLs) */
-const artCache = new Map<string, string | null>()
-async function artwork(url: string): Promise<string | null> {
-  if (artCache.has(url)) return artCache.get(url) ?? null
-  let out: string | null = null
+const SIZE = 320
+
+/** the cover as a small JPEG data URL (the notification can't read the app's local URLs) */
+async function coverArt(url: string): Promise<string | null> {
   try {
     const bitmap = await createImageBitmap(await (await fetch(url)).blob())
-    const size = 320
     const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = size
-    const scale = Math.max(size / bitmap.width, size / bitmap.height)
+    canvas.width = canvas.height = SIZE
+    const scale = Math.max(SIZE / bitmap.width, SIZE / bitmap.height)
     const w = bitmap.width * scale
     const h = bitmap.height * scale
-    canvas.getContext('2d')!.drawImage(bitmap, (size - w) / 2, (size - h) / 2, w, h)
-    out = canvas.toDataURL('image/jpeg', 0.85)
+    canvas.getContext('2d')!.drawImage(bitmap, (SIZE - w) / 2, (SIZE - h) / 2, w, h)
+    return canvas.toDataURL('image/jpeg', 0.85)
   } catch {
-    out = null
+    return null
   }
+}
+
+/** a cover drawn for the song, like the app's automatic covers */
+function drawnArt(title: string, artist: string): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = SIZE
+  drawCover(canvas, autoSpec(title, artist, FONTS[2].family))
+  return canvas.toDataURL('image/jpeg', 0.85)
+}
+
+const artCache = new Map<string, string>()
+async function artwork(s: PlayerState): Promise<string> {
+  const key = `${s.cover ?? ''}|${s.title}|${s.artist}`
+  const hit = artCache.get(key)
+  if (hit) return hit
+  const art = (s.cover ? await coverArt(s.cover) : null) ?? drawnArt(s.title ?? '', s.artist ?? '')
   if (artCache.size > 40) artCache.clear()
-  artCache.set(url, out)
-  return out
+  artCache.set(key, art)
+  return art
 }
 
 let lastMeta = ''
@@ -70,12 +86,17 @@ export function updateSession(s: PlayerState): void {
   const meta = `${s.title}|${s.artist}|${s.cover}`
   if (s.title && meta !== lastMeta) {
     lastMeta = meta
-    const base = { title: s.title, artist: s.artist ?? '', album: '' }
-    void MediaSession.setMetadata(base).catch(() => undefined)
-    if (s.cover)
-      void artwork(s.cover).then((art) => {
-        if (art && lastMeta === meta) void MediaSession.setMetadata({ ...base, artwork: [{ src: art }] }).catch(() => undefined)
-      })
+    // one call, always with an image: the plugin crashes the app (natively)
+    // when setMetadata comes without an artwork list
+    void artwork(s).then((art) => {
+      if (lastMeta !== meta) return
+      void MediaSession.setMetadata({
+        title: s.title ?? '',
+        artist: s.artist ?? '',
+        album: '',
+        artwork: [{ src: art, sizes: `${SIZE}x${SIZE}`, type: 'image/jpeg' }]
+      }).catch(() => undefined)
+    })
   }
   if (s.isPlaying !== lastPlaying) {
     lastPlaying = s.isPlaying
