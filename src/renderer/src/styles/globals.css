@@ -1706,3 +1706,32 @@ html.platform-android .lyrics-panel button.text-lg {
   font-size: 1.15rem;
   padding-block: 8px;
 }
+/* Retrospectiva: the video on top, the options below, one scroll */
+html.platform-android .recap-root {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 14px 16px max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: rgb(0 0 0 / 0.94);
+}
+html.platform-android .recap-preview {
+  flex: none;
+  height: 56vh;
+}
+/* the side panel's parts join the column: title above the video, the rest below */
+html.platform-android .recap-side {
+  display: contents;
+}
+html.platform-android .recap-side > :first-child {
+  order: -1;
+  flex: none;
+}
+html.platform-android .recap-side > * {
+  flex: none;
+}
+html.platform-android .recap-options {
+  overflow: visible;
+  margin-right: 0;
+  padding-right: 0;
+}

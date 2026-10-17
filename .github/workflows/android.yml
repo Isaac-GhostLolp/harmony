@@ -45,9 +45,9 @@ jobs:
 
       - name: Name the APK
         run: |
-          VERSION=$(node -p "require('./package.json').version")
+          VERSION=$(node -p "require('fs').readFileSync('src/renderer/src/whatsNew.ts', 'utf8').match(/ANDROID_VERSION = '([0-9.]+)'/)[1]")
           mkdir -p apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk "apk/Harmony-${VERSION}-android.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "apk/Harmony-Android-${VERSION}.apk"
 
       - name: Upload the APK
         uses: actions/upload-artifact@v4

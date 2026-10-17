@@ -10,6 +10,7 @@ import { SeekBar } from '@/components/SeekBar'
 import { VolumeControl } from '@/components/VolumeControl'
 import { StickerZone } from '@/components/stickers/StickerZone'
 import { AppIcon } from '@/components/icons/AppIcon'
+import { SleepTimerButton } from '@/components/SleepTimer'
 import { t } from '@/i18n'
 
 /**
@@ -162,6 +163,7 @@ export function PlayerBar(): JSX.Element {
       <button onClick={toggleQueue} className="text-muted hover:text-ink" aria-label={t('Fila')}>
         <AppIcon slot="queue" size={18} />
       </button>
+      <SleepTimerButton variant="bar" />
       <VolumeControl volume={volume} onChange={setVolume} />
     </div>
   )

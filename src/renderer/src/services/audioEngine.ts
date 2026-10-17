@@ -6,7 +6,7 @@
  * into a shared Web Audio graph:
  *
  *   slotA ─ gainA ─┐            ┌─ dry ──────────────────────┐
- *                  ├─ mix ──────┤                            ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ output
+ *                  ├─ mix ──────┤                            ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ sleepGain ─ output
  *   slotB ─ gainB ─┘            └─ karaoke (vocal cut) ─ wet ┘
  *
  * The dual-slot design gives us gapless track changes and true crossfade:
@@ -33,6 +33,8 @@ export class AudioEngine {
   private active = 0
   private filters: BiquadFilterNode[]
   private volumeGain: GainNode
+  /** after the volume: the sleep timer's slow fade to silence */
+  private sleepGain: GainNode
   private analyser: AnalyserNode
   private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
@@ -61,7 +63,9 @@ export class AudioEngine {
     this.ctx = new AudioContext()
 
     this.volumeGain = this.ctx.createGain()
-    this.volumeGain.connect(this.ctx.destination)
+    this.sleepGain = this.ctx.createGain()
+    this.volumeGain.connect(this.sleepGain)
+    this.sleepGain.connect(this.ctx.destination)
 
     // Equalizer chain: lowshelf → 8x peaking → highshelf
     this.filters = EQ_BANDS.map((freq, i) => {
@@ -265,6 +269,27 @@ export class AudioEngine {
     const now = this.ctx.currentTime
     g.cancelScheduledValues(now)
     g.setTargetAtTime(target, now, 0.015)
+  }
+
+  /**
+   * Sleep timer: the music fades to silence over `fadeSec`, starting in
+   * `startInSec`. Scheduled on the audio clock, so it keeps time even when
+   * the page's timers are slowed down (screen off, app in the background).
+   */
+  scheduleSleepFade(startInSec: number, fadeSec: number): void {
+    const g = this.sleepGain.gain
+    const at = this.ctx.currentTime + Math.max(0, startInSec)
+    g.cancelScheduledValues(this.ctx.currentTime)
+    g.setValueAtTime(1, this.ctx.currentTime)
+    g.setValueAtTime(1, at)
+    g.linearRampToValueAtTime(0.0001, at + Math.max(0.5, fadeSec))
+  }
+
+  /** back to full sound (the timer was cancelled, or the music was paused after it) */
+  resetSleepFade(): void {
+    const g = this.sleepGain.gain
+    g.cancelScheduledValues(this.ctx.currentTime)
+    g.setTargetAtTime(1, this.ctx.currentTime, 0.05)
   }
 
   setEqGains(gainsDb: number[]): void {

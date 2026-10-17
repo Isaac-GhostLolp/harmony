@@ -1,8 +1,11 @@
 apply plugin: 'com.android.application'
 
-// the same version as the desktop app (package.json): 0.18.6 → versionCode 1806
-def harmonyVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version as String
-def harmonyCode = harmonyVersion.tokenize('.').collect { it.replaceAll('[^0-9]', '') as int }.with { it[0] * 10000 + it[1] * 100 + it[2] }
+// The Android app has its own version (ANDROID_VERSION in src/renderer/src/whatsNew.ts,
+// next to its release notes). versionCode starts at 100000 so it stays above
+// the codes of the first test builds, which followed the desktop's 0.19.x.
+def whatsNew = file('../../src/renderer/src/whatsNew.ts').text
+def harmonyVersion = (whatsNew =~ /ANDROID_VERSION = '([0-9.]+)'/)[0][1] as String
+def harmonyCode = 100000 + harmonyVersion.tokenize('.').collect { it as int }.with { it[0] * 10000 + it[1] * 100 + it[2] }
 
 android {
     namespace "dev.aisaac.harmony"

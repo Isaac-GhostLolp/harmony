@@ -20,6 +20,7 @@ import {
   type Scene
 } from './recapRenderer'
 import { t } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
 
 /**
  * Retrospectiva — the listener's year in music as a 9:16 video to post.
@@ -70,7 +71,8 @@ export function RecapStudio({
   const [years, setYears] = useState<number[]>([])
   const [assets, setAssets] = useState<RecapAssets | null>(null)
   const [loadError, setLoadError] = useState(false)
-  const [quality, setQuality] = useState<Quality>('1080')
+  // 720p on the phone: much quicker to make, and plenty for a story
+  const [quality, setQuality] = useState<Quality>(IS_ANDROID ? '720' : '1080')
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const [sceneIdx, setSceneIdx] = useState(0)
 
@@ -250,8 +252,8 @@ export function RecapStudio({
   // portalled to <body>: the page lives inside <main>, whose backdrop-filter
   // would trap a fixed overlay under the player bar
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-stretch justify-center gap-6 bg-black/85 p-6 backdrop-blur-md">
-      <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
+    <div className="recap-root fixed inset-0 z-[100] flex items-stretch justify-center gap-6 bg-black/85 p-6 backdrop-blur-md">
+      <div className="recap-preview relative flex min-h-0 min-w-0 flex-1 items-center justify-center">
         <div
           className="relative max-h-full max-w-full"
           style={{ aspectRatio: `${RECAP_W} / ${RECAP_H}`, height: '100%' }}
@@ -289,7 +291,7 @@ export function RecapStudio({
         </div>
       </div>
 
-      <aside className="flex w-72 shrink-0 flex-col gap-5 py-1 text-sm text-white">
+      <aside className="recap-side flex w-72 shrink-0 flex-col gap-5 py-1 text-sm text-white">
         <div className="flex items-start justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold">
@@ -309,7 +311,7 @@ export function RecapStudio({
           </button>
         </div>
 
-        <div className="-mr-2 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
+        <div className="recap-options -mr-2 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
           <Section title={t('Período')}>
             {periods.map((p) => (
               <Chip key={String(p)} on={period === p} disabled={busy} onClick={() => setPeriod(p)}>
@@ -356,14 +358,19 @@ export function RecapStudio({
         </div>
 
         <div className="flex flex-col gap-2">
-          {status.kind === 'done' && (
-            <button
-              onClick={() => api.edit.reveal(status.path)}
-              className="flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/15"
-            >
-              <FolderOpen size={14} /> {t('Vídeo salvo! Mostrar na pasta')}
-            </button>
-          )}
+          {status.kind === 'done' &&
+            (IS_ANDROID ? (
+              <p className="rounded-full bg-white/10 px-4 py-2 text-center text-xs">
+                {t('Vídeo salvo! Está na Galeria, em Movies › Harmony.')}
+              </p>
+            ) : (
+              <button
+                onClick={() => api.edit.reveal(status.path)}
+                className="flex items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs hover:bg-white/15"
+              >
+                <FolderOpen size={14} /> {t('Vídeo salvo! Mostrar na pasta')}
+              </button>
+            ))}
           {status.kind === 'error' && <p className="text-center text-xs text-red-300">{status.message}</p>}
           {status.kind === 'rendering' ? (
             <button

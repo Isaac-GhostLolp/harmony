@@ -189,6 +189,32 @@ export async function installAndroidApi(): Promise<void> {
     tr: (pt, en) => (getLang() === 'en' ? en : pt)
   })
 
+  /**
+   * An exported video (Retrospectiva) into Movies/Harmony, where the gallery
+   * finds it. Written in pieces: one big string over the bridge could run
+   * the phone out of memory.
+   */
+  async function saveVideo(data: ArrayBuffer, baseName: string, ext: string): Promise<string | null> {
+    const safeExt = (ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4'
+    const name =
+      (baseName || 'Harmony').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) || 'Harmony'
+    const path = `Movies/Harmony/${name}.${safeExt}`
+    const bytes = new Uint8Array(data)
+    const CHUNK = 3 * 1024 * 1024
+    try {
+      let uri = ''
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        const part = toBase64(bytes.subarray(i, i + CHUNK))
+        if (i === 0) uri = (await Filesystem.writeFile({ path, data: part, directory: Directory.ExternalStorage, recursive: true })).uri
+        else await Filesystem.appendFile({ path, data: part, directory: Directory.ExternalStorage })
+      }
+      return uri.replace(/^file:\/\//, '') || path
+    } catch (e) {
+      console.error('Harmony: could not save the video', e)
+      return null
+    }
+  }
+
   const none = async (): Promise<null> => null
   const nothing = (): void => undefined
   const unsubscribe = (): (() => void) => () => undefined
@@ -282,7 +308,7 @@ export async function installAndroidApi(): Promise<void> {
       onState: unsubscribe
     },
     wallpaper: { save: none, clear: async () => true },
-    edit: { save: none, reveal: nothing, setBackgroundThrottling: nothing },
+    edit: { save: saveVideo, reveal: nothing, setBackgroundThrottling: nothing },
     updater: { get: async () => ({ state: 'none' }), check: none, install: none, onStatus: unsubscribe }
   }
   window.harmony = api as unknown as HarmonyApi

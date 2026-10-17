@@ -131,7 +131,7 @@ export function Settings(): JSX.Element {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold">{t('Novidades')}</h2>
-            <p className="mt-0.5 text-xs text-muted">{t('Você está no Harmony v{v}.', { v: APP_VERSION })}</p>
+            <p className="mt-0.5 text-xs text-muted">{IS_ANDROID ? t('Você está no Harmony para Android v{v}.', { v: APP_VERSION }) : t('Você está no Harmony v{v}.', { v: APP_VERSION })}</p>
           </div>
           <div className="flex shrink-0 flex-wrap justify-end gap-2">
             <button

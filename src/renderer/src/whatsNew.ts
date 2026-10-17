@@ -11,11 +11,26 @@
  */
 
 import { tk } from '@/i18n'
+import { IS_ANDROID } from '@/platform'
 
 declare const __APP_VERSION__: string
 
-/** The running app's version (from package.json at build time). */
-export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0'
+/**
+ * The Android app counts its own versions (it started long after the
+ * desktop one): raise this and add an entry to ANDROID_RELEASES with each
+ * Android update.
+ */
+export const ANDROID_VERSION = '0.3.0'
+
+/** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
+export const APP_VERSION: string = IS_ANDROID
+  ? ANDROID_VERSION
+  : typeof __APP_VERSION__ === 'string'
+    ? __APP_VERSION__
+    : '0.0.0'
+
+/** Where the last version seen is kept (the phone has its own numbering). */
+export const LAST_SEEN_KEY = IS_ANDROID ? 'lastSeenAndroid' : 'lastSeenVersion'
 
 export type WhatsNewAction =
   | { kind: 'route'; label: string; to: string }
@@ -265,9 +280,78 @@ export function compareVersions(a: string, b: string): number {
   return 0
 }
 
+/** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
+export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.3.0',
+    title: tk('Boa noite, música'),
+    date: '2026-10-17',
+    items: [
+      {
+        emoji: '🌙',
+        title: tk('Timer para dormir'),
+        text: tk('Em Tocando agora, toque em Timer e escolha por quanto tempo a música ainda toca — ou deixe ir até o fim da música. No final ela vai sumindo devagar, pausa e o Harmony fecha sozinho.')
+      },
+      {
+        emoji: '🎤',
+        title: tk('Letras e capas da internet'),
+        text: tk('O botão de letra em Tocando agora abre a letra sincronizada, e as músicas sem capa ganham a capa oficial enquanto tocam. Também dá para buscar pelo menu ⋯ de uma música ou em Artistas → Atualizar Metadados.')
+      },
+      {
+        emoji: '🔎',
+        title: tk('Busca mais esperta'),
+        text: tk('Músicas com o artista no nome, como "Espresso Sabrina Carpenter", agora encontram letra e capa. E quando o site das letras está ocupado, o Harmony tenta de novo em vez de desistir.')
+      },
+      {
+        emoji: '🎬',
+        title: tk('Retrospectiva no celular'),
+        text: tk('Criar a sua Retrospectiva no Meu Mundo agora cabe na tela do celular, e o vídeo vai para a Galeria, em Movies › Harmony.'),
+        action: { kind: 'route', label: tk('Abrir o Meu Mundo'), to: '/my-world' }
+      }
+    ]
+  },
+  {
+    version: '0.2.0',
+    title: tk('Só as suas músicas'),
+    date: '2026-10-16',
+    items: [
+      {
+        emoji: '📁',
+        title: tk('Escolha as pastas'),
+        text: tk('O Harmony mostra só as músicas das pastas que você marcar — áudios do WhatsApp, gravações e toques ficam de fora. Dá para trocar em Configurações → Pastas de música.')
+      },
+      {
+        emoji: '▶️',
+        title: tk('Play sem susto'),
+        text: tk('O app não fecha mais ao dar play numa música.')
+      }
+    ]
+  },
+  {
+    version: '0.1.0',
+    title: tk('Harmony no seu bolso'),
+    date: '2026-10-16',
+    items: [
+      {
+        emoji: '📱',
+        title: tk('O Harmony chegou ao Android'),
+        text: tk('As músicas do celular com a cara do Harmony: biblioteca, playlists, favoritos, busca, Meu Mundo, equalizador, temas e inglês.')
+      },
+      {
+        emoji: '🔒',
+        title: tk('Com a tela apagada'),
+        text: tk('A música continua tocando, com os controles na notificação, na tela de bloqueio e no fone.')
+      }
+    ]
+  }
+]
+
+/** The releases this app announces: the desktop's, or the phone's. */
+export const PLATFORM_RELEASES: Release[] = IS_ANDROID ? ANDROID_RELEASES : RELEASES
+
 /** Releases newer than `lastSeen`, up to the running version, newest first. */
 export function releasesSince(lastSeen: string | null, current = APP_VERSION): Release[] {
-  return RELEASES.filter(
+  return PLATFORM_RELEASES.filter(
     (r) => compareVersions(r.version, current) <= 0 && (!lastSeen || compareVersions(r.version, lastSeen) > 0)
   )
 }
@@ -412,7 +496,7 @@ export const HISTORY: Release[] = [
 
 /** Every release up to the running version (announced and archived), newest first. */
 export function allReleases(current = APP_VERSION): Release[] {
-  return [...RELEASES, ...HISTORY]
+  return (IS_ANDROID ? ANDROID_RELEASES : [...RELEASES, ...HISTORY])
     .filter((r) => compareVersions(r.version, current) <= 0)
     .sort((a, b) => compareVersions(b.version, a.version))
 }

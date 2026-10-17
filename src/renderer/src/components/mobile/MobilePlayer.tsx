@@ -9,6 +9,7 @@ import { SeekBar } from '@/components/SeekBar'
 import { AppIcon } from '@/components/icons/AppIcon'
 import { t } from '@/i18n'
 import { useBackCloses } from './back'
+import { SleepTimerButton } from '@/components/SleepTimer'
 
 /**
  * The phone's player: a slim bar above the tabs (tap it to open), and the
@@ -161,6 +162,10 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
           >
             <AppIcon slot={repeat === 'one' ? 'repeatOne' : 'repeat'} size={21} active={repeat !== 'off'} />
           </button>
+        </div>
+
+        <div className="mt-5 flex justify-center">
+          <SleepTimerButton variant="mobile" />
         </div>
       </div>
     </div>

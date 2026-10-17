@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Check, Sparkles, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { useUiStore } from '@/store/uiStore'
-import { APP_VERSION, compareVersions, RELEASES, releasesSince, type Release, type WhatsNewAction } from '@/whatsNew'
+import { APP_VERSION, compareVersions, LAST_SEEN_KEY, PLATFORM_RELEASES, releasesSince, type Release, type WhatsNewAction } from '@/whatsNew'
 import { t } from '@/i18n'
 
 /** Dispatch on window to show the current release's notes again (Settings). */
@@ -26,7 +26,8 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
     checked.current = true
     ;(async () => {
       const s = (await api.settings.get()) as Record<string, unknown>
-      const last = typeof s.lastSeenVersion === 'string' ? s.lastSeenVersion : null
+      const seen = s[LAST_SEEN_KEY]
+      const last = typeof seen === 'string' ? seen : null
       let show: Release[] = []
       if (last) show = releasesSince(last)
       else {
@@ -35,7 +36,7 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
         const songs = (await api.library.getSongs()) as unknown[]
         if (songs.length > 0) show = releasesSince(null).slice(0, 1)
       }
-      if (last !== APP_VERSION) await api.settings.set('lastSeenVersion', APP_VERSION)
+      if (last !== APP_VERSION) await api.settings.set(LAST_SEEN_KEY, APP_VERSION)
       if (show.length) setReleases(show)
     })().catch((err) => console.error('[WhatsNew]', err))
   }, [ready])
@@ -43,7 +44,7 @@ export function WhatsNew({ ready }: { ready: boolean }): JSX.Element | null {
   useEffect(() => {
     const open = (): void => {
       setDone(new Set())
-      setReleases(RELEASES.filter((r) => compareVersions(r.version, APP_VERSION) <= 0).slice(0, 1))
+      setReleases(PLATFORM_RELEASES.filter((r) => compareVersions(r.version, APP_VERSION) <= 0).slice(0, 1))
     }
     window.addEventListener(WHATS_NEW_EVENT, open)
     return () => window.removeEventListener(WHATS_NEW_EVENT, open)

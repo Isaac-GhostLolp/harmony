@@ -37,6 +37,13 @@ async function load(): Promise<Uint8Array | undefined> {
   }
 }
 
+let saveNowFn: () => Promise<void> = async () => undefined
+
+/** writes the library to disk right away (before the app closes itself) */
+export function saveDatabaseNow(): Promise<void> {
+  return saveNowFn()
+}
+
 export async function openDatabase(): Promise<Db> {
   const SQL = await initSqlJs({ locateFile: () => wasmUrl })
   const sql = new SQL.Database(await load())
@@ -72,6 +79,7 @@ export async function openDatabase(): Promise<Db> {
     if (!timer) timer = setTimeout(() => void save(), SAVE_DELAY_MS)
   })
   migrate(db)
+  saveNowFn = save
   await save()
   // leaving the app (or the screen going off) saves right away
   void App.addListener('pause', () => void save())
