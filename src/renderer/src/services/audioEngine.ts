@@ -33,6 +33,10 @@ export class AudioEngine {
   private active = 0
   private filters: BiquadFilterNode[]
   private volumeGain: GainNode
+  /** after the equalizer: takes back what the EQ curve adds at its peak (no clipping) */
+  private eqTrim: GainNode
+  /** a safety limiter before the volume: a peak that still gets through is held, not clipped */
+  private limiter: DynamicsCompressorNode
   /** after the volume: the sleep timer's slow fade to silence */
   private sleepGain: GainNode
   private analyser: AnalyserNode
@@ -79,7 +83,16 @@ export class AudioEngine {
     for (let i = 0; i < this.filters.length - 1; i++) {
       this.filters[i].connect(this.filters[i + 1])
     }
-    this.filters[this.filters.length - 1].connect(this.volumeGain)
+    this.eqTrim = this.ctx.createGain()
+    this.limiter = this.ctx.createDynamicsCompressor()
+    this.limiter.threshold.value = -1
+    this.limiter.knee.value = 0
+    this.limiter.ratio.value = 20
+    this.limiter.attack.value = 0.003
+    this.limiter.release.value = 0.25
+    this.filters[this.filters.length - 1].connect(this.eqTrim)
+    this.eqTrim.connect(this.limiter)
+    this.limiter.connect(this.volumeGain)
 
     // Spectrum tap for the Cinema stage — after the EQ (so the lights react
     // to what's actually mixed), before the volume gain (lights shouldn't
@@ -296,6 +309,22 @@ export class AudioEngine {
     this.filters.forEach((f, i) => {
       f.gain.value = gainsDb[i] ?? 0
     })
+    // The bands overlap, so the curve's real peak is above any single slider
+    // (Bass Boost's +7 dB reaches about +10). Lower the sound by that peak:
+    // the EQ keeps its shape and loud masters stop clipping.
+    const n = 96
+    const freqs = new Float32Array(n)
+    for (let i = 0; i < n; i++) freqs[i] = 20 * Math.pow(1000, i / (n - 1)) // 20 Hz – 20 kHz
+    const mag = new Float32Array(n)
+    const phase = new Float32Array(n)
+    const total = new Float32Array(n).fill(1)
+    for (const f of this.filters) {
+      f.getFrequencyResponse(freqs, mag, phase)
+      for (let i = 0; i < n; i++) total[i] *= mag[i]
+    }
+    const peakDb = 20 * Math.log10(Math.max(...total))
+    const trim = Math.pow(10, -Math.max(0, peakDb) / 20)
+    this.eqTrim.gain.setTargetAtTime(trim, this.ctx.currentTime, 0.05)
   }
 
   /**
@@ -355,7 +384,7 @@ export class AudioEngine {
   getShareStream(): MediaStream {
     if (!this.shareDest) {
       this.shareDest = this.ctx.createMediaStreamDestination()
-      this.filters[this.filters.length - 1].connect(this.shareDest)
+      this.limiter.connect(this.shareDest) // after the EQ trim and limiter: no clipping in the call either
     }
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {})
     return this.shareDest.stream

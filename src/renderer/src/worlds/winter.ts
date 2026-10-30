@@ -1,6 +1,9 @@
 import type { World, WorldContext } from './types'
 import { BW, BH, glowSprite, makeLayer, rng, sameView, toBoard, viewFor, type Layer, type View } from './kit'
 
+/** what a phone held upright centres on: the cabin on the shore and the peaks behind it */
+const FOCUS_X = 1100
+
 /**
  * ❄️ Winter — a still, crystalline snowscape, at night by default.
  *
@@ -415,7 +418,7 @@ interface State {
 let S: State | null = null
 
 function build(c: WorldContext): State {
-  const v = viewFor(c)
+  const v = viewFor(c, FOCUS_X)
   const P = palFor(c.dayPhase)
   const r = rng(77)
   const flakes: Flake[] = []
@@ -483,7 +486,7 @@ export const winterWorld: World = {
 
   frame(c: WorldContext): void {
     const { ctx, width, height, time, dt } = c
-    const v = viewFor(c)
+    const v = viewFor(c, FOCUS_X)
     if (!S || !sameView(S.v, v) || S.P.key !== palFor(c.dayPhase).key) S = build(c)
     const st = S
     const P = st.P

@@ -171,8 +171,13 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
     'playlists:delete': (id: number) =>
       db().prepare('DELETE FROM playlists WHERE id = ?').run(id),
     'playlists:duplicate': (id: number) => {
-      const src = db().prepare('SELECT name FROM playlists WHERE id = ?').get(id) as { name: string }
-      const info = db().prepare('INSERT INTO playlists (name) VALUES (?)').run(`${src.name} (copy)`)
+      // the copy keeps the look too: photo, emoji, description and colour
+      const src = db()
+        .prepare('SELECT name, description, emoji, image, color FROM playlists WHERE id = ?')
+        .get(id) as { name: string; description: string | null; emoji: string | null; image: string | null; color: string | null }
+      const info = db()
+        .prepare('INSERT INTO playlists (name, description, emoji, image, color) VALUES (?, ?, ?, ?, ?)')
+        .run(`${src.name} (copy)`, src.description, src.emoji, src.image, src.color)
       db()
         .prepare(
           `INSERT INTO playlist_songs (playlist_id, song_id, position)

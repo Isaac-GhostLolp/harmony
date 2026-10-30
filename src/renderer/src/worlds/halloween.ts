@@ -1,6 +1,9 @@
 import type { World, WorldContext } from './types'
 import { BW, BH, glowSprite, makeLayer, rng, sameView, toBoard, viewFor, type Layer, type View } from './kit'
 
+/** what a phone held upright centres on: the crooked mansion on the hill */
+const FOCUS_X = 420
+
 /**
  * 🎃 Halloween — a full moon over an old graveyard.
  *
@@ -560,7 +563,7 @@ function newGhost(tombs: Tomb[], r: () => number): Ghost {
 }
 
 function build(c: WorldContext): State {
-  const v = viewFor(c)
+  const v = viewFor(c, FOCUS_X)
   const P = palFor(c.dayPhase)
   const info: HouseInfo = { windows: [] }
   const tombs: Tomb[] = []
@@ -677,7 +680,7 @@ export const halloweenWorld: World = {
 
   frame(c: WorldContext): void {
     const { ctx, width, height, time, dt } = c
-    const v = viewFor(c)
+    const v = viewFor(c, FOCUS_X)
     if (!S || !sameView(S.v, v) || S.P.key !== palFor(c.dayPhase).key) S = build(c)
     const st = S
     const P = st.P

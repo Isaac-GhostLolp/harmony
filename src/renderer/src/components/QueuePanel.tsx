@@ -5,9 +5,11 @@ import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore } from '@/store/uiStore'
 import { formatDuration } from '@/utils/format'
 import { t } from '@/i18n'
+import { useBackCloses } from '@/components/mobile/back'
 
 export function QueuePanel(): JSX.Element {
   const open = useUiStore((s) => s.queueOpen)
+  useBackCloses(open, useUiStore.getState().toggleQueue)
   const toggle = useUiStore((s) => s.toggleQueue)
   const queue = usePlayerStore((s) => s.queue)
   const currentIndex = usePlayerStore((s) => s.currentIndex)

@@ -1,6 +1,9 @@
 import type { World, WorldContext } from './types'
 import { BW, BH, glowSprite, makeLayer, rng, sameView, toBoard, viewFor, type Layer, type View } from './kit'
 
+/** what a phone held upright centres on: the torii in the water, with the snowy peak behind */
+const FOCUS_X = 1150
+
 /**
  * ⛩️ Japanese Garden — a serene garden by a still pond, at dusk by default.
  *
@@ -549,7 +552,7 @@ interface State {
 let S: State | null = null
 
 function build(c: WorldContext): State {
-  const v = viewFor(c)
+  const v = viewFor(c, FOCUS_X)
   const P = palFor(c.dayPhase)
   // the reflection: the land and the torii mirrored about the waterline,
   // then sunk into the water's colour
@@ -698,7 +701,7 @@ export const japaneseGardenWorld: World = {
 
   frame(c: WorldContext): void {
     const { ctx, width, height, time, dt } = c
-    const v = viewFor(c)
+    const v = viewFor(c, FOCUS_X)
     if (!S || !sameView(S.v, v) || S.P.key !== palFor(c.dayPhase).key) {
       const petals = S?.petals ?? []
       S = build(c)

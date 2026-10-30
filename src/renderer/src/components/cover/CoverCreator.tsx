@@ -122,7 +122,7 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* preview */}
-        <div className="flex shrink-0 flex-col items-center justify-center gap-4 bg-[var(--bg-raised)] p-6 md:w-[460px]">
+        <div className="cover-preview flex shrink-0 flex-col items-center justify-center gap-4 bg-[var(--bg-raised)] p-6 md:w-[460px]">
           <canvas
             ref={preview}
             width={720}

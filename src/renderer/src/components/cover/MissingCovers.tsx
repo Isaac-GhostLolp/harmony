@@ -49,7 +49,7 @@ export function MissingCovers({ songs }: { songs: Song[] }): JSX.Element | null 
   }
 
   return (
-    <div className="fade-rise mb-4 flex items-center gap-3 rounded-2xl bg-[var(--accent-soft)] px-4 py-3">
+    <div className="missing-covers fade-rise mb-4 flex items-center gap-3 rounded-2xl bg-[var(--accent-soft)] px-4 py-3">
       <Palette size={18} className="shrink-0 text-[var(--accent)]" />
       <div className="min-w-0 flex-1 text-xs">
         {progress ? (

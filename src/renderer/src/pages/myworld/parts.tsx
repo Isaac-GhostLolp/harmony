@@ -10,7 +10,8 @@ export function useCountUp(target: number, ms = 1200): number {
     const tick = (now: number): void => {
       const k = Math.min(1, (now - t0) / ms)
       const e = 1 - Math.pow(1 - k, 3)
-      const next = Math.round(target * e)
+      // `|| 0`: a -0 would be written "-0" by toLocaleString
+      const next = Math.round(target * e) || 0
       if (next !== last) {
         last = next
         setV(next)

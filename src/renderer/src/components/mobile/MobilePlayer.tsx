@@ -92,8 +92,8 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">{t('Tocando agora')}</p>
         <div className="flex">
           <button
+            // lyrics and queue open over Tocando agora: closing them comes back here
             onClick={() => {
-              onClose()
               if (!useUiStore.getState().lyricsOpen) useUiStore.getState().toggleLyrics()
             }}
             className="grid h-11 w-11 place-items-center"
@@ -103,8 +103,7 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
           </button>
           <button
             onClick={() => {
-              onClose()
-              useUiStore.getState().toggleQueue()
+              if (!useUiStore.getState().queueOpen) useUiStore.getState().toggleQueue()
             }}
             className="grid h-11 w-11 place-items-center"
             aria-label={t('Fila')}

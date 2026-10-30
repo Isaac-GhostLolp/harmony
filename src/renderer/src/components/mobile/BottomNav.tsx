@@ -64,7 +64,7 @@ export function BottomNav(): JSX.Element {
         <div className="fixed inset-0 z-[59] bg-black/50" onClick={close}>
           <div className="m-sheet glass fade-rise" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--bg-raised)]" />
-            <div className="grid grid-cols-4 gap-1">
+            <div className="m-more-grid grid grid-cols-3 gap-1">
               {MORE.map((m) => (
                 <button
                   key={m.to}

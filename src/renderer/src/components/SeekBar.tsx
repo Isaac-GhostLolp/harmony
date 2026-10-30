@@ -50,6 +50,8 @@ export function SeekBar({
   const bubbleRef = useRef<HTMLDivElement | null>(null)
   const bubbleTextRef = useRef<HTMLSpanElement | null>(null)
   const [dragging, setDragging] = useState(false)
+  // read by the pointer handlers right away (the state above re-renders a frame later)
+  const draggingRef = useRef(false)
 
   // pointer state lives in refs: no re-render per mouse move
   const rect = useRef<{ left: number; width: number }>({ left: 0, width: 1 })
@@ -211,23 +213,29 @@ export function SeekBar({
   const onMove = (e: React.PointerEvent): void => {
     const p = pctAt(e.clientX)
     hoverPct.current = p
-    if (dragging) dragPct.current = p
+    if (draggingRef.current) dragPct.current = p
     schedule()
   }
 
   const onDown = (e: React.PointerEvent): void => {
     if (duration <= 0) return
     measure()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {
+      /* no capture: the drag still works while the pointer stays on the bar */
+    }
     const p = pctAt(e.clientX)
     hoverPct.current = p
     dragPct.current = p
+    draggingRef.current = true
     setDragging(true)
     schedule()
   }
 
   const finish = (e: React.PointerEvent, commit: boolean): void => {
-    if (!dragging) return
+    if (!draggingRef.current) return
+    draggingRef.current = false
     ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
     const p = dragPct.current
     dragPct.current = null
@@ -236,11 +244,13 @@ export function SeekBar({
       playPctRef.current = p
       onSeek(duration * p)
     }
+    // a finger has no "hover": the time bubble goes when it lifts
+    if (e.pointerType !== 'mouse') hoverPct.current = null
     schedule()
   }
 
   const onLeave = (): void => {
-    if (dragging) return
+    if (draggingRef.current) return
     hoverPct.current = null
     schedule()
   }
@@ -250,7 +260,9 @@ export function SeekBar({
       {showTimes && <span className="w-9 text-right tabular-nums">{formatDuration(currentTime)}</span>}
       <div
         ref={trackRef}
-        className="group relative flex-1 cursor-pointer py-2 [contain:layout_style]"
+        className="seek-track group relative flex-1 cursor-pointer py-2 [contain:layout_style]"
+        // a finger sliding along the bar scrubs it (instead of the browser taking it as a scroll)
+        style={{ touchAction: 'none' }}
         onPointerEnter={onEnter}
         onPointerMove={onMove}
         onPointerLeave={onLeave}

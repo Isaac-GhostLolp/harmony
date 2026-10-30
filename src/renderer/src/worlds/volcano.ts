@@ -93,6 +93,8 @@ const rgb = (c: RGB, a = 1): string => `rgba(${c[0]},${c[1]},${c[2]},${a})`
 // ---------------------------------------------------------------------------
 
 const CRATER = { x: 970, y: 268 }
+/** what a phone held upright centres on: the crater and the cone under it */
+const FOCUS_X = 930
 /** the board region the smoke plume lives in, and its buffer's scale */
 const PLUME = { x: 560, y: -440, w: 1080, h: 860, s: 0.3 }
 const PLAIN_Y = 700
@@ -610,7 +612,7 @@ function makePlate(r: () => number, x: number): Plate {
 }
 
 function build(c: WorldContext): State {
-  const v = viewFor(c)
+  const v = viewFor(c, FOCUS_X)
   const P = palFor(c.dayPhase)
   const { paths: rivers, ends } = flankRivers()
   const geo: Geo = { rivers, river: riverPath(), riverEnds: ends }
@@ -690,7 +692,7 @@ export const volcanoWorld: World = {
 
   frame(c: WorldContext): void {
     const { ctx, width, height, time, dt } = c
-    const v = viewFor(c)
+    const v = viewFor(c, FOCUS_X)
     if (!S || !sameView(S.v, v) || S.P.key !== palFor(c.dayPhase).key) S = build(c)
     const st = S
     const P = st.P
@@ -741,6 +743,9 @@ export const volcanoWorld: World = {
       if (t > 0.55) st.bolt.t = -1
     } else st.flash = 0
 
+    // the screen's own transform (pixel density): layers drawn "at full screen"
+    // go back to it — not to identity, which shrank them on phones (density 2–3)
+    const screen = ctx.getTransform()
     ctx.save()
     ctx.drawImage(st.back, 0, 0, width, height)
 
@@ -816,12 +821,12 @@ export const volcanoWorld: World = {
 
     // the lava, glowing with the heat
     ctx.globalAlpha = (0.55 + heat * 0.45) * (0.55 + 0.45 * P.lava)
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.setTransform(screen)
     ctx.drawImage(st.glow, 0, 0, width, height)
     // the cracks breathe with the kick
     ctx.globalAlpha = (0.25 + c.kick * 0.55 + c.breath * 0.15) * (0.6 + 0.4 * P.lava)
     ctx.drawImage(st.cracks, 0, 0, width, height)
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.setTransform(screen)
     toBoard(ctx, st.v)
 
     // the lava crawling down the flanks

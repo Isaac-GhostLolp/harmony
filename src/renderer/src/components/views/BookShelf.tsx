@@ -117,7 +117,7 @@ function OpenBook({ group, onClose }: { group: AlbumGroup; onClose: () => void }
 
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-6 backdrop-blur-sm"
+      className="book-overlay fixed inset-0 z-[100] grid place-items-center bg-black/60 p-6 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

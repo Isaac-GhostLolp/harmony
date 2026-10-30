@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.3.0'
+export const ANDROID_VERSION = '0.4.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -282,6 +282,44 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.4.0',
+    title: tk('Tudo no lugar'),
+    date: '2026-10-29',
+    items: [
+      {
+        emoji: '☑️',
+        title: tk('Selecionar músicas do jeito certo'),
+        text: tk('Segure o dedo numa música para começar a seleção (ou use ⋯ → Selecionar). Depois, cada toque marca ou desmarca uma música, sem tocar nada e sem perder as outras. A barra Tocando agora sai do caminho enquanto você seleciona.')
+      },
+      {
+        emoji: '👆',
+        title: tk('Arraste para avançar'),
+        text: tk('Agora dá para arrastar o dedo na barra da música e ver o minuto exato antes de soltar.')
+      },
+      {
+        emoji: '🖼️',
+        title: tk('Playlists do seu tamanho'),
+        text: tk('Escolha capas grandes, médias ou uma lista compacta (G, M, P no topo de Playlists). As opções de cada playlist ficam num botão ⋯ maior, o nome aparece inteiro, a seta de voltar ficou maior e a cópia de uma playlist leva a foto junto.'),
+        action: { kind: 'route', label: tk('Ver as playlists'), to: '/playlists' }
+      },
+      {
+        emoji: '🌋',
+        title: tk('Mundos feitos para o celular'),
+        text: tk('O Vulcão foi consertado (a lava e as rochas estavam fora do lugar) e os mundos se ajustam à tela em pé: o vulcão, a cabana do Inverno, o torii do Jardim Japonês e a mansão do Halloween ficam no centro.')
+      },
+      {
+        emoji: '🎚️',
+        title: tk('Equalizador sem estourar'),
+        text: tk('Os presets que aumentam o som (como o Bass Boost) agora compensam o volume sozinhos, sem distorcer.')
+      },
+      {
+        emoji: '🧩',
+        title: tk('E mais ajustes'),
+        text: tk('A fila e a letra voltam para Tocando agora, o modo Estante e o criador de capas ficaram centralizados, e o app se mantém em ordem mesmo com a fonte do celular bem grande.')
+      }
+    ]
+  },
   {
     version: '0.3.0',
     title: tk('Boa noite, música'),

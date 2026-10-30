@@ -109,6 +109,42 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
 
   const selectedSongs = (): Song[] => songs.filter((s) => selected.has(s.id))
 
+  // Phone: holding a row (without scrolling) starts selecting with it
+  const longPressed = useRef(false)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pressStart = useRef({ x: 0, y: 0 })
+  const cancelPress = (): void => {
+    if (pressTimer.current) clearTimeout(pressTimer.current)
+    pressTimer.current = null
+  }
+  const longPress = (id: number): React.HTMLAttributes<HTMLDivElement> => ({
+    onPointerDown: (e) => {
+      if ((e.target as HTMLElement).closest('button')) return
+      longPressed.current = false
+      pressStart.current = { x: e.clientX, y: e.clientY }
+      cancelPress()
+      pressTimer.current = setTimeout(() => {
+        longPressed.current = true
+        navigator.vibrate?.(15)
+        setSelected((prev) => new Set(prev).add(id))
+        setLastClicked(id)
+      }, 480)
+    },
+    onPointerMove: (e) => {
+      if (Math.hypot(e.clientX - pressStart.current.x, e.clientY - pressStart.current.y) > 10) cancelPress()
+    },
+    onPointerUp: cancelPress,
+    onPointerCancel: cancelPress,
+    onContextMenu: (e) => e.preventDefault()
+  })
+
+  // the mini player steps aside while selecting (it covers the rows' bottom)
+  useEffect(() => {
+    if (!IS_ANDROID) return
+    document.documentElement.classList.toggle('m-selecting', selectMode)
+    return () => document.documentElement.classList.remove('m-selecting')
+  }, [selectMode])
+
   // Keyboard shortcuts: Ctrl/Cmd+A selects all, Esc clears the selection.
   // Ignored while typing in an input so it doesn't hijack normal text editing.
   useEffect(() => {
@@ -294,6 +330,12 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               } else if (e.shiftKey) {
                 e.preventDefault()
                 toggleSelect(song.id, i, true)
+              } else if (IS_ANDROID && longPressed.current) {
+                // the tap that ends a long press: it already selected the row
+                longPressed.current = false
+              } else if (IS_ANDROID && selectMode) {
+                // on the phone, selecting is tapping: each tap marks or unmarks one row
+                if (!(e.target as HTMLElement).closest('.song-more')) toggleSelect(song.id, i, false)
               } else if (selectMode) {
                 e.preventDefault()
                 setSelected(new Set([song.id]))
@@ -303,6 +345,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 playQueue(songs, i)
               }
             }}
+            {...(IS_ANDROID ? longPress(song.id) : {})}
             draggable={Boolean(onReorder)}
             onDragStart={() => setDragIndex(i)}
             onDragOver={(e) => onReorder && e.preventDefault()}
@@ -392,6 +435,9 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 }`}
                 onMouseLeave={() => setMenuFor(null)}
               >
+                {IS_ANDROID && !selectMode && (
+                  <MenuItem label={t('☑️ Selecionar')} onClick={() => { toggleSelect(song.id, i, false); setMenuFor(null) }} />
+                )}
                 <MenuItem label={t('Tocar em seguida')} onClick={() => { addNext(song); setMenuFor(null) }} />
                 <MenuItem label={t('Adicionar à fila')} onClick={() => { addToQueue(song); setMenuFor(null) }} />
                 <MenuItem label={t('📮 Criar cápsula do tempo')} onClick={() => { useCapsuleStore.getState().openSeal(song); setMenuFor(null) }} />

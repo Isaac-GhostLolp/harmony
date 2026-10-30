@@ -22,11 +22,18 @@ export interface View {
   oy: number
 }
 
-/** The cover-fit view for this frame's canvas size. */
-export function viewFor(c: WorldContext): View {
+/**
+ * The cover-fit view for this frame's canvas size. On a tall screen (a phone
+ * held upright) only a slice of the 16:9 board shows: `focusX` (board units)
+ * is what that slice centres on — the scene's subject — instead of the
+ * middle of the board.
+ */
+export function viewFor(c: WorldContext, focusX = BW / 2): View {
   const dpr = canvasDpr()
   const s = Math.max(c.width / BW, c.height / BH)
-  return { w: c.width, h: c.height, dpr, s, ox: (c.width - BW * s) / 2, oy: (c.height - BH * s) / 2 }
+  const spare = c.width - BW * s // ≤ 0: how much of the board's width is cut
+  const ox = Math.min(0, Math.max(spare, c.width / 2 - focusX * s))
+  return { w: c.width, h: c.height, dpr, s, ox, oy: (c.height - BH * s) / 2 }
 }
 
 export function sameView(a: View | null | undefined, b: View): boolean {
