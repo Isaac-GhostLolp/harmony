@@ -90,7 +90,8 @@ function Buttons({ kind, maximized }: { kind: TitleButtons; maximized: boolean }
   return (
     <div className={`tb-buttons tb-nodrag tb-${kind}`}>
       {order.map((b) => (
-        <button key={b.id} className={`tb-btn tb-${b.id}`} onClick={b.run} title={b.label} aria-label={b.label}>
+        // called with no argument: the click event can't cross into Electron ("could not be cloned")
+        <button key={b.id} className={`tb-btn tb-${b.id}`} onClick={() => b.run()} title={b.label} aria-label={b.label}>
           {b.icon}
         </button>
       ))}

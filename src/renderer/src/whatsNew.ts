@@ -54,6 +54,18 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.19.3',
+    title: tk('Botões da janela de volta'),
+    date: '2026-11-07',
+    items: [
+      {
+        emoji: '🪟',
+        title: tk('Minimizar, maximizar e fechar funcionam de novo'),
+        text: tk('Os botões da barra da janela do Harmony pararam de responder ao clique. Agora voltaram ao normal.')
+      }
+    ]
+  },
+  {
     version: '0.19.2',
     title: tk('Capa no Discord, timer e som mais limpo'),
     date: '2026-11-07',
