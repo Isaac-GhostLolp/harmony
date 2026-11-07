@@ -475,6 +475,8 @@ export interface CoverResult {
   albumTitle: string | null
   year: number | null
   source: string
+  /** where the image is on the web (kept for Discord's presence) */
+  url?: string
 }
 
 export async function fetchCoverOnline(local: LocalTrack, save: SaveImage): Promise<CoverResult | null> {
@@ -500,8 +502,31 @@ export async function fetchCoverOnline(local: LocalTrack, save: SaveImage): Prom
 
     const coverPath = await downloadImage(best.coverUrl, `${best.album ?? best.title}::${best.artist}`, save)
     if (coverPath) {
-      return { coverPath, albumTitle: best.album, year: best.year, source: best.source }
+      return { coverPath, albumTitle: best.album, year: best.year, source: best.source, url: best.coverUrl }
     }
+  }
+  return null
+}
+
+/**
+ * The web address of a song's official cover, without downloading it — for
+ * Discord's "Listening to", which can only show images from a public link.
+ * Same search and matching as fetchCoverOnline.
+ */
+export async function findCoverLink(local: LocalTrack): Promise<string | null> {
+  const localVariants = extractVariants(local.title)
+  for (const attempt of deriveAttempts(local)) {
+    let hits = [...(await searchDeezer(attempt)), ...(await searchItunes(attempt))]
+    if (hits.length === 0) hits = await searchMusicBrainz(attempt)
+    const best = pickBest(
+      attempt,
+      localVariants,
+      local.duration,
+      hits,
+      (h) => ({ title: h.title, artist: h.artist, duration: h.duration }),
+      SPEED_VARIANTS
+    )
+    if (best) return best.coverUrl
   }
   return null
 }
@@ -534,6 +559,7 @@ export function applyCoverToSong(db: Db, songId: number, result: CoverResult): s
   // Online art always goes to its own column — the original embedded cover
   // in cover_path is never overwritten.
   db.prepare('UPDATE albums SET online_cover_path = ? WHERE id = ?').run(result.coverPath, albumId)
+  if (result.url) db.prepare('UPDATE songs SET art_url = ? WHERE album_id = ?').run(result.url, albumId)
   if (result.year) {
     db.prepare('UPDATE albums SET year = COALESCE(year, ?) WHERE id = ?').run(result.year, albumId)
   }

@@ -126,6 +126,8 @@ export function App(): JSX.Element {
       lastKey = key
       lastTime = s.currentTime
       api.player.sendState({
+        songId: song?.id ?? null,
+        album: song?.album ?? null,
         title: song?.title ?? null,
         artist: song?.artist ?? null,
         cover: mediaUrl(song?.coverPath ?? null) ?? null,

@@ -125,6 +125,10 @@ export function migrate(db: Db): void {
   // v0.11 phase 7 — artist photos (downloaded to the covers dir, cached).
   ensureColumn(db, 'artists', 'image_path', 'TEXT')
 
+  // v0.19.2 — a public link to the song's cover, for Discord's "Listening to"
+  // ('' = looked for and none found)
+  ensureColumn(db, 'songs', 'art_url', 'TEXT')
+
   migrateMultiArtists(db)
   pruneEmptyArtists(db)
 }
