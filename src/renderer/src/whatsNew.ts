@@ -54,6 +54,46 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.19.2',
+    title: tk('Capa no Discord, timer e som mais limpo'),
+    date: '2026-11-07',
+    items: [
+      {
+        emoji: '🎧',
+        title: tk('Sua música no Discord, com capa'),
+        text: tk('O "Ouvindo" do Discord agora mostra a capa da música (com o logo do Harmony no canto), o álbum e um botão "Ouvir no Harmony" para os seus amigos. A capa é a oficial, buscada na internet: nada do seu computador é enviado. Músicas sem capa online ficam com o logo.'),
+        action: { kind: 'route', label: tk('Ir para as Configurações'), to: '/settings' }
+      },
+      {
+        emoji: '🌙',
+        title: tk('Timer para dormir'),
+        text: tk('Toque na lua da barra de música e escolha por quanto tempo ainda tocar — ou até o fim da música. No final ela vai sumindo devagar, pausa e o Harmony fecha sozinho.')
+      },
+      {
+        emoji: '🎚️',
+        title: tk('Equalizador sem estourar'),
+        text: tk('Os presets que aumentam o som (como o Bass Boost) agora compensam o volume sozinhos, sem distorcer.'),
+        action: { kind: 'route', label: tk('Abrir o equalizador'), to: '/equalizer' }
+      },
+      {
+        emoji: '🔎',
+        title: tk('Letras e capas mais fáceis de achar'),
+        text: tk('Músicas com o artista no nome, como "Espresso Sabrina Carpenter", agora encontram letra e capa; a letra sincronizada ganha da sem tempo; e quando o site das letras está ocupado, o Harmony tenta de novo em vez de desistir.')
+      },
+      {
+        emoji: '🖼️',
+        title: tk('Playlists do seu tamanho'),
+        text: tk('Escolha capas grandes, médias ou uma lista compacta (G, M, P no topo de Playlists), e a cópia de uma playlist agora leva a foto junto.'),
+        action: { kind: 'route', label: tk('Ver as playlists'), to: '/playlists' }
+      },
+      {
+        emoji: '🧩',
+        title: tk('Pequenos consertos'),
+        text: tk('O fundo do DJ Mode volta a mostrar a capa, a Roleta do Meu Mundo não trava mais o app, os contadores do Meu Mundo não mostram mais "-0" e, se uma tela falhar, só ela mostra um aviso — a música continua.')
+      }
+    ]
+  },
+  {
     version: '0.19.1',
     title: tk('Harmony e Pharaf mais firmes'),
     date: '2026-10-14',
