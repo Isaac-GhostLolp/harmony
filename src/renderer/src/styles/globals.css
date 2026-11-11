@@ -1848,3 +1848,31 @@ html.platform-android main section .flex.justify-between > .shrink-0 {
   flex-shrink: 1;
   min-width: 0;
 }
+/* Focus mode's break: a calm screen with a circle breathing (4 s in, 4 s out) */
+.m-break {
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 22%, var(--bg-base)), var(--bg-base) 70%);
+  animation: m-rise 300ms ease;
+}
+.m-breath {
+  width: 150px;
+  height: 150px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 70%, white 10%), color-mix(in srgb, var(--accent) 25%, transparent) 70%);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: m-breathe 8s ease-in-out infinite;
+}
+@keyframes m-breathe {
+  0%,
+  100% {
+    transform: scale(0.62);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+html.ultra-fast .m-breath {
+  animation: none;
+  transform: scale(0.85);
+}

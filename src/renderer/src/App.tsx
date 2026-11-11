@@ -43,6 +43,7 @@ import { BottomNav } from '@/components/mobile/BottomNav'
 import { MobilePlayer } from '@/components/mobile/MobilePlayer'
 import { AndroidSystem } from '@/components/mobile/AndroidSystem'
 import { FolderPicker } from '@/components/mobile/FolderPicker'
+import { FocusBreak } from '@/components/mobile/FocusMode'
 import { IconDefs } from '@/components/icons/AppIcon'
 import { usePlayerStore } from '@/store/playerStore'
 import { useEqStore } from '@/store/eqStore'
@@ -227,6 +228,7 @@ export function App(): JSX.Element {
               <BottomNav />
               <AndroidSystem />
               <FolderPicker />
+              <FocusBreak />
             </>
           ) : (
             <PlayerBar />

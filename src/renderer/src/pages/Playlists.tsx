@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ListMusic, Plus, Copy, Trash2, Pencil, MoreHorizontal, ArrowLeft, Image as ImageIcon } from 'lucide-react'
 import type { Playlist, Song } from '@/types'
 import { api } from '@/services/api'
@@ -337,39 +338,42 @@ export function Playlists(): JSX.Element {
         </div>
       )}
 
-      {actionsFor && (
-        <div className="fixed inset-0 z-[120] flex items-end bg-black/50" onClick={closeActions}>
-          <div
-            className="fade-rise w-full rounded-t-3xl bg-[var(--bg-base)] px-4 pb-[max(18px,env(safe-area-inset-bottom))] pt-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--bg-raised)]" />
-            <p className="mb-2 truncate px-2 text-sm font-semibold">{actionsFor.name}</p>
-            {(
-              [
-                { icon: <ImageIcon size={18} />, label: t('Personalizar'), run: () => setEditing(actionsFor) },
-                { icon: <Pencil size={18} />, label: t('Renomear'), run: () => setDialog({ kind: 'rename', playlist: actionsFor }) },
-                { icon: <Copy size={18} />, label: t('Duplicar'), run: () => duplicate(actionsFor) },
-                { icon: <Trash2 size={18} />, label: t('Excluir'), run: () => setDialog({ kind: 'delete', playlist: actionsFor }), danger: true }
-              ] as { icon: JSX.Element; label: string; run: () => void; danger?: boolean }[]
-            ).map((a) => (
-              <button
-                key={a.label}
-                onClick={() => {
-                  closeActions()
-                  a.run()
-                }}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left text-sm active:bg-[var(--bg-raised)] ${
-                  a.danger ? 'text-red-400' : ''
-                }`}
+      {/* at the top of the page tree: inside <main> the tab bar covered its last option (Excluir) */}
+      {actionsFor &&
+        createPortal(
+            <div className="fixed inset-0 z-[120] flex items-end bg-black/50" onClick={closeActions}>
+              <div
+                className="fade-rise w-full rounded-t-3xl bg-[var(--bg-base)] px-4 pb-[max(18px,env(safe-area-inset-bottom))] pt-4"
+                onClick={(e) => e.stopPropagation()}
               >
-                {a.icon}
-                {a.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+                <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[var(--bg-raised)]" />
+                <p className="mb-2 truncate px-2 text-sm font-semibold">{actionsFor.name}</p>
+                {(
+                  [
+                    { icon: <ImageIcon size={18} />, label: t('Personalizar'), run: () => setEditing(actionsFor) },
+                    { icon: <Pencil size={18} />, label: t('Renomear'), run: () => setDialog({ kind: 'rename', playlist: actionsFor }) },
+                    { icon: <Copy size={18} />, label: t('Duplicar'), run: () => duplicate(actionsFor) },
+                    { icon: <Trash2 size={18} />, label: t('Excluir'), run: () => setDialog({ kind: 'delete', playlist: actionsFor }), danger: true }
+                  ] as { icon: JSX.Element; label: string; run: () => void; danger?: boolean }[]
+                ).map((a) => (
+                  <button
+                    key={a.label}
+                    onClick={() => {
+                      closeActions()
+                      a.run()
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left text-sm active:bg-[var(--bg-raised)] ${
+                      a.danger ? 'text-red-400' : ''
+                    }`}
+                  >
+                    {a.icon}
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>,
+          document.body
+        )}
 
       <InputDialog
         open={dialog?.kind === 'create'}

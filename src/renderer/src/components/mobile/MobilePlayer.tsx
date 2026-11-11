@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 import { usePlayerStore } from '@/store/playerStore'
 import { useUiStore } from '@/store/uiStore'
 import { useBarStore } from '@/store/barStore'
@@ -10,6 +10,8 @@ import { AppIcon } from '@/components/icons/AppIcon'
 import { t } from '@/i18n'
 import { useBackCloses } from './back'
 import { SleepTimerButton } from '@/components/SleepTimer'
+import { FocusButton } from './FocusMode'
+import { ShareSongButton } from './ShareSong'
 
 /**
  * The phone's player: a slim bar above the tabs (tap it to open), and the
@@ -71,6 +73,9 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
   const repeat = usePlayerStore((s) => s.repeat)
   const look = useBarStore((s) => s.progress)
   const { togglePlay, next, previous, toggleShuffle, cycleRepeat, seek, setFavoriteFlag } = usePlayerStore.getState()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const coverRef = useRef<HTMLDivElement>(null)
+  const swipe = useSwipes(rootRef, coverRef, { onNext: next, onPrevious: previous, onClose })
   if (!song) return null
   const cover = mediaUrl(song.coverPath)
 
@@ -80,7 +85,7 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
   }
 
   return (
-    <div className="m-now fixed inset-0 z-[130] flex flex-col overflow-hidden">
+    <div ref={rootRef} className="m-now fixed inset-0 z-[130] flex flex-col overflow-hidden" style={{ touchAction: 'none' }} {...swipe}>
       {cover && <div aria-hidden className="m-now-bg" style={{ backgroundImage: `url(${cover})` }} />}
 
       <div className="relative flex items-center justify-between px-3 pt-3">
@@ -114,7 +119,12 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-8 py-4">
-        <div className="aspect-square w-full max-w-[min(100%,52vh)] overflow-hidden rounded-3xl shadow-2xl">
+        <div
+          ref={coverRef}
+          data-swipe-cover
+          className="aspect-square w-full max-w-[min(100%,52vh)] overflow-hidden rounded-3xl shadow-2xl"
+          style={{ touchAction: 'none' }}
+        >
           <CoverArt src={song.coverPath} title={song.title} size="full" rounded="2xl" />
         </div>
       </div>
@@ -125,6 +135,7 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
             <p className="truncate text-xl font-bold">{song.title}</p>
             <p className="truncate text-sm text-muted">{song.artist ?? ''}</p>
           </div>
+          <ShareSongButton song={song} />
           <button onClick={toggleFavorite} className="grid h-11 w-11 place-items-center" aria-label={t('Favoritar')}>
             <AppIcon slot={song.favorite ? 'liked' : 'like'} size={24} />
           </button>
@@ -163,10 +174,85 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
           </button>
         </div>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-5 flex justify-center gap-2">
+          <FocusButton />
           <SleepTimerButton variant="mobile" />
         </div>
       </div>
     </div>
   )
+}
+
+/**
+ * Tocando agora's gestures: the cover slides sideways to change songs (left:
+ * next, right: previous), and the whole screen pulls down to close. A slide
+ * that doesn't go far enough springs back. The seek bar and the buttons keep
+ * their own touches.
+ */
+function useSwipes(
+  rootRef: RefObject<HTMLDivElement>,
+  coverRef: RefObject<HTMLDivElement>,
+  on: { onNext: () => void; onPrevious: () => void; onClose: () => void }
+): React.HTMLAttributes<HTMLDivElement> {
+  const g = useRef<{ x: number; y: number; axis: 'x' | 'y' | null; onCover: boolean; id: number } | null>(null)
+  const SIDE = 70 // px to change song
+  const DOWN = 120 // px to close
+
+  const set = (el: HTMLElement | null, transform: string, animate: boolean): void => {
+    if (!el) return
+    el.style.transition = animate ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none'
+    el.style.transform = transform
+  }
+
+  return {
+    onPointerDown: (e) => {
+      const target = e.target as HTMLElement
+      if (target.closest('button, .seek-track, input')) return
+      g.current = { x: e.clientX, y: e.clientY, axis: null, onCover: Boolean(target.closest('[data-swipe-cover]')), id: e.pointerId }
+    },
+    onPointerMove: (e) => {
+      const s = g.current
+      if (!s || s.id !== e.pointerId) return
+      const dx = e.clientX - s.x
+      const dy = e.clientY - s.y
+      if (!s.axis) {
+        if (Math.hypot(dx, dy) < 10) return
+        s.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+        if (s.axis === 'x' && !s.onCover) {
+          g.current = null
+          return
+        }
+      }
+      if (s.axis === 'x') set(coverRef.current, `translateX(${dx}px) rotate(${dx / 40}deg)`, false)
+      else if (dy > 0) set(rootRef.current, `translateY(${dy}px)`, false)
+    },
+    onPointerUp: (e) => {
+      const s = g.current
+      g.current = null
+      if (!s || !s.axis) return
+      const dx = e.clientX - s.x
+      const dy = e.clientY - s.y
+      if (s.axis === 'x') {
+        if (Math.abs(dx) > SIDE) {
+          // the cover leaves to that side, then the new song's comes in from the other
+          const out = dx < 0 ? -1 : 1
+          set(coverRef.current, `translateX(${out * 120}%)`, true)
+          window.setTimeout(() => {
+            if (out < 0) on.onNext()
+            else on.onPrevious()
+            set(coverRef.current, `translateX(${-out * 60}%)`, false)
+            requestAnimationFrame(() => set(coverRef.current, 'none', true))
+          }, 180)
+        } else set(coverRef.current, 'none', true)
+      } else if (dy > DOWN) {
+        set(rootRef.current, 'translateY(100%)', true)
+        window.setTimeout(on.onClose, 200)
+      } else set(rootRef.current, 'none', true)
+    },
+    onPointerCancel: () => {
+      g.current = null
+      set(coverRef.current, 'none', true)
+      set(rootRef.current, 'none', true)
+    }
+  }
 }

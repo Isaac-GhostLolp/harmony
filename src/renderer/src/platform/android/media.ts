@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core'
+import { registerPlugin, type PluginListenerHandle } from '@capacitor/core'
 
 /** One audio file from Android's MediaStore (android/.../HarmonyMediaPlugin.java). */
 export interface DeviceSong {
@@ -21,6 +21,8 @@ export interface HarmonyMediaPlugin {
   scan(): Promise<{ songs: DeviceSong[] }>
   /** the cover inside each file, saved as an image in the app's folder (null: none) */
   covers(options: { items: { key: string; path: string }[] }): Promise<{ paths: Record<string, string | null> }>
+  /** headphones unplugged / Bluetooth headset gone: the sound is about to go to the speaker */
+  addListener(event: 'becomingNoisy', cb: () => void): Promise<PluginListenerHandle>
 }
 
 export const HarmonyMedia = registerPlugin<HarmonyMediaPlugin>('HarmonyMedia', {

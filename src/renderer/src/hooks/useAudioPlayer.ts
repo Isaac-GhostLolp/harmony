@@ -60,8 +60,15 @@ export function useAudioPlayer(): void {
     if (key === loadedKey) return
     loadedKey = key
     const engine = getEngine()
-    engine.load(mediaUrl(song.path)!)
-    api.history.add(song.id)
+    const { resumeAt } = usePlayerStore.getState()
+    if (resumeAt !== null) {
+      // picked up where the listener left off: paused, and not a new play
+      usePlayerStore.setState({ resumeAt: null })
+      engine.load(mediaUrl(song.path)!, resumeAt, false)
+    } else {
+      engine.load(mediaUrl(song.path)!)
+      api.history.add(song.id)
+    }
     applyAccentFromCover(mediaUrl(song.coverPath))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song?.id, epoch])

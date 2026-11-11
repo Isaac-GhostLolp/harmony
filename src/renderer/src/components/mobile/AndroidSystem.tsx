@@ -4,6 +4,12 @@ import { App } from '@capacitor/app'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { useUiStore } from '@/store/uiStore'
 import { closeTopLayer } from './back'
+import { startResume } from '@/platform/android/resume'
+import { HarmonyMedia } from '@/platform/android/media'
+import { usePlayerStore } from '@/store/playerStore'
+
+/** the app can be redrawn (a language switch remounts it): resume runs once */
+let resumeStarted = false
 
 /**
  * The Android-only bits of the app shell: the back button (close the top
@@ -14,6 +20,24 @@ import { closeTopLayer } from './back'
 export function AndroidSystem(): null {
   const navigate = useNavigate()
   const { pathname } = useLocation()
+
+  // headphones out (or the Bluetooth headset gone): pause instead of playing out loud
+  useEffect(() => {
+    const sub = HarmonyMedia.addListener('becomingNoisy', () => {
+      const p = usePlayerStore.getState()
+      if (p.isPlaying) p.togglePlay()
+    })
+    return () => {
+      void sub.then((h) => h.remove())
+    }
+  }, [])
+
+  // pick up where the listener left off (once per app start)
+  useEffect(() => {
+    if (resumeStarted) return
+    resumeStarted = true
+    void startResume()
+  }, [])
 
   useEffect(() => {
     const sub = App.addListener('backButton', () => {

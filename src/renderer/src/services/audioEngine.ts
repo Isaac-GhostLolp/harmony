@@ -6,7 +6,7 @@
  * into a shared Web Audio graph:
  *
  *   slotA ─ gainA ─┐            ┌─ dry ──────────────────────┐
- *                  ├─ mix ──────┤                            ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ sleepGain ─ output
+ *                  ├─ mix ──────┤                            ├─ 10x BiquadFilter (equalizer) ─ volumeGain ─ focusGain ─ sleepGain ─ output
  *   slotB ─ gainB ─┘            └─ karaoke (vocal cut) ─ wet ┘
  *
  * The dual-slot design gives us gapless track changes and true crossfade:
@@ -39,6 +39,8 @@ export class AudioEngine {
   private limiter: DynamicsCompressorNode
   /** after the volume: the sleep timer's slow fade to silence */
   private sleepGain: GainNode
+  /** Focus mode: the music fades out for the break and back in after it */
+  private focusGain: GainNode
   private analyser: AnalyserNode
   private detector: AnalyserNode
   private freqData: Uint8Array<ArrayBuffer> | null = null
@@ -68,7 +70,9 @@ export class AudioEngine {
 
     this.volumeGain = this.ctx.createGain()
     this.sleepGain = this.ctx.createGain()
-    this.volumeGain.connect(this.sleepGain)
+    this.focusGain = this.ctx.createGain()
+    this.volumeGain.connect(this.focusGain)
+    this.focusGain.connect(this.sleepGain)
     this.sleepGain.connect(this.ctx.destination)
 
     // Equalizer chain: lowshelf → 8x peaking → highshelf
@@ -218,7 +222,11 @@ export class AudioEngine {
   }
 
   /** Loads and plays a track in the idle slot, crossfading from the current one. */
-  async load(url: string): Promise<void> {
+  /**
+   * Loads a song and plays it — or, with `autoplay` false, leaves it paused at
+   * `startAt` seconds (picking up where the listener left off).
+   */
+  async load(url: string, startAt = 0, autoplay = true): Promise<void> {
     await this.ctx.resume().catch(() => {})
 
     const prev = this.slots[this.active]
@@ -227,7 +235,7 @@ export class AudioEngine {
     this.autoNextFired = false
 
     slot.el.src = url
-    slot.el.currentTime = 0
+    slot.el.currentTime = startAt
 
     const now = this.ctx.currentTime
     const fade = this.crossfadeSec
@@ -253,6 +261,7 @@ export class AudioEngine {
       prev.el.load()
     }
 
+    if (!autoplay) return
     await slot.el.play().catch(() => {
       /* autoplay policy: resolved on next user gesture via play() */
     })
@@ -296,6 +305,38 @@ export class AudioEngine {
     g.setValueAtTime(1, this.ctx.currentTime)
     g.setValueAtTime(1, at)
     g.linearRampToValueAtTime(0.0001, at + Math.max(0.5, fadeSec))
+  }
+
+  /**
+   * Focus mode: glide to `level` (0..1) over `sec`, starting in `startInSec`
+   * — on the audio clock, so a break starts on time with the screen off.
+   */
+  focusFade(level: number, sec: number, startInSec = 0): void {
+    const g = this.focusGain.gain
+    const now = this.ctx.currentTime
+    const at = now + Math.max(0, startInSec)
+    g.cancelScheduledValues(now)
+    g.setValueAtTime(g.value, now)
+    g.setValueAtTime(g.value, at)
+    g.linearRampToValueAtTime(Math.max(0.0001, level), at + Math.max(0.1, sec))
+  }
+
+  /**
+   * A whole focus round on the audio clock: (from silence, when `fadeIn`)
+   * up to full sound over `fadeSec`, full sound, and down to silence over the
+   * last `fadeSec` of `totalSec` — when the break begins.
+   */
+  focusRound(totalSec: number, fadeSec: number, fadeIn: boolean): void {
+    const g = this.focusGain.gain
+    const now = this.ctx.currentTime
+    g.cancelScheduledValues(now)
+    if (fadeIn) {
+      g.setValueAtTime(0.0001, now)
+      g.linearRampToValueAtTime(1, now + fadeSec)
+    } else g.setValueAtTime(1, now)
+    const end = now + Math.max(fadeSec * 2, totalSec)
+    g.setValueAtTime(1, end - fadeSec)
+    g.linearRampToValueAtTime(0.0001, end)
   }
 
   /** back to full sound (the timer was cancelled, or the music was paused after it) */

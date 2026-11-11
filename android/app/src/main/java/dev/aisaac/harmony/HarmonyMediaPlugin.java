@@ -1,7 +1,12 @@
 package dev.aisaac.harmony;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.database.Cursor;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
@@ -42,6 +47,38 @@ import java.util.List;
     }
 )
 public class HarmonyMediaPlugin extends Plugin {
+
+    /**
+     * Headphones unplugged or a Bluetooth headset dropped: Android is about to
+     * send the sound to the speaker. The page pauses the music ("becomingNoisy").
+     */
+    private final BroadcastReceiver noisy = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
+                notifyListeners("becomingNoisy", new JSObject());
+            }
+        }
+    };
+
+    @Override
+    public void load() {
+        IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getContext().registerReceiver(noisy, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            getContext().registerReceiver(noisy, filter);
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        try {
+            getContext().unregisterReceiver(noisy);
+        } catch (Exception ignored) {
+            // was never registered
+        }
+    }
 
     private String audioAlias() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ? "audio" : "storage";

@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.4.0'
+export const ANDROID_VERSION = '0.5.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -334,6 +334,43 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.5.0',
+    title: tk('Feito para o dia a dia'),
+    date: '2026-11-11',
+    items: [
+      {
+        emoji: '⏯️',
+        title: tk('Continue de onde parou'),
+        text: tk('Ao abrir o Harmony, a última fila e o ponto exato da música voltam, prontos para dar play.')
+      },
+      {
+        emoji: '🎧',
+        title: tk('Fone desconectou? A música pausa'),
+        text: tk('Se o fone sai ou o Bluetooth cai, o Harmony pausa em vez de tocar no alto-falante.')
+      },
+      {
+        emoji: '👉',
+        title: tk('Gestos no Tocando agora'),
+        text: tk('Deslize a capa para os lados para trocar de música, e puxe a tela para baixo para fechar.')
+      },
+      {
+        emoji: '🎯',
+        title: tk('Modo Foco'),
+        text: tk('Em Tocando agora, toque em Foco: música enquanto você estuda ou trabalha (25 ou 50 minutos) e uma pausa para respirar, com a música sumindo devagar e voltando depois.')
+      },
+      {
+        emoji: '📤',
+        title: tk('Compartilhe o que está ouvindo'),
+        text: tk('O botão de compartilhar em Tocando agora cria um cartão para os stories com a capa, a música e até o trecho da letra que está tocando.')
+      },
+      {
+        emoji: '🗑️',
+        title: tk('Excluir playlist de volta'),
+        text: tk('A opção Excluir no ⋯ de cada playlist ficava escondida atrás das abas. Agora aparece.')
+      }
+    ]
+  },
   {
     version: '0.4.0',
     title: tk('Tudo no lugar'),

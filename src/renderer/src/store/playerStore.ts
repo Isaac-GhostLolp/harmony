@@ -14,6 +14,8 @@ interface PlayerState {
   currentTime: number
   /** Bumped on every playQueue so re-selecting the same song restarts it. */
   epoch: number
+  /** set by restore(): load the song paused at this second (no new play in the history) */
+  resumeAt: number | null
 
   currentSong: () => Song | null
   playQueue: (songs: Song[], startIndex: number) => void
@@ -33,6 +35,8 @@ interface PlayerState {
   setFavoriteFlag: (songId: number, fav: boolean) => void
   updateSongCover: (songId: number, coverPath: string) => void
   removeSongById: (songId: number) => void
+  /** brings back a saved queue and position, paused (the app reopened) */
+  restore: (r: { queue: Song[]; originalQueue: Song[]; index: number; time: number; shuffle: boolean; repeat: RepeatMode }) => void
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -55,6 +59,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   seekPosition: null,
   currentTime: 0,
   epoch: 0,
+  resumeAt: null,
+
+  restore: (r) =>
+    set((st) => ({
+      queue: r.queue,
+      originalQueue: r.originalQueue,
+      currentIndex: r.index,
+      shuffle: r.shuffle,
+      repeat: r.repeat,
+      isPlaying: false,
+      currentTime: r.time,
+      resumeAt: r.time,
+      epoch: st.epoch + 1
+    })),
 
   currentSong: () => {
     const { queue, currentIndex } = get()
