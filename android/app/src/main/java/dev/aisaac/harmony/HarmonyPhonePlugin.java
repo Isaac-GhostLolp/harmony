@@ -116,6 +116,77 @@ public class HarmonyPhonePlugin extends Plugin {
         call.resolve();
     }
 
+    // ── the PC ↔ phone bridge ───────────────────────────────────────────
+
+    /** keeps the screen on (a long transfer must not stop when the phone sleeps) */
+    @PluginMethod
+    public void keepAwake(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        Activity a = getActivity();
+        if (a != null) {
+            a.runOnUiThread(() -> {
+                if (on) a.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else a.getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            });
+        }
+        call.resolve();
+    }
+
+    /** "Redmi 10": how the PC names this phone */
+    @PluginMethod
+    public void deviceName(PluginCall call) {
+        String maker = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER;
+        String model = Build.MODEL == null ? "" : Build.MODEL;
+        String name = model.toLowerCase().startsWith(maker.toLowerCase()) ? model : (maker + " " + model).trim();
+        JSObject r = new JSObject();
+        r.put("name", name.isEmpty() ? "Android" : name);
+        call.resolve(r);
+    }
+
+    /** a song from the PC into Music/Harmony; resolves with its path */
+    @PluginMethod
+    public void downloadSong(PluginCall call) {
+        String url = call.getString("url");
+        String code = call.getString("code", "");
+        String device = call.getString("device", "Android");
+        String name = call.getString("name", "song.mp3");
+        if (url == null) {
+            call.reject("no url");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                String path = BridgeTransfer.download(getContext(), url, code, device, name);
+                JSObject r = new JSObject();
+                r.put("path", path);
+                call.resolve(r);
+            } catch (Exception e) {
+                call.reject(e.getMessage() != null ? e.getMessage() : "download failed");
+            }
+        }).start();
+    }
+
+    /** a song from this phone to the PC */
+    @PluginMethod
+    public void uploadSong(PluginCall call) {
+        String base = call.getString("base");
+        String code = call.getString("code", "");
+        String device = call.getString("device", "Android");
+        String path = call.getString("path");
+        if (base == null || path == null) {
+            call.reject("missing base or path");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                BridgeTransfer.upload(base, code, device, path);
+                call.resolve();
+            } catch (Exception e) {
+                call.reject(e.getMessage() != null ? e.getMessage() : "upload failed");
+            }
+        }).start();
+    }
+
     // ── battery ─────────────────────────────────────────────────────────
 
     @PluginMethod

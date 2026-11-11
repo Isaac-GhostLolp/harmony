@@ -77,4 +77,25 @@ export class HarmonyPhoneWeb extends WebPlugin implements HarmonyPhonePlugin {
     localStorage.removeItem('harmony.testWidgetCmd')
     return { cmd }
   }
+
+  /** the bridge's transfers (`window.__phone.transfers`): fetched for real, then only remembered */
+  transfers: { kind: 'down' | 'up'; name: string; bytes: number }[] = []
+
+  async keepAwake(): Promise<void> {}
+
+  async deviceName(): Promise<{ name: string }> {
+    return { name: 'Navegador (teste)' }
+  }
+
+  async downloadSong(o: { url: string; code: string; device: string; name: string }): Promise<{ path: string }> {
+    const r = await fetch(o.url, { headers: { 'x-harmony-code': o.code, 'x-harmony-device': o.device } })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    const bytes = (await r.arrayBuffer()).byteLength
+    this.transfers.push({ kind: 'down', name: o.name, bytes })
+    return { path: `/storage/emulated/0/Music/Harmony/${o.name}` }
+  }
+
+  async uploadSong(o: { base: string; path: string }): Promise<void> {
+    this.transfers.push({ kind: 'up', name: o.path.split('/').pop() ?? o.path, bytes: 0 })
+  }
 }

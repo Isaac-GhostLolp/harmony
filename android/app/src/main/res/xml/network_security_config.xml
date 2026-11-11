@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The PC ↔ phone bridge talks plain HTTP to the Harmony on the PC, on the home
+  network (a numeric address like 192.168.0.12, guarded by a six-digit code).
+  Everything else the app fetches online is HTTPS.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

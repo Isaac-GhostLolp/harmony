@@ -150,6 +150,24 @@ const api = {
     pushState: (state: unknown) => ipcRenderer.send('pharaf:state', state),
     info: () => invoke('pharaf:info') as Promise<{ port: number; connected: boolean }>
   },
+  /** PC ↔ phone bridge (src/main/services/phoneBridge.ts; the phone's side lives in the Android app) */
+  bridge: {
+    start: () =>
+      invoke('bridge:start') as Promise<{ addresses: string[]; port: number; code: string; name: string }>,
+    stop: () => invoke('bridge:stop') as Promise<void>,
+    onEvent: (cb: (e: { type: string; [k: string]: unknown }) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, e: { type: string; [k: string]: unknown }): void => cb(e)
+      ipcRenderer.on('bridge:event', listener)
+      return () => {
+        ipcRenderer.removeListener('bridge:event', listener)
+      }
+    },
+    // the phone's side (Android only)
+    library: () => Promise.resolve([] as unknown[]),
+    exportState: () => Promise.resolve(null as unknown),
+    mergeState: (_state: unknown) => Promise.resolve(null as unknown),
+    includeFolder: (_folder: string) => Promise.resolve()
+  },
   settings: {
     get: () => invoke('settings:get'),
     set: (key: string, value: unknown) => invoke('settings:set', key, value)

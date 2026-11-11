@@ -41,6 +41,14 @@ export interface HarmonyPhonePlugin {
   consumeWidgetCommand(): Promise<{ cmd: WidgetCommand | null }>
   /** a widget button, with the app open */
   addListener(event: 'widget', cb: (e: { cmd: WidgetCommand }) => void): Promise<PluginListenerHandle>
+  /** keeps the screen on during a long transfer */
+  keepAwake(options: { on: boolean }): Promise<void>
+  /** "Redmi 10": how the PC names this phone */
+  deviceName(): Promise<{ name: string }>
+  /** the PC ↔ phone bridge: a song from the PC into Music/Harmony; resolves with its path */
+  downloadSong(options: { url: string; code: string; device: string; name: string }): Promise<{ path: string }>
+  /** a song from this phone to the PC (`base`: "http://ip:port") */
+  uploadSong(options: { base: string; code: string; device: string; path: string }): Promise<void>
 }
 
 export type WidgetCommand = 'prev' | 'toggle' | 'next'

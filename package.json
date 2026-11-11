@@ -1,6 +1,6 @@
 {
   "name": "harmony",
-  "version": "0.19.3",
+  "version": "0.20.0",
   "description": "Modern offline music player — Spotify-grade experience for your local library",
   "main": "out/main/index.js",
   "author": {
@@ -50,6 +50,7 @@
     "@capacitor/status-bar": "^6.0.2",
     "@jofr/capacitor-media-session": "^4.0.0",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/sql.js": "^1.4.11",
@@ -59,9 +60,11 @@
     "electron-builder": "25.1.8",
     "electron-vite": "^2.3.0",
     "framer-motion": "^11.15.0",
+    "jsqr": "^1.4.0",
     "lucide-react": "^0.469.0",
     "mediabunny": "^1.61.0",
     "postcss": "^8.4.49",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1",

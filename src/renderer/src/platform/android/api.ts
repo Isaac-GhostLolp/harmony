@@ -1,4 +1,5 @@
 import type { HarmonyApi } from '../../../../preload'
+import { bridgeLibrary, exportBridgeState, mergeBridgeState, type BridgeState } from '../../../../core/bridge'
 import type { Db } from '../../../../core/db'
 import { libraryHandlers, pruneOrphans, getSetting, setSetting, EFFECTIVE_COVER_SQL, type Handler } from '../../../../core/library'
 import { insertSong } from '../../../../core/songs'
@@ -297,6 +298,20 @@ export async function installAndroidApi(): Promise<void> {
       configureDiscord: nothing
     },
     settings: { get: q('settings:get'), set: q('settings:set') },
+    // the PC ↔ phone bridge, the phone's side (src/core/bridge.ts; the PC answers in phoneBridge.ts)
+    bridge: {
+      start: none,
+      stop: async () => undefined,
+      onEvent: unsubscribe,
+      library: async () => bridgeLibrary(db),
+      exportState: async () => exportBridgeState(db),
+      mergeState: async (state: unknown) => mergeBridgeState(db, state as BridgeState),
+      /** songs brought from the PC land in Music/Harmony: the library must look there too */
+      includeFolder: async (folder: string) => {
+        const folders = (getSetting(db, 'androidFolders') as string[] | undefined) ?? []
+        if (!folders.some((f) => isInside(folder, f))) setSetting(db, 'androidFolders', [...folders, folder])
+      }
+    },
     app: { openExternal: (url: string) => void window.open(url, '_blank'), relaunch: () => location.reload() },
     window: {
       frame: 'system' as const,

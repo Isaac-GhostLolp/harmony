@@ -6,6 +6,7 @@ import { initDatabase, getDb } from './db/database'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initDiscord, updatePresence, type PresenceState } from './services/discord'
 import { startPharafBridge, stopPharafBridge } from './services/pharafBridge'
+import { registerPhoneBridge } from './services/phoneBridge'
 import { initAutoUpdate } from './services/updater'
 
 // Pin the app name so the userData folder is ALWAYS "harmony" — in dev it
@@ -282,6 +283,8 @@ app.whenReady().then(() => {
   // Pharaf (friends' voice app) can show and control this Harmony in a call — see pharafBridge.ts
   startPharafBridge(() => mainWindow)
   app.on('before-quit', stopPharafBridge)
+  // the phone's Harmony, over the home Wi-Fi, while "Ponte com o celular" is open — see phoneBridge.ts
+  registerPhoneBridge(() => mainWindow)
 
   // ---- Mini player + Discord relay ----
   ipcMain.on('mini:toggle', () => toggleMiniPlayer())

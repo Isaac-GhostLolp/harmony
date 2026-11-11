@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.7.0'
+export const ANDROID_VERSION = '0.8.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -53,6 +53,18 @@ export interface Release {
 }
 
 export const RELEASES: Release[] = [
+  {
+    version: '0.20.0',
+    title: tk('A ponte entre o PC e o celular'),
+    date: '2026-11-11',
+    items: [
+      {
+        emoji: '📱',
+        title: tk('Ponte com o celular'),
+        text: tk('Em Configurações → Ponte com o celular, o Harmony do PC mostra um QR code. O Harmony do celular lê, e os dois juntam playlists e favoritos e trocam músicas pelo Wi-Fi de casa. Sem nuvem e sem conta.')
+      }
+    ]
+  },
   {
     version: '0.19.3',
     title: tk('Botões da janela de volta'),
@@ -334,6 +346,18 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.8.0',
+    title: tk('A ponte entre o PC e o celular'),
+    date: '2026-11-11',
+    items: [
+      {
+        emoji: '💻',
+        title: tk('Ponte com o PC'),
+        text: tk('Em Configurações → Ponte com o PC, leia o QR code do Harmony do computador. Os dois aparelhos juntam playlists e favoritos (nada é apagado), e você escolhe trazer músicas do PC — todas ou só as de algumas playlists. As que só estão no celular vão para o PC.')
+      }
+    ]
+  },
   {
     version: '0.7.0',
     title: tk('O Harmony na tela inicial'),

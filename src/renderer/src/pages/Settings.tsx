@@ -10,6 +10,8 @@ import { t, LANGUAGES, setLang, useLang } from '@/i18n'
 import { IS_ANDROID } from '@/platform'
 import { AndroidFolders } from '@/components/mobile/AndroidFolders'
 import { PhoneOptions } from '@/components/mobile/Everyday'
+import { PhoneBridgeCard } from '@/components/mobile/BridgePhone'
+import { PcBridgeCard } from '@/components/BridgePc'
 
 /**
  * What makes the app work: performance, audio, online lookups, the library
@@ -82,6 +84,7 @@ export function Settings(): JSX.Element {
 
       {IS_ANDROID && <AndroidFolders />}
       {IS_ANDROID && <PhoneOptions />}
+      {IS_ANDROID ? <PhoneBridgeCard /> : <PcBridgeCard />}
 
       {!IS_ANDROID && (
       <a
