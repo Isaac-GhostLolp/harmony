@@ -37,7 +37,14 @@ public class MainActivity extends BridgeActivity {
 
     /** opened by the musical alarm: wake the screen and show over the lock screen */
     private void takeAlarm(Intent intent) {
-        if (intent == null || !intent.getBooleanExtra(AlarmScheduler.EXTRA_ALARM, false)) return;
+        if (intent == null) return;
+        // a widget button pressed while the app was closed: the page plays once the music is back
+        String cmd = intent.getStringExtra(PlayerWidget.EXTRA_CMD);
+        if (cmd != null) {
+            intent.removeExtra(PlayerWidget.EXTRA_CMD);
+            HarmonyPhonePlugin.pendingWidget = cmd;
+        }
+        if (!intent.getBooleanExtra(AlarmScheduler.EXTRA_ALARM, false)) return;
         intent.removeExtra(AlarmScheduler.EXTRA_ALARM);
         HarmonyPhonePlugin.pendingAlarm = true;
         showOverLockScreen(this, true);

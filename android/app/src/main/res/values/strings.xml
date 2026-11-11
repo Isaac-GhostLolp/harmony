@@ -4,4 +4,9 @@
     <string name="title_activity_main">Harmony</string>
     <string name="package_name">dev.aisaac.harmony</string>
     <string name="custom_url_scheme">dev.aisaac.harmony</string>
+    <string name="widget_description">A música tocando agora, com capa e controles</string>
+    <string name="widget_idle">Toque para abrir</string>
+    <string name="widget_prev">Anterior</string>
+    <string name="widget_play">Tocar ou pausar</string>
+    <string name="widget_next">Próxima</string>
 </resources>

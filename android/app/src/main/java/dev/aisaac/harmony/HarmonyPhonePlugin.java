@@ -25,6 +25,51 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class HarmonyPhonePlugin extends Plugin {
     /** set when the Harmony was opened by the alarm, until the page takes it */
     static volatile boolean pendingAlarm = false;
+    /** a home-screen widget button pressed while the app was closed, until the page takes it */
+    static volatile String pendingWidget = null;
+    /** the running plugin (null while the app isn't open), for the widget's buttons */
+    static volatile HarmonyPhonePlugin instance = null;
+
+    @Override
+    public void load() {
+        instance = this;
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        if (instance == this) instance = null;
+    }
+
+    // ── the home-screen widget ──────────────────────────────────────────
+
+    /** what the widget shows; `art` is a JPEG in base64 ("" removes it, absent keeps it) */
+    @PluginMethod
+    public void updateWidget(PluginCall call) {
+        PlayerWidget.save(
+            getContext(),
+            call.getString("title"),
+            call.getString("artist"),
+            Boolean.TRUE.equals(call.getBoolean("playing", false)),
+            call.getInt("accent", 0xFF7C6CF4),
+            call.getInt("onAccent", 0xFFFFFFFF),
+            call.getString("art"));
+        call.resolve();
+    }
+
+    /** the widget button that opened the app, once (null: none) */
+    @PluginMethod
+    public void consumeWidgetCommand(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("cmd", pendingWidget);
+        pendingWidget = null;
+        call.resolve(r);
+    }
+
+    void widgetCommand(String cmd) {
+        JSObject r = new JSObject();
+        r.put("cmd", cmd);
+        notifyListeners("widget", r);
+    }
 
     // ── volume and headphones ───────────────────────────────────────────
 

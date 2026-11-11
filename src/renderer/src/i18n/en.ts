@@ -1345,5 +1345,10 @@ export const en: Record<string, string> = {
   "📳 Agitar para pular": "📳 Shake to skip",
   "Agite o celular duas vezes para ir à próxima música.": "Shake the phone twice to go to the next song.",
   "💓 Vibrar na batida": "💓 Vibrate to the beat",
-  "O celular pulsa com o grave da música enquanto o app está aberto.": "The phone pulses with the music's bass while the app is open."
+  "O celular pulsa com o grave da música enquanto o app está aberto.": "The phone pulses with the music's bass while the app is open.",
+  "O Harmony na tela inicial": "Harmony on your home screen",
+  "Widget do Harmony": "Harmony widget",
+  "Coloque o Harmony na tela inicial: a capa, a música tocando e os botões de voltar, tocar e pular, na cor do seu tema. Segure um espaço vazio da tela inicial, toque em Widgets e procure o Harmony.": "Put Harmony on your home screen: the cover, the song playing and the previous, play and skip buttons, in your theme's colour. Press and hold an empty spot on the home screen, tap Widgets and look for Harmony.",
+  "Funciona até com o app fechado": "It works even with the app closed",
+  "Com o Harmony fechado, o play do widget abre o app e continua a música de onde parou.": "With Harmony closed, the widget's play button opens the app and picks the music up where it left off."
 }

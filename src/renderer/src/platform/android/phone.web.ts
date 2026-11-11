@@ -1,5 +1,5 @@
 import { WebPlugin } from '@capacitor/core'
-import type { AlarmState, HarmonyPhonePlugin } from './phone'
+import type { AlarmState, HarmonyPhonePlugin, WidgetCommand } from './phone'
 
 /**
  * Development only (`?android` in a desktop browser): a pretend phone. Its
@@ -56,4 +56,25 @@ export class HarmonyPhoneWeb extends WebPlugin implements HarmonyPhonePlugin {
   }
 
   async alarmDone(): Promise<void> {}
+
+  /** what the pretend widget would show (`window.__phone.widget`); `__phone.press('next')` presses a button */
+  widget: Record<string, unknown> = {}
+  /** a button "pressed with the app closed": set localStorage 'harmony.testWidgetCmd' before reloading */
+  pendingWidget = (localStorage.getItem('harmony.testWidgetCmd') as WidgetCommand | null) ?? null
+
+  press(cmd: WidgetCommand): void {
+    this.notifyListeners('widget', { cmd })
+  }
+
+  async updateWidget(o: Record<string, unknown>): Promise<void> {
+    const art = o.art === undefined ? this.widget.art : o.art
+    this.widget = { ...o, art, updates: Number(this.widget.updates ?? 0) + 1 }
+  }
+
+  async consumeWidgetCommand(): Promise<{ cmd: WidgetCommand | null }> {
+    const cmd = this.pendingWidget
+    this.pendingWidget = null
+    localStorage.removeItem('harmony.testWidgetCmd')
+    return { cmd }
+  }
 }

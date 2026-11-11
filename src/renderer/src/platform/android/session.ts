@@ -1,12 +1,16 @@
 import { MediaSession } from '@jofr/capacitor-media-session'
 import { autoSpec, drawCover } from '@/utils/coverArt'
 import { FONTS } from '@/utils/appearance'
+import { HarmonyPhone, type WidgetCommand } from './phone'
 
 /**
  * The player notification, lock screen and headset buttons: Android's media
  * session, fed from the same state the desktop sends to the mini player.
  * While music plays it also runs a foreground service, which keeps Android
  * (and MIUI's battery saver) from stopping the app with the screen off.
+ *
+ * The home-screen widget (PlayerWidget.java) is fed from here too, with the
+ * same cover, and its buttons arrive as the same commands.
  */
 export interface PlayerState {
   title: string | null
@@ -38,6 +42,60 @@ function wire(): void {
   on('nexttrack', () => 'next')
   on('previoustrack', () => 'prev')
   on('seekto', (d) => `seek:${d.seekTime ?? 0}`)
+
+  // the widget's buttons: the same commands as the notification's
+  const fromWidget = (cmd: WidgetCommand): void => {
+    if (cmd === 'toggle') send(lastPlaying ? 'pause' : 'play')
+    else send(cmd)
+  }
+  void HarmonyPhone.addListener('widget', (e) => fromWidget(e.cmd)).catch(() => undefined)
+  // a button pressed with the app closed opened it: carry it out once the last song is back
+  void HarmonyPhone.consumeWidgetCommand()
+    .then(({ cmd }) => {
+      if (!cmd) return
+      const started = Date.now()
+      const wait = setInterval(() => {
+        if (lastMeta || Date.now() - started > 8000) {
+          clearInterval(wait)
+          if (lastMeta) fromWidget(cmd)
+        }
+      }, 250)
+    })
+    .catch(() => undefined)
+}
+
+/** a CSS colour as Android's 0xAARRGGBB */
+function argb(css: string, fallback: number): number {
+  const c = document.createElement('canvas').getContext('2d')
+  if (!c) return fallback
+  c.fillStyle = '#000'
+  c.fillStyle = css
+  const hex = String(c.fillStyle)
+  const m = /^#([0-9a-f]{6})$/i.exec(hex)
+  return m ? (0xff000000 | parseInt(m[1], 16)) | 0 : fallback
+}
+
+function widgetColours(): { accent: number; onAccent: number } {
+  const css = getComputedStyle(document.documentElement)
+  const accent = argb(css.getPropertyValue('--accent').trim() || '#7c6cf4', 0xff7c6cf4 | 0)
+  const r = (accent >> 16) & 255
+  const g = (accent >> 8) & 255
+  const b = accent & 255
+  // dark icon on a light accent, white on a dark one
+  const onAccent = 0.299 * r + 0.587 * g + 0.114 * b > 170 ? 0xff111116 | 0 : 0xffffffff | 0
+  return { accent, onAccent }
+}
+
+/** what the widget shows; `art` (a JPEG data URL) only when the song changes */
+function pushWidget(s: PlayerState, art?: string): void {
+  void HarmonyPhone.updateWidget({
+    title: s.title,
+    artist: s.artist,
+    // the cover may arrive after a play/pause: the latest state wins
+    playing: lastPlaying ?? s.isPlaying,
+    ...widgetColours(),
+    ...(art !== undefined ? { art: art.split(',')[1] ?? '' } : {})
+  }).catch(() => undefined)
 }
 
 const SIZE = 320
@@ -90,6 +148,7 @@ export function updateSession(s: PlayerState): void {
     // when setMetadata comes without an artwork list
     void artwork(s).then((art) => {
       if (lastMeta !== meta) return
+      pushWidget(s, art)
       void MediaSession.setMetadata({
         title: s.title ?? '',
         artist: s.artist ?? '',
@@ -100,6 +159,7 @@ export function updateSession(s: PlayerState): void {
   }
   if (s.isPlaying !== lastPlaying) {
     lastPlaying = s.isPlaying
+    if (s.title) pushWidget(s)
     void MediaSession.setPlaybackState({ playbackState: s.title ? (s.isPlaying ? 'playing' : 'paused') : 'none' }).catch(
       () => undefined
     )

@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.6.0'
+export const ANDROID_VERSION = '0.7.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -334,6 +334,23 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.7.0',
+    title: tk('O Harmony na tela inicial'),
+    date: '2026-11-11',
+    items: [
+      {
+        emoji: '🏠',
+        title: tk('Widget do Harmony'),
+        text: tk('Coloque o Harmony na tela inicial: a capa, a música tocando e os botões de voltar, tocar e pular, na cor do seu tema. Segure um espaço vazio da tela inicial, toque em Widgets e procure o Harmony.')
+      },
+      {
+        emoji: '▶️',
+        title: tk('Funciona até com o app fechado'),
+        text: tk('Com o Harmony fechado, o play do widget abre o app e continua a música de onde parou.')
+      }
+    ]
+  },
   {
     version: '0.6.0',
     title: tk('Cuidando de você'),

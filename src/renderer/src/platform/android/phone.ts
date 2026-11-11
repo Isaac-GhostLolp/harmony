@@ -28,7 +28,22 @@ export interface HarmonyPhonePlugin {
   alarmDone(): Promise<void>
   /** the alarm rang while the Harmony was already open */
   addListener(event: 'alarm', cb: () => void): Promise<PluginListenerHandle>
+  /** what the home-screen widget shows; `art` is a JPEG in base64 (omit to keep the last one) */
+  updateWidget(options: {
+    title: string | null
+    artist: string | null
+    playing: boolean
+    accent: number
+    onAccent: number
+    art?: string
+  }): Promise<void>
+  /** the widget button that opened the app while it was closed, once */
+  consumeWidgetCommand(): Promise<{ cmd: WidgetCommand | null }>
+  /** a widget button, with the app open */
+  addListener(event: 'widget', cb: (e: { cmd: WidgetCommand }) => void): Promise<PluginListenerHandle>
 }
+
+export type WidgetCommand = 'prev' | 'toggle' | 'next'
 
 // (development) one pretend phone: Capacitor may ask for the web version twice at start-up
 let web: Promise<HarmonyPhonePlugin> | null = null
