@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.5.0'
+export const ANDROID_VERSION = '0.6.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -334,6 +334,43 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.6.0',
+    title: tk('Cuidando de você'),
+    date: '2026-11-11',
+    items: [
+      {
+        emoji: '⏰',
+        title: tk('Despertador musical'),
+        text: tk('Acorde com uma playlist sua: a música começa baixinho e sobe devagar. Escolha o horário e os dias no botão Despertar, em Tocando agora. Funciona com o app fechado.')
+      },
+      {
+        emoji: '🎧',
+        title: tk('Cuidado com os ouvidos'),
+        text: tk('Depois de muito tempo com o volume alto no fone, um aviso gentil sugere baixar. E, se quiser, dá para pôr um volume máximo para o fone em Configurações.')
+      },
+      {
+        emoji: '🔋',
+        title: tk('Economia de bateria automática'),
+        text: tk('Com 20% de bateria, o Harmony liga sozinho o Modo Ultra Rápido, e volta ao normal quando você carrega.')
+      },
+      {
+        emoji: '📳',
+        title: tk('Agitar para pular'),
+        text: tk('Agite o celular duas vezes para ir à próxima música. Ligue em Configurações → No celular.')
+      },
+      {
+        emoji: '💓',
+        title: tk('Vibrar na batida'),
+        text: tk('O celular pulsa junto com o grave da música enquanto o app está aberto. Ligue em Configurações → No celular.')
+      },
+      {
+        emoji: '🎯',
+        title: tk('O Modo Foco agora vibra'),
+        text: tk('O aviso de pausa do Modo Foco não vibrava. Agora vibra.')
+      }
+    ]
+  },
   {
     version: '0.5.0',
     title: tk('Feito para o dia a dia'),

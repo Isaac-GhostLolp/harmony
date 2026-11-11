@@ -7,6 +7,8 @@ import { closeTopLayer } from './back'
 import { startResume } from '@/platform/android/resume'
 import { HarmonyMedia } from '@/platform/android/media'
 import { usePlayerStore } from '@/store/playerStore'
+import { startEveryday } from '@/platform/android/everyday'
+import { startAlarmWatch } from '@/platform/android/alarm'
 
 /** the app can be redrawn (a language switch remounts it): resume runs once */
 let resumeStarted = false
@@ -37,6 +39,9 @@ export function AndroidSystem(): null {
     if (resumeStarted) return
     resumeStarted = true
     void startResume()
+    // ear care, battery saving, shake to skip, beat vibration; and the musical alarm
+    startEveryday()
+    startAlarmWatch()
   }, [])
 
   useEffect(() => {

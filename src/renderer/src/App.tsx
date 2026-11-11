@@ -42,6 +42,7 @@ import { IS_ANDROID } from '@/platform'
 import { BottomNav } from '@/components/mobile/BottomNav'
 import { MobilePlayer } from '@/components/mobile/MobilePlayer'
 import { AndroidSystem } from '@/components/mobile/AndroidSystem'
+import { AlarmScreen, EarCareNotice, PhoneNotice } from '@/components/mobile/Everyday'
 import { FolderPicker } from '@/components/mobile/FolderPicker'
 import { FocusBreak } from '@/components/mobile/FocusMode'
 import { IconDefs } from '@/components/icons/AppIcon'
@@ -229,6 +230,9 @@ export function App(): JSX.Element {
               <AndroidSystem />
               <FolderPicker />
               <FocusBreak />
+              <EarCareNotice />
+              <PhoneNotice />
+              <AlarmScreen />
             </>
           ) : (
             <PlayerBar />

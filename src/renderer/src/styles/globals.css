@@ -1876,3 +1876,58 @@ html.ultra-fast .m-breath {
   animation: none;
   transform: scale(0.85);
 }
+
+/* ── Android 0.6.0: notice pill, musical alarm ───────────────────────── */
+.m-notice {
+  position: fixed;
+  z-index: 170;
+  left: 50%;
+  top: max(14px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--bg-raised) 92%, black);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+.m-wake {
+  background:
+    radial-gradient(circle at 50% 22%, color-mix(in srgb, #ffb347 38%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, #1b1030), var(--bg-base) 75%);
+  animation: m-rise 400ms ease;
+}
+.m-sun {
+  width: 120px;
+  height: 120px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fff3c4, #ffc04d 55%, #ff9a3c);
+  box-shadow: 0 0 80px 20px rgba(255, 176, 70, 0.45);
+  animation: m-sunrise 6s ease-in-out infinite alternate;
+}
+@keyframes m-sunrise {
+  from {
+    transform: translateY(10px) scale(0.94);
+    box-shadow: 0 0 50px 10px rgba(255, 176, 70, 0.35);
+  }
+  to {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 0 90px 26px rgba(255, 176, 70, 0.5);
+  }
+}
+html.ultra-fast .m-sun {
+  animation: none;
+}
+.m-alarm-time {
+  color: var(--text-primary);
+  color-scheme: dark light;
+  border: none;
+  outline: none;
+}
+.m-alarm-time::-webkit-calendar-picker-indicator {
+  display: none;
+}

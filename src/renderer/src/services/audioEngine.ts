@@ -322,6 +322,21 @@ export class AudioEngine {
   }
 
   /**
+   * The musical alarm: from silence up to full sound over `sec`, slow at
+   * first and faster at the end (a squared curve), so the first minute is a
+   * whisper instead of a jump.
+   */
+  focusRise(sec: number): void {
+    const g = this.focusGain.gain
+    const now = this.ctx.currentTime
+    const curve = new Float32Array(64)
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.max(0.0001, Math.pow(i / (curve.length - 1), 2))
+    g.cancelScheduledValues(now)
+    g.setValueAtTime(0.0001, now)
+    g.setValueCurveAtTime(curve, now + 0.05, Math.max(1, sec))
+  }
+
+  /**
    * A whole focus round on the audio clock: (from silence, when `fadeIn`)
    * up to full sound over `fadeSec`, full sound, and down to silence over the
    * last `fadeSec` of `totalSec` — when the break begins.

@@ -9,6 +9,7 @@ import { APP_VERSION } from '@/whatsNew'
 import { t, LANGUAGES, setLang, useLang } from '@/i18n'
 import { IS_ANDROID } from '@/platform'
 import { AndroidFolders } from '@/components/mobile/AndroidFolders'
+import { PhoneOptions } from '@/components/mobile/Everyday'
 
 /**
  * What makes the app work: performance, audio, online lookups, the library
@@ -80,6 +81,7 @@ export function Settings(): JSX.Element {
       </section>
 
       {IS_ANDROID && <AndroidFolders />}
+      {IS_ANDROID && <PhoneOptions />}
 
       {!IS_ANDROID && (
       <a

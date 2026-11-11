@@ -12,6 +12,7 @@ import { useBackCloses } from './back'
 import { SleepTimerButton } from '@/components/SleepTimer'
 import { FocusButton } from './FocusMode'
 import { ShareSongButton } from './ShareSong'
+import { AlarmButton } from './Everyday'
 
 /**
  * The phone's player: a slim bar above the tabs (tap it to open), and the
@@ -177,6 +178,7 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
         <div className="mt-5 flex justify-center gap-2">
           <FocusButton />
           <SleepTimerButton variant="mobile" />
+          <AlarmButton />
         </div>
       </div>
     </div>
