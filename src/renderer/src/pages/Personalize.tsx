@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { CursorPicker } from '@/components/CursorPicker'
+import { SoundsPicker, CoversPicker, DetailsPicker, MiniSkinPicker } from '@/components/FlairPickers'
 import { useUiStore, type BackgroundMode } from '@/store/uiStore'
 import { api } from '@/services/api'
 import { mediaUrl } from '@/utils/format'
@@ -31,14 +33,19 @@ const PARTS = [
   { id: 'fundo', label: tk('Fundo') },
   { id: 'adesivos', label: tk('Adesivos') },
   { id: 'icones', label: tk('Ícones') },
+  { id: 'cursor', label: tk('Cursor') },
+  { id: 'sons', label: tk('Sons') },
+  { id: 'capas', label: tk('Capas') },
+  { id: 'detalhes', label: tk('Detalhes') },
   { id: 'barra', label: tk('Barra de música') },
+  { id: 'mini', label: tk('Mini player') },
   { id: 'janela', label: tk('Barra da janela') },
   { id: 'abertura', label: tk('Abertura') }
 ] as const
 type Part = (typeof PARTS)[number]['id']
 
 // on the phone: no stickers, player bar styles or window bar (yet)
-const HIDDEN_ON_ANDROID = new Set<Part>(['adesivos', 'barra', 'janela'])
+const HIDDEN_ON_ANDROID = new Set<Part>(['adesivos', 'cursor', 'barra', 'mini', 'janela'])
 const SHOWN = PARTS.filter((p) => !(IS_ANDROID && HIDDEN_ON_ANDROID.has(p.id)))
 
 /** one part of the page; parts whose component brings its own header pass no title */
@@ -302,8 +309,28 @@ export function Personalize(): JSX.Element {
         <IconGallery />
       </Section>
 
+      <Section id="cursor">
+        <CursorPicker />
+      </Section>
+
+      <Section id="sons">
+        <SoundsPicker />
+      </Section>
+
+      <Section id="capas">
+        <CoversPicker />
+      </Section>
+
+      <Section id="detalhes">
+        <DetailsPicker />
+      </Section>
+
       <Section id="barra">
         <BarStylePicker />
+      </Section>
+
+      <Section id="mini">
+        <MiniSkinPicker />
       </Section>
 
       <Section id="janela">

@@ -37,6 +37,8 @@ export interface BridgePlaylist {
   /** a data URL, so it travels with the playlist */
   image: string | null
   color: string | null
+  /** a smart playlist's rules (JSON): its songs are picked on each device by them */
+  rules?: string | null
   songs: BridgeRef[]
 }
 
@@ -138,13 +140,14 @@ export function exportBridgeState(db: Db): BridgeState {
      WHERE ps.playlist_id = ? ORDER BY ps.position`
   )
   const playlists = (
-    db.prepare('SELECT id, name, description, emoji, image, color FROM playlists ORDER BY created_at').all() as {
+    db.prepare('SELECT id, name, description, emoji, image, color, rules FROM playlists ORDER BY created_at').all() as {
       id: number
       name: string
       description: string | null
       emoji: string | null
       image: string | null
       color: string | null
+      rules: string | null
     }[]
   ).map((p) => ({
     name: p.name,
@@ -152,7 +155,9 @@ export function exportBridgeState(db: Db): BridgeState {
     emoji: p.emoji,
     image: p.image,
     color: p.color,
-    songs: (songsOf.all(p.id) as { title: string; artist: string | null; duration: number }[]).map(ref)
+    rules: p.rules,
+    // a smart playlist has no songs of its own: the rules travel instead
+    songs: p.rules ? [] : (songsOf.all(p.id) as { title: string; artist: string | null; duration: number }[]).map(ref)
   }))
   const favorites = (
     db
@@ -217,8 +222,8 @@ export function mergeBridgeState(db: Db, remote: BridgeState): MergeResult {
       let mine = local.find((l) => sameName(l.name, p.name))
       if (!mine) {
         const info = db
-          .prepare('INSERT INTO playlists (name, description, emoji, image, color) VALUES (?, ?, ?, ?, ?)')
-          .run(p.name.trim(), p.description, p.emoji, p.image, p.color)
+          .prepare('INSERT INTO playlists (name, description, emoji, image, color, rules) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(p.name.trim(), p.description, p.emoji, p.image, p.color, p.rules ?? null)
         mine = { id: Number(info.lastInsertRowid), name: p.name, description: p.description, emoji: p.emoji, image: p.image, color: p.color }
         local.push(mine)
         result.playlistsCreated++

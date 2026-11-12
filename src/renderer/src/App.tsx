@@ -32,6 +32,11 @@ import { ScrollMemory } from '@/components/ScrollMemory'
 import { AppearanceStudio } from '@/components/appearance/AppearanceStudio'
 import { CoverCreator } from '@/components/cover/CoverCreator'
 import { StickerTray } from '@/components/stickers/StickerTray'
+import { CursorLayer } from '@/components/CursorLayer'
+import { PageSwap } from '@/components/PageSwap'
+import { CoverTilt } from '@/components/CoverTilt'
+import { UiSounds } from '@/components/UiSounds'
+import { startPlaylistSessions } from '@/utils/playlistSession'
 import { useStickerStore } from '@/store/stickerStore'
 import { useIconStore } from '@/store/iconStore'
 import { useBarStore } from '@/store/barStore'
@@ -112,6 +117,8 @@ export function App(): JSX.Element {
       const discordEnabled = s.discordEnabled === true
       const discordClientId = typeof s.discordClientId === 'string' ? s.discordClientId : ''
       api.player.configureDiscord(discordEnabled, discordClientId)
+      // after the saved settings are in: a playlist's mood left over from last time is undone over them
+      startPlaylistSessions()
     })
   }, [])
 
@@ -198,6 +205,7 @@ export function App(): JSX.Element {
               }
             >
               <ScreenGuard>
+                <PageSwap>
                 <Routes>
                   <Route path="/" element={<Library />} />
                   <Route path="/search" element={<Search />} />
@@ -216,6 +224,7 @@ export function App(): JSX.Element {
                   <Route path="/my-world" element={<MyWorld />} />
                   <Route path="/support" element={<Support />} />
                 </Routes>
+                </PageSwap>
               </ScreenGuard>
             </main>
             {/* after <main>, so its ref is set when this runs */}
@@ -246,6 +255,9 @@ export function App(): JSX.Element {
           <AppearanceStudio />
           <CoverCreator />
           {!IS_ANDROID && <StickerTray />}
+          {!IS_ANDROID && <CursorLayer />}
+          {!IS_ANDROID && <CoverTilt />}
+          <UiSounds />
           <IconDefs />
         </div>
       </HashRouter>

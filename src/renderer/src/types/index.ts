@@ -15,6 +15,9 @@ export interface Song {
   favorite: 0 | 1
   playCount: number
   lastPlayed: number | null
+  /** inside a playlist: the note on this song, and a section that starts here */
+  note?: string | null
+  section?: string | null
 }
 
 export interface Album {
@@ -42,6 +45,20 @@ export interface Playlist {
   emoji: string | null
   image: string | null
   color: string | null
+  /** 0.21: the page's header style */
+  header?: 'banner' | 'compact' | 'disc' | null
+  folder?: string | null
+  pinned?: 0 | 1
+  /** a coloured tag (a colour) */
+  tag?: string | null
+  /** smart playlists: their rules (JSON) */
+  rules?: string | null
+  /** the mood while it plays (JSON) */
+  vibe?: string | null
+  /** how it plays (JSON) */
+  play?: string | null
+  /** where it was left (JSON) */
+  resume?: string | null
 }
 
 export interface SearchResults {

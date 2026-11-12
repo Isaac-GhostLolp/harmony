@@ -48,8 +48,21 @@ const api = {
     duplicate: (id: number) => invoke('playlists:duplicate', id),
     updateMeta: (
       id: number,
-      meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string }
+      meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string } & Record<string, unknown>
     ) => invoke('playlists:updateMeta', id, meta),
+    // 0.21 (src/core/playlistsPlus.ts)
+    setNote: (playlistId: number, songId: number, note: string | null) => invoke('playlists:setNote', playlistId, songId, note),
+    setSection: (playlistId: number, songId: number, title: string | null) =>
+      invoke('playlists:setSection', playlistId, songId, title),
+    createSmart: (name: string, rules: unknown) => invoke('playlists:createSmart', name, rules),
+    previewRules: (rules: unknown) => invoke('playlists:previewRules', rules),
+    auto: (kind: string) => invoke('playlists:auto', kind),
+    suggest: (playlistId: number) => invoke('playlists:suggest', playlistId),
+    stats: (playlistId: number) => invoke('playlists:stats', playlistId),
+    setResume: (playlistId: number, songId: number, time: number) => invoke('playlists:setResume', playlistId, songId, time),
+    mosaics: () => invoke('playlists:mosaics'),
+    exportOne: (playlistId: number) => invoke('playlists:export', playlistId),
+    importOne: (data: unknown) => invoke('playlists:import', data),
     getSongs: (id: number) => invoke('playlists:getSongs', id),
     addSong: (playlistId: number, songId: number) =>
       invoke('playlists:addSong', playlistId, songId),
@@ -110,6 +123,8 @@ const api = {
   },
   player: {
     toggleMini: () => ipcRenderer.send('mini:toggle'),
+    /** the mini player's skin needs its own window size */
+    miniSkin: (skin: string) => ipcRenderer.send('mini:skin', skin),
     sendState: (state: unknown) => ipcRenderer.send('player:state', state),
     onState: (cb: (state: unknown) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, state: unknown): void => cb(state)

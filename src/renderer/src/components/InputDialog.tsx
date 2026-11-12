@@ -25,7 +25,9 @@ export function InputDialog({
   initialValue = '',
   confirmLabel = 'OK',
   onConfirm,
-  onCancel
+  onCancel,
+  allowEmpty = false,
+  placeholder
 }: {
   open: boolean
   title: string
@@ -34,6 +36,9 @@ export function InputDialog({
   confirmLabel?: string
   onConfirm: (value: string) => void
   onCancel: () => void
+  /** an empty answer is a valid one (it clears something, like a note) */
+  allowEmpty?: boolean
+  placeholder?: string
 }): JSX.Element | null {
   const [value, setValue] = useState(initialValue)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -51,7 +56,7 @@ export function InputDialog({
   if (!open) return null
 
   const submit = (): void => {
-    if (value.trim()) onConfirm(value.trim())
+    if (value.trim() || allowEmpty) onConfirm(value.trim())
   }
 
   return (
@@ -75,7 +80,7 @@ export function InputDialog({
             if (e.key === 'Escape') onCancel()
           }}
           className="mt-3 w-full rounded-xl border border-white/10 bg-[var(--bg-raised)] px-3 py-2 text-sm text-ink outline-none focus:border-[var(--accent)]"
-          placeholder={t('Nome…')}
+          placeholder={placeholder ?? t('Nome…')}
         />
         <div className="mt-4 flex justify-end gap-2">
           <button

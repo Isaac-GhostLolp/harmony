@@ -196,6 +196,13 @@ function createWindow(): void {
   initAutoUpdate(mainWindow)
 }
 
+/** width × height of each mini player skin */
+const MINI_SIZES: Record<string, [number, number]> = {
+  compact: [360, 110],
+  card: [300, 420],
+  turntable: [400, 170]
+}
+
 function toggleMiniPlayer(): void {
   if (miniWindow) {
     miniWindow.close()
@@ -288,6 +295,14 @@ app.whenReady().then(() => {
 
   // ---- Mini player + Discord relay ----
   ipcMain.on('mini:toggle', () => toggleMiniPlayer())
+  // the mini player's skins (Personalização → Mini player) each have their size
+  ipcMain.on('mini:skin', (_e, skin: string) => {
+    const size = MINI_SIZES[skin] ?? MINI_SIZES.compact
+    if (!miniWindow || miniWindow.isDestroyed()) return
+    miniWindow.setResizable(true)
+    miniWindow.setSize(size[0], size[1])
+    miniWindow.setResizable(false)
+  })
 
   // Main window broadcasts playback state; mini window mirrors it and
   // Discord Rich Presence follows along.

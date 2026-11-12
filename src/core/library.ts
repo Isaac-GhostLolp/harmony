@@ -4,6 +4,7 @@
  * Android (answered right in the WebView). Keyed by the IPC channel name.
  */
 import type { Db } from './db'
+import { playlistPlusHandlers, playlistSongs, PLAYLIST_EXTRA_COLUMNS, toJsonColumn } from './playlistsPlus'
 
 /** Effective cover honoring the user's per-album preference. */
 export const EFFECTIVE_COVER_SQL = `CASE
@@ -139,13 +140,14 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
         .prepare(
           `SELECT p.id, p.name, p.created_at as createdAt,
                   p.description, p.emoji, p.image, p.color,
+                  p.header, p.folder, p.pinned, p.tag, p.rules, p.vibe, p.play, p.resume,
                   COUNT(ps.song_id) as songCount
            FROM playlists p LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
            GROUP BY p.id ORDER BY p.created_at DESC`
         )
         .all(),
     'playlists:updateMeta': (id: number,
-        meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string }
+        meta: { name?: string; description?: string; emoji?: string; image?: string | null; color?: string } & Record<string, unknown>
       ) => {
         const fields: string[] = []
         const values: unknown[] = []
@@ -154,6 +156,12 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
             fields.push(`${key} = ?`)
             values.push(meta[key])
           }
+        }
+        // the 0.21 columns: objects are kept as JSON, pinned as 0/1
+        for (const key of PLAYLIST_EXTRA_COLUMNS) {
+          if (meta[key] === undefined) continue
+          fields.push(`${key} = ?`)
+          values.push(key === 'pinned' ? (meta[key] ? 1 : 0) : toJsonColumn(meta[key]))
         }
         if (fields.length === 0) return false
         values.push(id)
@@ -173,24 +181,24 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
     'playlists:duplicate': (id: number) => {
       // the copy keeps the look too: photo, emoji, description and colour
       const src = db()
-        .prepare('SELECT name, description, emoji, image, color FROM playlists WHERE id = ?')
-        .get(id) as { name: string; description: string | null; emoji: string | null; image: string | null; color: string | null }
+        .prepare('SELECT name, description, emoji, image, color, header, folder, tag, rules, vibe, play FROM playlists WHERE id = ?')
+        .get(id) as Record<string, string | null> & { name: string }
       const info = db()
-        .prepare('INSERT INTO playlists (name, description, emoji, image, color) VALUES (?, ?, ?, ?, ?)')
-        .run(`${src.name} (copy)`, src.description, src.emoji, src.image, src.color)
+        .prepare(
+          'INSERT INTO playlists (name, description, emoji, image, color, header, folder, tag, rules, vibe, play) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        )
+        .run(`${src.name} (copy)`, src.description, src.emoji, src.image, src.color, src.header, src.folder, src.tag, src.rules, src.vibe, src.play)
       db()
         .prepare(
-          `INSERT INTO playlist_songs (playlist_id, song_id, position)
-           SELECT ?, song_id, position FROM playlist_songs WHERE playlist_id = ?`
+          `INSERT INTO playlist_songs (playlist_id, song_id, position, note, section)
+           SELECT ?, song_id, position, note, section FROM playlist_songs WHERE playlist_id = ?`
         )
         .run(info.lastInsertRowid, id)
       return info.lastInsertRowid
     },
-    'playlists:getSongs': (id: number) =>
-      db()
-        .prepare(`${SONG_SELECT} JOIN playlist_songs ps ON ps.song_id = s.id
-                  WHERE ps.playlist_id = ? ORDER BY ps.position`)
-        .all(id),
+    // regular playlists bring each song's note and section; smart ones, their rules' songs
+    'playlists:getSongs': (id: number) => playlistSongs(db(), id),
+    ...(playlistPlusHandlers(db) as Record<string, Handler>),
     'playlists:addSong': (playlistId: number, songId: number) => {
       const max = db()
         .prepare('SELECT COALESCE(MAX(position), -1) as m FROM playlist_songs WHERE playlist_id = ?')

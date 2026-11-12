@@ -19,13 +19,16 @@ export function CoverArt({
   title,
   size = 'md',
   rounded = 'lg',
-  className = ''
+  className = '',
+  spin = false
 }: {
   src: string | null
   title?: string | null
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
   rounded?: 'lg' | 'xl' | '2xl' | 'full'
   className?: string
+  /** the cover of the song playing: with the vinyl style (Personalização → Capas) it turns */
+  spin?: boolean
 }): JSX.Element {
   const url = mediaUrl(src ?? null)
   const label = (title ?? '').trim()
@@ -45,7 +48,8 @@ export function CoverArt({
     '2xl': 'rounded-2xl',
     full: 'rounded-full'
   }
-  const box = `relative grid shrink-0 place-items-center overflow-hidden ${sizes[size]} ${rounds[rounded]} ${className}`
+  // `cover-art` lets Personalização → Capas reshape every cover (globals.css)
+  const box = `cover-art relative grid shrink-0 place-items-center overflow-hidden ${sizes[size]} ${rounds[rounded]} ${spin ? 'cover-spin' : ''} ${className}`
 
   if (url) {
     return (

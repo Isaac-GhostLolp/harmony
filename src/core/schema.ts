@@ -129,6 +129,20 @@ export function migrate(db: Db): void {
   // ('' = looked for and none found)
   ensureColumn(db, 'songs', 'art_url', 'TEXT')
 
+  // v0.21 — playlists with a soul: the page's header style, folders, pinning,
+  // a coloured tag, smart rules, the mood (World/theme/EQ/cursor), how it
+  // plays, where it was left; and sections and notes on its songs
+  ensureColumn(db, 'playlists', 'header', 'TEXT')
+  ensureColumn(db, 'playlists', 'folder', 'TEXT')
+  ensureColumn(db, 'playlists', 'pinned', 'INTEGER NOT NULL DEFAULT 0')
+  ensureColumn(db, 'playlists', 'tag', 'TEXT')
+  ensureColumn(db, 'playlists', 'rules', 'TEXT')
+  ensureColumn(db, 'playlists', 'vibe', 'TEXT')
+  ensureColumn(db, 'playlists', 'play', 'TEXT')
+  ensureColumn(db, 'playlists', 'resume', 'TEXT')
+  ensureColumn(db, 'playlist_songs', 'note', 'TEXT')
+  ensureColumn(db, 'playlist_songs', 'section', 'TEXT')
+
   migrateMultiArtists(db)
   pruneEmptyArtists(db)
 }

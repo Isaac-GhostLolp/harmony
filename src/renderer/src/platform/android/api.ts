@@ -263,7 +263,18 @@ export async function installAndroidApi(): Promise<void> {
       getSongs: q('playlists:getSongs'),
       addSong: q('playlists:addSong'),
       removeSong: q('playlists:removeSong'),
-      reorder: q('playlists:reorder')
+      reorder: q('playlists:reorder'),
+      setNote: q('playlists:setNote'),
+      setSection: q('playlists:setSection'),
+      createSmart: q('playlists:createSmart'),
+      previewRules: q('playlists:previewRules'),
+      auto: q('playlists:auto'),
+      suggest: q('playlists:suggest'),
+      stats: q('playlists:stats'),
+      setResume: q('playlists:setResume'),
+      mosaics: q('playlists:mosaics'),
+      exportOne: q('playlists:export'),
+      importOne: q('playlists:import')
     },
     favorites: { toggle: q('favorites:toggle'), getAll: q('favorites:getAll') },
     history: { add: q('history:add'), getRecent: q('history:getRecent') },
@@ -291,6 +302,7 @@ export async function installAndroidApi(): Promise<void> {
     online: { fetchCover: online['online:fetchCover'] },
     player: {
       toggleMini: nothing,
+      miniSkin: nothing,
       sendState: (state: unknown) => updateSession(state as PlayerState),
       onState: unsubscribe,
       sendCommand: nothing,

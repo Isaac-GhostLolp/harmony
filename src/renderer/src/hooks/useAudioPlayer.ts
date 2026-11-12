@@ -66,7 +66,9 @@ export function useAudioPlayer(): void {
       usePlayerStore.setState({ resumeAt: null })
       engine.load(mediaUrl(song.path)!, resumeAt, false)
     } else {
-      engine.load(mediaUrl(song.path)!)
+      const { startAt } = usePlayerStore.getState()
+      if (startAt !== null) usePlayerStore.setState({ startAt: null })
+      engine.load(mediaUrl(song.path)!, startAt ?? 0)
       api.history.add(song.id)
     }
     applyAccentFromCover(mediaUrl(song.coverPath))

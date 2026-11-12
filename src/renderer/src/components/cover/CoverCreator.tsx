@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Dices, ImagePlus, Loader2, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { usePlayerStore } from '@/store/playerStore'
-import { COVERS_CHANGED_EVENT, useCoverCreator, type CoverTarget } from '@/store/coverCreatorStore'
+import { COVERS_CHANGED_EVENT, PLAYLISTS_CHANGED_EVENT, useCoverCreator, type CoverTarget } from '@/store/coverCreatorStore'
 import { FONTS } from '@/utils/appearance'
 import { useEscape } from '@/components/views/useEscape'
 import {
@@ -28,7 +28,7 @@ import { t, tk } from '@/i18n'
  */
 export function CoverCreator(): JSX.Element {
   const target = useCoverCreator((s) => s.target)
-  return createPortal(<AnimatePresence>{target && <Creator key={target.songId} target={target} />}</AnimatePresence>, document.body)
+  return createPortal(<AnimatePresence>{target && <Creator key={`${target.songId}-${target.playlistId ?? ''}`} target={target} />}</AnimatePresence>, document.body)
 }
 
 /** Point every copy of this album's songs in the player at the new cover. */
@@ -93,6 +93,20 @@ function Creator({ target }: { target: CoverTarget }): JSX.Element {
     setSaving(true)
     setError(null)
     try {
+      if (target.playlistId) {
+        // a playlist keeps its cover in the library database, as an image
+        const bytes = await coverBytes(spec, 700)
+        const url = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(String(r.result))
+          r.onerror = reject
+          r.readAsDataURL(new Blob([bytes], { type: 'image/jpeg' }))
+        })
+        await api.playlists.updateMeta(target.playlistId, { image: url, color: spec.palette[1] })
+        window.dispatchEvent(new CustomEvent(PLAYLISTS_CHANGED_EVENT))
+        close()
+        return
+      }
       const bytes = await coverBytes(spec)
       const res = (await api.covers.saveCustom(target.songId, bytes)) as { albumId: number; cover: string | null } | null
       if (!res?.cover) throw new Error('not saved')

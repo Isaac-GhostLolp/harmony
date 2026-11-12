@@ -16,6 +16,8 @@ interface PlayerState {
   epoch: number
   /** set by restore(): load the song paused at this second (no new play in the history) */
   resumeAt: number | null
+  /** the next song loaded starts at this second, playing (a playlist resuming where it was left) */
+  startAt: number | null
 
   currentSong: () => Song | null
   playQueue: (songs: Song[], startIndex: number) => void
@@ -60,6 +62,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTime: 0,
   epoch: 0,
   resumeAt: null,
+  startAt: null,
 
   restore: (r) =>
     set((st) => ({

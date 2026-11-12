@@ -20,14 +20,22 @@ interface Props {
   extraAction?: { label: string; run: (song: Song) => void }
   /** When provided, rows become drag-and-drop sortable (used by playlists). */
   onReorder?: (songIds: number[]) => void
+  /** more menu entries (a playlist's note and section) */
+  extraActions?: { label: string; run: (song: Song) => void }[]
+  /**
+   * What playing a row queues, when this list is a part of a bigger one (a
+   * playlist's section): the whole list, and where this part starts in it.
+   */
+  queue?: { songs: Song[]; offset: number }
 }
 
-export function SongList({ songs, onChanged, extraAction, onReorder }: Props): JSX.Element {
+export function SongList({ songs, onChanged, extraAction, onReorder, extraActions, queue }: Props): JSX.Element {
   const playQueue = usePlayerStore((s) => s.playQueue)
   const addNext = usePlayerStore((s) => s.addNext)
   const addToQueue = usePlayerStore((s) => s.addToQueue)
   const setFavoriteFlag = usePlayerStore((s) => s.setFavoriteFlag)
   const currentId = usePlayerStore((s) => s.queue[s.currentIndex]?.id)
+  const playAt = (i: number): void => (queue ? playQueue(queue.songs, queue.offset + i) : playQueue(songs, i))
 
   const [menuFor, setMenuFor] = useState<number | null>(null)
   const [menuUp, setMenuUp] = useState(false)
@@ -318,7 +326,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             className={`song-row group relative grid h-[52px] ${foundId === song.id ? 'row-found' : ''} grid-cols-[40px_1fr_1fr_60px_80px] items-center gap-3 rounded-xl px-3 text-sm ${menuFor === song.id ? 'z-30' : ''} transition-colors hover:bg-[var(--bg-raised)] ${
               isSelected ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent)]' : active ? 'bg-[var(--accent-soft)]' : ''
             }`}
-            onDoubleClick={() => playQueue(songs, i)}
+            onDoubleClick={() => playAt(i)}
             onClick={(e) => {
               // Spotify-style selection:
               //  - Ctrl/Cmd click: toggle this row
@@ -342,7 +350,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                 setLastClicked(song.id)
               } else if (IS_ANDROID && !(e.target as HTMLElement).closest('button')) {
                 // on the phone a tap plays (there is no double click)
-                playQueue(songs, i)
+                playAt(i)
               }
             }}
             {...(IS_ANDROID ? longPress(song.id) : {})}
@@ -352,7 +360,7 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
             onDrop={() => handleDrop(i)}
           >
             <button
-              onClick={() => playQueue(songs, i)}
+              onClick={() => playAt(i)}
               className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-md"
               aria-label={t('Tocar {title}', { title: song.title })}
             >
@@ -369,7 +377,10 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
               <p className={`truncate font-medium ${active ? 'text-[var(--accent)]' : ''}`}>
                 {song.title}
               </p>
-              <p className="truncate text-xs text-muted">{song.artist ?? '—'}</p>
+              <p className="truncate text-xs text-muted">
+                {song.artist ?? '—'}
+                {song.note && <span className="text-[var(--accent)]"> · 📝 {song.note}</span>}
+              </p>
             </div>
 
             <p className="song-album truncate text-xs text-muted">{song.album ?? '—'}</p>
@@ -454,6 +465,9 @@ export function SongList({ songs, onChanged, extraAction, onReorder }: Props): J
                     onClick={() => { extraAction.run(song); setMenuFor(null) }}
                   />
                 )}
+                {extraActions?.map((a) => (
+                  <MenuItem key={a.label} label={a.label} onClick={() => { a.run(song); setMenuFor(null) }} />
+                ))}
                 <div className="my-1 h-px bg-[var(--glass-border)]" />
                 <MenuItem
                   label={t('Sincronizar capa e letra online')}

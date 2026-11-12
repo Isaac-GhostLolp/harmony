@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.8.0'
+export const ANDROID_VERSION = '0.9.0'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -53,6 +53,68 @@ export interface Release {
 }
 
 export const RELEASES: Release[] = [
+  {
+    version: '0.21.0',
+    title: tk('Personalização máxima'),
+    date: '2026-11-12',
+    items: [
+      {
+        emoji: '🌦️',
+        title: tk("Clima da playlist"),
+        text: tk("Cada playlist pode trazer o seu Mundo vivo, tema, equalizador e cursor — e o seu jeito de tocar: sempre aleatória, crossfade próprio, continuar de onde parou ou tocar por um tempo.")
+      },
+      {
+        emoji: '🎨',
+        title: tk("Visual próprio"),
+        text: tk("A página de cada playlist ganha a cor dela, três cabeçalhos (banner, compacto e disco), capa em mosaico, GIF animado ou feita no Criador de capas.")
+      },
+      {
+        emoji: '✨',
+        title: tk("Playlists inteligentes e feitas para você"),
+        text: tk("Crie playlists por regras que se atualizam sozinhas, e descubra Mix do dia, Em loop, Esquecidas e Descobertas recentes.")
+      },
+      {
+        emoji: '🗂️',
+        title: tk("Organize do seu jeito"),
+        text: tk("Pastas, playlists fixadas, etiquetas coloridas, seções dentro da playlist e uma nota em cada música. E \"Completar a playlist\" sugere músicas que combinam.")
+      },
+      {
+        emoji: '🧬',
+        title: tk("Raio-X, cartão e arquivos"),
+        text: tk("O Raio-X mostra o DNA da playlist; o cartão vai para os stories; e dá para exportar e importar em .m3u ou no formato do Harmony.")
+      },
+      {
+        emoji: '🖱️',
+        title: tk('Cursor com a sua cara'),
+        text: tk('Em Personalização → Cursor: 12 cursores (seta do tema, palheta, pixel, neon, batuta, microfone, fone, coração e os animados vinil, equalizador e nota) ou uma imagem sua, até GIF animado.')
+      },
+      {
+        emoji: '✨',
+        title: tk('Cursor vivo e efeitos'),
+        text: tk('O Cursor vivo pulsa com a batida e cresce sobre os botões. E com qualquer cursor: rastro de notinhas, brilhos, cometa, onda sonora, confete ou um emoji, e uma onda ou explosão de notas ao clicar. Se quiser, o Mundo vivo escolhe por você.')
+      },
+      {
+        emoji: '🔊',
+        title: tk('Sons da interface'),
+        text: tk('Quatro pacotes de sons para cliques, opções e favoritos — Macio, 8-bit, Vinil e Mecânico — com volume próprio. Vêm desligados.')
+      },
+      {
+        emoji: '💿',
+        title: tk('Capas em vinil e em 3D'),
+        text: tk('Capas quadradas, redondas ou em vinil (a da música tocando gira), e capas que se inclinam na direção do mouse.')
+      },
+      {
+        emoji: '🎨',
+        title: tk('Os detalhes também'),
+        text: tk('Transição entre páginas, barra de rolagem na cor do tema, seleção de texto colorida e o carregando em vinil, equalizador ou nota.')
+      },
+      {
+        emoji: '🪟',
+        title: tk('Mini player com estilo'),
+        text: tk('Três visuais para o mini player: compacto, cartão com a capa grande e um toca-discos com disco girando e braço que desce.')
+      }
+    ]
+  },
   {
     version: '0.20.0',
     title: tk('A ponte entre o PC e o celular'),
@@ -346,6 +408,43 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.9.0',
+    title: tk('Personalização máxima'),
+    date: '2026-11-12',
+    items: [
+      {
+        emoji: '🌦️',
+        title: tk("Clima da playlist"),
+        text: tk("Cada playlist pode trazer o seu Mundo vivo, tema, equalizador e cursor — e o seu jeito de tocar: sempre aleatória, crossfade próprio, continuar de onde parou ou tocar por um tempo.")
+      },
+      {
+        emoji: '🎨',
+        title: tk("Visual próprio"),
+        text: tk("A página de cada playlist ganha a cor dela, três cabeçalhos (banner, compacto e disco), capa em mosaico, GIF animado ou feita no Criador de capas.")
+      },
+      {
+        emoji: '✨',
+        title: tk("Playlists inteligentes e feitas para você"),
+        text: tk("Crie playlists por regras que se atualizam sozinhas, e descubra Mix do dia, Em loop, Esquecidas e Descobertas recentes.")
+      },
+      {
+        emoji: '🗂️',
+        title: tk("Organize do seu jeito"),
+        text: tk("Pastas, playlists fixadas, etiquetas coloridas, seções dentro da playlist e uma nota em cada música. E \"Completar a playlist\" sugere músicas que combinam.")
+      },
+      {
+        emoji: '🧬',
+        title: tk("Raio-X, cartão e arquivos"),
+        text: tk("O Raio-X mostra o DNA da playlist; o cartão vai para os stories; e dá para exportar e importar em .m3u ou no formato do Harmony.")
+      },
+      {
+        emoji: '💿',
+        title: tk('Capas, detalhes e sons'),
+        text: tk('Em Personalização: capas redondas ou em vinil (a da música tocando gira), transição entre páginas, carregando em vinil ou equalizador, seleção na cor do tema e sons ao tocar nos botões.')
+      }
+    ]
+  },
   {
     version: '0.8.0',
     title: tk('A ponte entre o PC e o celular'),

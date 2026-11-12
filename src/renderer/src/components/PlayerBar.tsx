@@ -57,6 +57,7 @@ export function PlayerBar(): JSX.Element {
         title={song?.title}
         size={compact ? 'sm' : 'md'}
         rounded={style === 'floating' ? 'full' : 'lg'}
+        spin={isPlaying}
       />
     )
 

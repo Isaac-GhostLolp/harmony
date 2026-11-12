@@ -126,7 +126,7 @@ function NowPlaying({ onClose }: { onClose: () => void }): JSX.Element | null {
           className="aspect-square w-full max-w-[min(100%,52vh)] overflow-hidden rounded-3xl shadow-2xl"
           style={{ touchAction: 'none' }}
         >
-          <CoverArt src={song.coverPath} title={song.title} size="full" rounded="2xl" />
+          <CoverArt src={song.coverPath} title={song.title} size="full" rounded="2xl" spin={isPlaying} />
         </div>
       </div>
 

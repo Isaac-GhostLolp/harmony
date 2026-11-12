@@ -1954,3 +1954,479 @@ html.ultra-fast .m-sun {
   box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35);
   pointer-events: none;
 }
+
+/* ── custom cursor (desktop 0.21.0; utils/cursor.ts) ─────────────────── */
+/* the arrow is inherited from the body; anything with its own cursor (grab,
+   resize, DJ Mode hiding it) keeps it */
+html.has-cursor body {
+  cursor: var(--cur-arrow);
+}
+html.has-cursor
+  :is(
+    a[href],
+    button:not(:disabled),
+    [role='button'],
+    [role='switch'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='option'],
+    label,
+    select,
+    summary,
+    .cursor-pointer,
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='range'],
+    input[type='color'],
+    input[type='file'],
+    .eq-slider
+  ) {
+  cursor: var(--cur-pointer);
+}
+html.has-cursor
+  :is(
+    input:not([type]),
+    input[type='text'],
+    input[type='search'],
+    input[type='email'],
+    input[type='url'],
+    input[type='number'],
+    input[type='password'],
+    textarea,
+    [contenteditable='true']
+  ) {
+  cursor: var(--cur-text);
+}
+html.has-cursor .eq-slider:disabled {
+  cursor: default;
+}
+
+/* the live cursor: the page draws it (components/CursorLayer.tsx) */
+html.cursor-live body,
+html.cursor-live body * {
+  cursor: none !important;
+}
+html.cursor-live
+  :is(
+    input:not([type]),
+    input[type='text'],
+    input[type='search'],
+    input[type='email'],
+    input[type='url'],
+    input[type='number'],
+    input[type='password'],
+    textarea,
+    [contenteditable='true']
+  ) {
+  cursor: var(--cur-text, text) !important;
+}
+.cursor-live-dot {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 120ms ease;
+}
+.cursor-live-dot :is(img, .cursor-eq) {
+  display: block;
+  transform-origin: var(--hx, 0) var(--hy, 0);
+  transform: scale(calc(var(--grow, 1) * (1 + var(--stk-kick, 0) * 0.3)));
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  filter: drop-shadow(0 0 calc(var(--stk-kick, 0) * 10px) var(--accent));
+}
+.cursor-live-ring {
+  position: absolute;
+  left: var(--hx, 0);
+  top: var(--hy, 0);
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 9999px;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 160ms ease,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cursor-live-dot.on-button .cursor-live-ring {
+  opacity: 0.55;
+  transform: scale(1);
+}
+.cursor-trail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147482999;
+  pointer-events: none;
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: cursor-trail 700ms ease-out forwards;
+}
+@keyframes cursor-trail {
+  from {
+    opacity: 0.95;
+    transform: translate(var(--x), var(--y)) scale(1) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) - 22px)) scale(0.5) rotate(var(--rot));
+  }
+}
+
+/* ── 0.21.0 "toque pessoal" (store/flairStore.ts) ─────────────────────── */
+
+/* scrollbar styles */
+html[data-scrollbar='theme'] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+html[data-scrollbar='theme'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+html[data-scrollbar='thin'] ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+html[data-scrollbar='thin'] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: 4px;
+}
+html[data-scrollbar='pill'] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+html[data-scrollbar='pill'] ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+html[data-scrollbar='pill'] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+html[data-scrollbar='hover'] ::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+html[data-scrollbar='hover'] :hover::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* text selection and the caret in the theme's colour */
+html.themed-selection ::selection {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: inherit;
+}
+html.themed-selection :is(input, textarea, [contenteditable='true']) {
+  caret-color: var(--accent);
+}
+
+/* covers' shape */
+html[data-cover='square'] .cover-art {
+  border-radius: 4px !important;
+}
+html[data-cover='circle'] .cover-art,
+html[data-cover='vinyl'] .cover-art {
+  border-radius: 9999px !important;
+}
+/* vinyl: grooves and the centre label over the cover */
+html[data-cover='vinyl'] .cover-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #0b0b10 0 5%, transparent 5.5%),
+    radial-gradient(circle, transparent 0 17%, rgba(0, 0, 0, 0.35) 17.5% 19%, transparent 19.5%),
+    repeating-radial-gradient(circle, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 4px),
+    radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.25));
+  mix-blend-mode: multiply;
+}
+html[data-cover='vinyl'] .cover-art::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: conic-gradient(from 0deg, transparent 0 12%, rgba(255, 255, 255, 0.16) 16%, transparent 22% 62%, rgba(255, 255, 255, 0.1) 66%, transparent 72%);
+}
+html[data-cover='vinyl'] .cover-art.cover-spin {
+  animation: cover-vinyl-turn 5s linear infinite;
+}
+@keyframes cover-vinyl-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+html.ultra-fast .cover-art.cover-spin {
+  animation: none;
+}
+
+/* covers leaning towards the mouse (components/CoverTilt.tsx) */
+.cover-art.tilting {
+  transition: transform 120ms ease-out;
+  will-change: transform;
+}
+
+/* page transitions (App → .page-swap) */
+.page-swap-fade {
+  animation: page-fade 220ms ease-out;
+}
+.page-swap-slide {
+  animation: page-slide 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.page-swap-zoom {
+  animation: page-zoom 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-slide {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+@keyframes page-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+html.ultra-fast :is(.page-swap-fade, .page-swap-slide, .page-swap-zoom) {
+  animation: none;
+}
+
+/* the live cursor's animated packs (rotate composes with the pulse's scale) */
+.cursor-anim-spin {
+  animation: cursor-spin 3.2s linear infinite;
+  animation-play-state: paused;
+}
+.cursor-live-dot.is-playing .cursor-anim-spin {
+  animation-play-state: running;
+}
+@keyframes cursor-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+.cursor-anim-swing {
+  animation: cursor-swing 1.4s ease-in-out infinite alternate;
+}
+@keyframes cursor-swing {
+  from {
+    rotate: -10deg;
+  }
+  to {
+    rotate: 10deg;
+  }
+}
+.cursor-eq {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12%;
+  padding: 8% 10%;
+  box-sizing: border-box;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
+}
+.cursor-eq span {
+  width: 22%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  border: 1.5px solid #fff;
+  transform-origin: bottom;
+  transform: scaleY(0.3);
+  transition: transform 70ms linear;
+}
+
+/* trails: confetti falls, an emoji is bigger */
+.cursor-confetti {
+  width: 6px;
+  height: 9px;
+  border-radius: 1px;
+  text-shadow: none;
+  animation: cursor-confetti 900ms ease-in forwards;
+}
+@keyframes cursor-confetti {
+  from {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) rotate(0deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + 46px)) rotate(var(--rot));
+  }
+}
+.cursor-emoji {
+  font-size: 16px;
+  text-shadow: none;
+}
+.cursor-line {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147482998;
+  pointer-events: none;
+}
+
+/* click effects */
+.cursor-click-ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147482999;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 9999px;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+  opacity: 0;
+  animation: cursor-click 560ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes cursor-click {
+  from {
+    opacity: 0.85;
+    transform: translate(var(--x), var(--y)) scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--x), var(--y)) scale(1.4);
+  }
+}
+.cursor-burst {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147482999;
+  pointer-events: none;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation: cursor-burst 650ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes cursor-burst {
+  from {
+    opacity: 1;
+    transform: translate(var(--x), var(--y)) scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(1.1);
+  }
+}
+
+/* mini player: the turntable skin (pages/MiniPlayer.tsx) */
+.mini-deck {
+  border-radius: 14px;
+  background: linear-gradient(145deg, #2a2a33, #15151b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.mini-record {
+  position: absolute;
+  inset: 10px;
+  border-radius: 9999px;
+  background:
+    repeating-radial-gradient(circle, #121217 0 2px, #1b1b22 2px 4px),
+    #111116;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  animation: cover-vinyl-turn 3.6s linear infinite;
+  animation-play-state: paused;
+}
+.mini-record.is-playing {
+  animation-play-state: running;
+}
+.mini-record::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 20deg, transparent 0 10%, rgba(255, 255, 255, 0.12) 14%, transparent 20% 60%, rgba(255, 255, 255, 0.08) 64%, transparent 70%);
+}
+.mini-label {
+  width: 38%;
+  height: 38%;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  border: 2px solid #0b0b10;
+}
+.mini-arm {
+  position: absolute;
+  right: 6px;
+  top: 8px;
+  width: 6px;
+  height: 78px;
+  border-radius: 3px;
+  background: linear-gradient(#d9d9e0, #8c8c96);
+  transform-origin: 3px 4px;
+  transform: rotate(-4deg);
+  transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.mini-arm::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #b9b9c2;
+}
+.mini-arm::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  bottom: -6px;
+  width: 10px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.mini-arm.is-playing {
+  transform: rotate(18deg);
+}
+
+/* playlists: the "Disco" header — the cover as a record that turns while the playlist plays */
+.pl-disc {
+  position: relative;
+  border-radius: 9999px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  animation: cover-vinyl-turn 6s linear infinite;
+  animation-play-state: paused;
+}
+.pl-disc.is-playing {
+  animation-play-state: running;
+}
+.pl-disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #0b0b10 0 4.5%, transparent 5%),
+    radial-gradient(circle, transparent 0 16%, rgba(0, 0, 0, 0.35) 16.5% 18%, transparent 18.5%),
+    repeating-radial-gradient(circle, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 5px),
+    radial-gradient(circle, transparent 58%, rgba(0, 0, 0, 0.3));
+  mix-blend-mode: multiply;
+}
+html.ultra-fast .pl-disc {
+  animation: none;
+}
