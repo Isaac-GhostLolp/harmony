@@ -83,6 +83,8 @@ const api = {
     get: () => invoke('stats:get'),
     profile: () => invoke('stats:profile'),
     world: () => invoke('stats:world'),
+    /** the numbers behind Meu Mundo → Conquistas (src/core/achievements.ts) */
+    achievements: () => invoke('stats:achievements'),
     /** A year (or 'all') of listening for the Retrospectiva video. */
     recap: (period: number | 'all') => invoke('stats:recap', period)
   },
@@ -96,7 +98,8 @@ const api = {
     markOpened: (id: number) => invoke('capsules:markOpened', id)
   },
   metadata: {
-    refresh: () => invoke('metadata:refresh'),
+    /** 'new': only what was never looked for (the usual); 'all': everything missing again */
+    refresh: (mode: 'new' | 'all' = 'new') => invoke('metadata:refresh', mode),
     onProgress: (cb: (p: { done: number; total: number; label: string }) => void): (() => void) => {
       const listener = (_e: Electron.IpcRendererEvent, p: { done: number; total: number; label: string }): void =>
         cb(p)

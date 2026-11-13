@@ -41,9 +41,10 @@ export interface Level {
   toNext: number
 }
 
-export function levelOf(p: MusicProfile, w: WorldStats): Level {
+/** `bonus`: the XP of the unlocked achievements (utils/achievements.ts) */
+export function levelOf(p: MusicProfile, w: WorldStats, bonus = 0): Level {
   const xp = Math.round(
-    p.totalPlays * 10 + w.favorites * 15 + w.playlists * 40 + w.streak.best * 25 + w.songsPlayed * 5
+    p.totalPlays * 10 + w.favorites * 15 + w.playlists * 40 + w.streak.best * 25 + w.songsPlayed * 5 + bonus
   )
   const level = Math.floor(Math.sqrt(xp / 120)) + 1
   const from = 120 * (level - 1) ** 2

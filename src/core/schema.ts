@@ -145,6 +145,109 @@ export function migrate(db: Db): void {
 
   migrateMultiArtists(db)
   pruneEmptyArtists(db)
+  archiveSkippedPlays(db)
+
+  // v0.21.1 — what "Atualizar metadados" already looked for online (and when)
+  db.exec(`CREATE TABLE IF NOT EXISTS metadata_tried (
+    kind TEXT NOT NULL,
+    ref INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    PRIMARY KEY (kind, ref)
+  )`)
+  tidyArtists(db)
+}
+
+/**
+ * Artists with no songs, which couldn't be removed: an album's "album artist"
+ * tag kept whole ("ROSÉ, Bruno Mars"), while its songs were linked to each
+ * artist apart. The album now points at its main artist (the first one); an
+ * album that then has a twin (same title, same artist) is merged into it;
+ * and artists nothing points to any more go away. Returns how many left.
+ */
+export function tidyArtists(db: Db): number {
+  const lone = db
+    .prepare(
+      `SELECT al.id as albumId, al.title, ar.name FROM albums al JOIN artists ar ON ar.id = al.artist_id
+       WHERE ar.id NOT IN (SELECT artist_id FROM song_artists)`
+    )
+    .all() as { albumId: number; title: string; name: string }[]
+  const before = (db.prepare('SELECT COUNT(*) as n FROM artists').get() as { n: number }).n
+  const hasSongs = db.prepare('SELECT 1 FROM song_artists WHERE artist_id = ? LIMIT 1')
+  const idOf = db.prepare('SELECT id FROM artists WHERE name = ?')
+  const firstSongArtist = db.prepare('SELECT artist_id as id FROM songs WHERE album_id = ? AND artist_id IS NOT NULL ORDER BY track_no, id LIMIT 1')
+
+  db.transaction(() => {
+    for (const a of lone) {
+      // the album's main artist ("ROSÉ" in "ROSÉ, Bruno Mars") if they have songs; else whoever sings its first song
+      const main = splitArtists(a.name)[0]
+      const mainRow = main ? (idOf.get(main) as { id: number } | undefined) : undefined
+      const target = mainRow && hasSongs.get(mainRow.id) ? mainRow.id : (firstSongArtist.get(a.albumId) as { id: number } | undefined)?.id
+      if (!target) continue
+      const twin = db.prepare('SELECT id FROM albums WHERE title = ? AND artist_id = ? AND id != ?').get(a.title, target, a.albumId) as
+        | { id: number }
+        | undefined
+      if (twin) {
+        // the twin keeps any cover it lacks, then takes this album's songs
+        db.prepare(
+          `UPDATE albums SET
+             cover_path = COALESCE(cover_path, (SELECT cover_path FROM albums WHERE id = @from)),
+             online_cover_path = COALESCE(online_cover_path, (SELECT online_cover_path FROM albums WHERE id = @from)),
+             custom_cover_path = COALESCE(custom_cover_path, (SELECT custom_cover_path FROM albums WHERE id = @from))
+           WHERE id = @to`
+        ).run({ from: a.albumId, to: twin.id })
+        db.prepare('UPDATE songs SET album_id = ? WHERE album_id = ?').run(twin.id, a.albumId)
+        db.prepare('DELETE FROM albums WHERE id = ?').run(a.albumId)
+      } else {
+        db.prepare('UPDATE albums SET artist_id = ? WHERE id = ?').run(target, a.albumId)
+      }
+    }
+  })()
+  pruneEmptyArtists(db)
+  const after = (db.prepare('SELECT COUNT(*) as n FROM artists').get() as { n: number }).n
+  return before - after
+}
+
+/**
+ * v0.21.1 — until now a song counted as played the moment it started, so
+ * songs skipped on shuffle (and double clicks) filled the history and bent
+ * Meu Mundo (a genre barely heard could be the favourite). Plays now count
+ * after 30 seconds of listening; this pass, run once, applies the same rule
+ * to the old history: a play followed by another one sooner than that was a
+ * skip. Those rows move to history_skipped (kept, never deleted), so
+ * nothing is lost if this ever needs undoing.
+ */
+function archiveSkippedPlays(db: Db): void {
+  const done = db.prepare("SELECT value FROM settings WHERE key = 'historySkipsArchived'").get()
+  if (done) return
+  db.exec(`CREATE TABLE IF NOT EXISTS history_skipped (
+    id INTEGER PRIMARY KEY,
+    song_id INTEGER NOT NULL,
+    played_at INTEGER NOT NULL,
+    moved_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )`)
+  const rows = db
+    .prepare(
+      `SELECT h.id, h.song_id as songId, h.played_at as at, COALESCE(s.duration, 0) as duration
+       FROM history h LEFT JOIN songs s ON s.id = h.song_id ORDER BY h.played_at, h.id`
+    )
+    .all() as { id: number; songId: number; at: number; duration: number }[]
+  const skipped = rows.filter((r, i) => {
+    const next = rows[i + 1]
+    if (!next) return false
+    const need = r.duration > 0 ? Math.min(30, Math.max(5, r.duration / 2)) : 30
+    return next.at - r.at < need
+  })
+  db.transaction(() => {
+    const keep = db.prepare('INSERT OR IGNORE INTO history_skipped (id, song_id, played_at) VALUES (?, ?, ?)')
+    const drop = db.prepare('DELETE FROM history WHERE id = ?')
+    for (const r of skipped) {
+      keep.run(r.id, r.songId, r.at)
+      drop.run(r.id)
+    }
+    db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('historySkipsArchived', ?)").run(
+      JSON.stringify({ at: Math.floor(Date.now() / 1000), moved: skipped.length })
+    )
+  })()
 }
 
 /** Adds a column if missing — SQLite has no ADD COLUMN IF NOT EXISTS. */

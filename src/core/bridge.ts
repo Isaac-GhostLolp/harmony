@@ -252,5 +252,10 @@ export function mergeBridgeState(db: Db, remote: BridgeState): MergeResult {
   })()
 
   result.missing = missing.size
+  // for the "Ponte construída" achievement
+  db.prepare(
+    `INSERT INTO settings (key, value) VALUES ('bridgeSyncs', '1')
+     ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)`
+  ).run()
   return result
 }

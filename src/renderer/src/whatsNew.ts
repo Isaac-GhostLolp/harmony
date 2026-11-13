@@ -20,7 +20,7 @@ declare const __APP_VERSION__: string
  * desktop one): raise this and add an entry to ANDROID_RELEASES with each
  * Android update.
  */
-export const ANDROID_VERSION = '0.9.0'
+export const ANDROID_VERSION = '0.9.1'
 
 /** The running app's version: package.json's on the desktop, ANDROID_VERSION on the phone. */
 export const APP_VERSION: string = IS_ANDROID
@@ -53,6 +53,43 @@ export interface Release {
 }
 
 export const RELEASES: Release[] = [
+  {
+    version: '0.21.1',
+    title: tk('Ouvindo de verdade (e mais rápido)'),
+    date: '2026-11-12',
+    items: [
+      {
+        emoji: '🏅',
+        title: tk("41 conquistas novas"),
+        text: tk("Agora são 53 conquistas em quatro níveis — Bronze, Prata, Ouro e Lendária — com algumas bem difíceis (100 dias seguidos, 10 mil plays, a biblioteca inteira) e umas secretas para descobrir. Cada uma dá XP para o seu nível, e o Harmony avisa na hora em que você desbloqueia.")
+      },
+      {
+        emoji: '🎯',
+        title: tk("Meu Mundo mais honesto"),
+        text: tk("Uma música só conta como ouvida depois de 30 segundos (ou metade, se for bem curta). Músicas puladas no aleatório e cliques duplos não inflam mais suas estatísticas.")
+      },
+      {
+        emoji: '🧹',
+        title: tk("Histórico arrumado"),
+        text: tk("As reproduções antigas que foram puladas saem das contas — o gênero, as mais tocadas e a Retrospectiva ficam com o que você realmente ouviu. (Elas ficam guardadas à parte, nada se perde.)")
+      },
+      {
+        emoji: '🧬',
+        title: tk("Gênero favorito de verdade"),
+        text: tk("\"funk\" e \"Funk\" contam como um só, categorias do YouTube não viram gênero, e o Harmony só mostra um gênero favorito quando há informação suficiente para isso.")
+      },
+      {
+        emoji: '⚡',
+        title: tk("Metadados num instante"),
+        text: tk("\"Atualizar metadados\" agora só busca o que é novo, então da segunda vez em diante termina em segundos. Para procurar tudo de novo, use \"Buscar tudo de novo\".")
+      },
+      {
+        emoji: '🧑‍🎤',
+        title: tk("Adeus, artistas sem músicas"),
+        text: tk("Artistas de álbum como \"ROSÉ, Bruno Mars\" viravam artistas vazios que não dava para apagar. Agora o álbum fica com o artista principal e os vazios somem.")
+      },
+    ]
+  },
   {
     version: '0.21.0',
     title: tk('Personalização máxima'),
@@ -408,6 +445,43 @@ export function compareVersions(a: string, b: string): number {
 
 /** The Android app's releases, newest first (shown on the phone instead of RELEASES). */
 export const ANDROID_RELEASES: Release[] = [
+  {
+    version: '0.9.1',
+    title: tk('Ouvindo de verdade (e mais rápido)'),
+    date: '2026-11-12',
+    items: [
+      {
+        emoji: '🏅',
+        title: tk("41 conquistas novas"),
+        text: tk("Agora são 53 conquistas em quatro níveis — Bronze, Prata, Ouro e Lendária — com algumas bem difíceis (100 dias seguidos, 10 mil plays, a biblioteca inteira) e umas secretas para descobrir. Cada uma dá XP para o seu nível, e o Harmony avisa na hora em que você desbloqueia.")
+      },
+      {
+        emoji: '🎯',
+        title: tk("Meu Mundo mais honesto"),
+        text: tk("Uma música só conta como ouvida depois de 30 segundos (ou metade, se for bem curta). Músicas puladas no aleatório e cliques duplos não inflam mais suas estatísticas.")
+      },
+      {
+        emoji: '🧹',
+        title: tk("Histórico arrumado"),
+        text: tk("As reproduções antigas que foram puladas saem das contas — o gênero, as mais tocadas e a Retrospectiva ficam com o que você realmente ouviu. (Elas ficam guardadas à parte, nada se perde.)")
+      },
+      {
+        emoji: '🧬',
+        title: tk("Gênero favorito de verdade"),
+        text: tk("\"funk\" e \"Funk\" contam como um só, categorias do YouTube não viram gênero, e o Harmony só mostra um gênero favorito quando há informação suficiente para isso.")
+      },
+      {
+        emoji: '⚡',
+        title: tk("Metadados num instante"),
+        text: tk("\"Atualizar metadados\" agora só busca o que é novo, então da segunda vez em diante termina em segundos. Para procurar tudo de novo, use \"Buscar tudo de novo\".")
+      },
+      {
+        emoji: '🧑‍🎤',
+        title: tk("Adeus, artistas sem músicas"),
+        text: tk("Artistas de álbum como \"ROSÉ, Bruno Mars\" viravam artistas vazios que não dava para apagar. Agora o álbum fica com o artista principal e os vazios somem.")
+      },
+    ]
+  },
   {
     version: '0.9.0',
     title: tk('Personalização máxima'),

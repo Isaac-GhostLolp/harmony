@@ -23,6 +23,7 @@
  */
 import type { Db } from './db'
 import { EFFECTIVE_COVER_SQL, getSetting, setSetting } from './library'
+import { tidyArtists } from './schema'
 
 const UA = 'Harmony/0.5 (offline music player)'
 const TIMEOUT_MS = 8000
@@ -36,6 +37,9 @@ export interface LookupTrace {
 }
 
 const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/** lookups that got no answer at all (offline, site down): a search that hit one isn't a real "not found" */
+let unreachable = 0
 
 /**
  * A provider's JSON, or null. A real "no" (404 and the like) is final; a
@@ -58,6 +62,7 @@ async function getJson(url: string, trace?: LookupTrace): Promise<any | null> {
     }
     if (i < tries - 1) await wait(700 * (i + 1) * (i + 1))
   }
+  unreachable++
   if (trace) trace.failed = true
   return null
 }
@@ -745,13 +750,36 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
 
     // Bulk metadata refresh: artist photos + missing covers + genres, with
     // progress events. Never overwrites data the user already has.
-    'metadata:refresh': async () => {
+    //
+    // 'new' (the usual button): only what was never looked for — what was
+    // looked for and not found waits RETRY_DAYS before another try, so a
+    // second run takes seconds instead of searching the same misses again.
+    // 'all' ("Buscar tudo de novo"): everything missing, as before.
+    // Both first tidy the artists (album artists kept whole, artists with no songs).
+    'metadata:refresh': async (mode: 'new' | 'all' = 'new') => {
       const send = (done: number, total: number, label: string): void => deps.progress({ done, total, label })
+      const RETRY_DAYS = 60
+      const now = Math.floor(Date.now() / 1000)
+      const artistsRemoved = tidyArtists(db())
+
+      const tried = new Map(
+        (db().prepare('SELECT kind, ref, at FROM metadata_tried').all() as { kind: string; ref: number; at: number }[]).map((r) => [
+          `${r.kind}:${r.ref}`,
+          r.at
+        ])
+      )
+      const fresh = (kind: string, ref: number): boolean => {
+        if (mode === 'all') return true
+        const at = tried.get(`${kind}:${ref}`)
+        return at === undefined || now - at > RETRY_DAYS * 86400
+      }
+      const mark = db().prepare('INSERT OR REPLACE INTO metadata_tried (kind, ref, at) VALUES (?, ?, ?)')
 
       // 1) artist photos for artists without one
-      const artists = db()
+      const allArtists = db()
         .prepare(`SELECT id, name FROM artists WHERE image_path IS NULL OR image_path = ''`)
         .all() as { id: number; name: string }[]
+      const artists = allArtists.filter((a) => fresh('artist', a.id))
       // 2) songs whose effective cover is missing
       const songs = db()
         .prepare(
@@ -769,40 +797,56 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
         album: string | null
         coverPath: string | null
       }[]
-      const missingCovers = songs.filter((s) => !s.coverPath)
+      const allMissingCovers = songs.filter((s) => !s.coverPath)
+      const missingCovers = allMissingCovers.filter((s) => fresh('cover', s.id))
 
       // 3) songs missing a usable genre (empty or the useless "Music" catch-all)
-      const missingGenre = db()
+      const allMissingGenre = db()
         .prepare(
           `SELECT s.id, s.title, ar.name as artist
            FROM songs s LEFT JOIN artists ar ON ar.id = s.artist_id
            WHERE s.genre IS NULL OR TRIM(s.genre) = '' OR LOWER(s.genre) = 'music'`
         )
         .all() as { id: number; title: string; artist: string | null }[]
+      const missingGenre = allMissingGenre.filter((s) => fresh('genre', s.id))
 
+      const waiting =
+        allArtists.length - artists.length + (allMissingCovers.length - missingCovers.length) + (allMissingGenre.length - missingGenre.length)
       const total = artists.length + missingCovers.length + missingGenre.length
       let done = 0
       let artistsUpdated = 0
       let coversUpdated = 0
       let genresUpdated = 0
 
-      for (const ar of artists) {
-        send(done, total, `${deps.tr('Artista', 'Artist')}: ${ar.name}`)
-        try {
-          const photo = await fetchArtistPhoto(ar.name, deps.saveImage)
-          if (photo) {
-            db().prepare('UPDATE artists SET image_path = ? WHERE id = ?').run(photo, ar.id)
-            artistsUpdated++
+      // artist photos come from one quick source: a few at a time
+      const ARTIST_LANES = 3
+      let next = 0
+      await Promise.all(
+        Array.from({ length: Math.min(ARTIST_LANES, artists.length) }, async () => {
+          while (next < artists.length) {
+            const ar = artists[next++]
+            send(done, total, `${deps.tr('Artista', 'Artist')}: ${ar.name}`)
+            try {
+              const misses = unreachable
+              const photo = await fetchArtistPhoto(ar.name, deps.saveImage)
+              if (photo) {
+                db().prepare('UPDATE artists SET image_path = ? WHERE id = ?').run(photo, ar.id)
+                artistsUpdated++
+              }
+              // (with three lanes a miss may be a neighbour's: then it's simply tried again next time)
+              if (unreachable === misses) mark.run('artist', ar.id, now)
+            } catch {
+              /* network hiccup — skip this artist (tried again next time) */
+            }
+            done++
           }
-        } catch {
-          /* network hiccup — skip this artist */
-        }
-        done++
-      }
+        })
+      )
 
       for (const s of missingCovers) {
         send(done, total, `${deps.tr('Capa', 'Cover')}: ${s.title}`)
         try {
+          const misses = unreachable
           const result = await fetchCoverOnline(
             { title: s.title, artist: s.artist, album: s.album, duration: s.duration },
             deps.saveImage
@@ -811,6 +855,7 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
             applyCoverToSong(db(), s.id, result)
             coversUpdated++
           }
+          if (unreachable === misses) mark.run('cover', s.id, now)
         } catch {
           /* skip */
         }
@@ -820,11 +865,13 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
       for (const s of missingGenre) {
         send(done, total, `${deps.tr('Gênero', 'Genre')}: ${s.title}`)
         try {
+          const misses = unreachable
           const genre = await fetchGenre(s.title, s.artist)
           if (genre) {
             db().prepare('UPDATE songs SET genre = ? WHERE id = ?').run(genre, s.id)
             genresUpdated++
           }
+          if (unreachable === misses) mark.run('genre', s.id, now)
         } catch {
           /* skip */
         }
@@ -832,7 +879,7 @@ export function onlineHandlers(db: () => Db, deps: OnlineDeps): Record<string, (
       }
 
       send(total, total, deps.tr('Concluído', 'Done'))
-      return { artistsUpdated, coversUpdated, genresUpdated, total }
+      return { artistsUpdated, coversUpdated, genresUpdated, total, waiting, artistsRemoved }
     },
   }
 }

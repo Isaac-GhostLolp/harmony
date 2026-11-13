@@ -9,6 +9,37 @@ import { persistSettingDebounced } from '@/utils/persistSetting'
 import { getEngine } from '@/services/audioEngine'
 
 /**
+ * A song counts as played (history: Meu Mundo, Mais tocadas, Retrospectiva…)
+ * only once it has really been listened to: 30 seconds of it, or half of a
+ * very short one — like the big streaming apps. Before, it counted the moment
+ * it started, so songs skipped on shuffle (and double clicks) piled up as
+ * plays: a genre barely heard could become the favourite one.
+ *
+ * Listening time is added up from the clock as it moves forward; a seek
+ * moves the starting point instead, so jumping ahead in the song doesn't
+ * count as having heard it.
+ */
+const LISTEN_SEC = 30
+let listen: { songId: number; need: number; heard: number; last: number } | null = null
+
+function countWhenHeard(songId: number, duration: number, from = 0): void {
+  const need = duration > 0 ? Math.min(LISTEN_SEC, Math.max(5, duration / 2)) : LISTEN_SEC
+  listen = { songId, need, heard: 0, last: from }
+}
+
+function heard(t: number): void {
+  if (!listen) return
+  const step = t - listen.last
+  listen.last = t
+  // a few ticks a second (further apart with the screen off on a phone); seeks are handled apart
+  if (step > 0 && step < 20) listen.heard += step
+  if (listen.heard >= listen.need) {
+    void api.history.add(listen.songId)
+    listen = null
+  }
+}
+
+/**
  * Bridges the Zustand player store to the AudioEngine singleton.
  * Mount exactly once (in App). UI components only mutate the store;
  * this hook is the only place that touches actual audio.
@@ -26,7 +57,10 @@ export function useAudioPlayer(): void {
   useEffect(() => {
     const engine = getEngine()
 
-    engine.onTime = (t) => usePlayerStore.getState().setCurrentTime(t)
+    engine.onTime = (t) => {
+      usePlayerStore.getState().setCurrentTime(t)
+      heard(t)
+    }
 
     engine.onEnded = () => {
       const s = usePlayerStore.getState()
@@ -35,7 +69,8 @@ export function useAudioPlayer(): void {
       if (s.repeat === 'one' || (s.repeat === 'all' && s.queue.length === 1)) {
         engine.seek(0)
         engine.play()
-        if (s.queue[s.currentIndex]) api.history.add(s.queue[s.currentIndex].id)
+        const again = s.queue[s.currentIndex]
+        if (again) countWhenHeard(again.id, again.duration)
         return
       }
       s.next()
@@ -65,11 +100,12 @@ export function useAudioPlayer(): void {
       // picked up where the listener left off: paused, and not a new play
       usePlayerStore.setState({ resumeAt: null })
       engine.load(mediaUrl(song.path)!, resumeAt, false)
+      listen = null
     } else {
       const { startAt } = usePlayerStore.getState()
       if (startAt !== null) usePlayerStore.setState({ startAt: null })
       engine.load(mediaUrl(song.path)!, startAt ?? 0)
-      api.history.add(song.id)
+      countWhenHeard(song.id, song.duration, startAt ?? 0)
     }
     applyAccentFromCover(mediaUrl(song.coverPath))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,6 +145,8 @@ export function useAudioPlayer(): void {
   useEffect(() => {
     if (seekPosition === null) return
     getEngine().seek(seekPosition)
+    // a jump isn't listening: the count goes on from the new spot
+    if (listen) listen.last = seekPosition
     usePlayerStore.getState().clearSeek()
   }, [seekPosition])
 

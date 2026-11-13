@@ -3,7 +3,8 @@ import { Play, Search, X } from 'lucide-react'
 import type { MusicProfile, Song } from '@/types'
 import { usePlayerStore } from '@/store/playerStore'
 import { CoverArt } from '@/components/CoverArt'
-import { clockLabel, WEEKDAYS, type Badge, type WorldStats } from './worldData'
+import { clockLabel, WEEKDAYS, type WorldStats } from './worldData'
+import { achievementXp, CATEGORIES, TIERS, type Achievement } from '@/utils/achievements'
 import { SectionTitle, useCountUp } from './parts'
 import { t, locale } from '@/i18n'
 
@@ -259,7 +260,18 @@ export function ListeningClock({ w, hue }: { w: WorldStats; hue: number }): JSX.
 
 export function GenreDNA({ w, hue }: { w: WorldStats; hue: number }): JSX.Element | null {
   const total = w.topGenres.reduce((a, g) => a + g.plays, 0)
-  if (!total) return null
+  if (!total) {
+    // too little of the listening has a genre in its files to tell (better than a wrong favourite)
+    if (!w.topSongs?.length) return null
+    return (
+      <div className="glass fade-rise rounded-3xl p-5">
+        <SectionTitle emoji="🧬" title={t('Seu DNA musical')} hint={t('do que o seu som é feito')} />
+        <p className="text-xs text-muted">
+          {t('Ainda não dá para saber: a maioria das músicas que você ouve não traz o gênero no arquivo. Conforme você ouvir músicas com gênero, o seu DNA aparece aqui.')}
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="glass fade-rise rounded-3xl p-5">
       <SectionTitle emoji="🧬" title={t('Seu DNA musical')} hint={t('do que o seu som é feito')} />
@@ -400,41 +412,98 @@ export function Anthem({
 // Achievements + journey
 // ---------------------------------------------------------------------------
 
-export function Achievements({ badges, hue }: { badges: Badge[]; hue: number }): JSX.Element {
-  const done = badges.filter((b) => b.progress >= 1).length
+type AchFilter = 'all' | 'got' | 'close'
+
+/**
+ * Conquistas: every achievement by category, in its tier's colour (bronze,
+ * silver, gold, legendary), with progress; secret ones stay "???" until
+ * found. Filters: all, unlocked, almost there.
+ */
+export function Achievements({ list, hue }: { list: Achievement[]; hue: number }): JSX.Element {
+  const [filter, setFilter] = useState<AchFilter>('all')
+  const done = list.filter((a) => a.got).length
+  const xp = achievementXp(list)
+  const shown = list.filter((a) => (filter === 'got' ? a.got : filter === 'close' ? !a.got && !a.secret && a.progress >= 0.5 : true))
+  const byTier = TIERS.map((tr) => ({ ...tr, got: list.filter((a) => a.tier === tr.id && a.got).length, total: list.filter((a) => a.tier === tr.id).length }))
+  const chip = (on: boolean): string =>
+    `rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${on ? 'bg-[var(--accent)] text-[var(--on-accent,#fff)]' : 'bg-[var(--bg-raised)] text-muted hover:text-ink'}`
+
   return (
-    <div className="mb-6">
-      <SectionTitle emoji="🏅" title={t('Conquistas')} hint={t('{done} de {total} desbloqueadas', { done, total: badges.length })} />
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
-        {badges.map((b, i) => {
-          const got = b.progress >= 1
-          return (
-            <div
-              key={b.title}
-              className={`glass lift fade-rise group relative overflow-hidden rounded-2xl p-4 text-center ${got ? '' : 'opacity-70'}`}
-              style={{
-                animationDelay: `${i * 35}ms`,
-                background: got ? `linear-gradient(160deg, hsl(${hue + i * 25} 90% 60% / 0.25), transparent 70%)` : undefined
-              }}
-            >
-              <div
-                className={`mx-auto grid h-14 w-14 place-items-center rounded-full text-3xl transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 ${
-                  got ? 'bg-white/15 ring-2 ring-white/30' : 'bg-white/5 grayscale'
-                }`}
-              >
-                {got ? b.emoji : '🔒'}
-              </div>
-              <p className="mt-2 text-sm font-semibold">{b.title}</p>
-              <p className="text-[11px] text-muted">{b.detail}</p>
-              {!got && (
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full origin-left bg-[var(--accent)]" style={{ transform: `scaleX(${b.progress})` }} />
-                </div>
-              )}
-            </div>
-          )
-        })}
+    <div className="mb-6" id="achievements">
+      <SectionTitle
+        emoji="🏅"
+        title={t('Conquistas')}
+        hint={t('{done} de {total} desbloqueadas · +{xp} XP', { done, total: list.length, xp: xp.toLocaleString() })}
+      />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {(
+          [
+            ['all', t('Todas')],
+            ['got', t('Desbloqueadas')],
+            ['close', t('Quase lá')]
+          ] as [AchFilter, string][]
+        ).map(([id, label]) => (
+          <button key={id} onClick={() => setFilter(id)} className={chip(filter === id)}>
+            {label}
+          </button>
+        ))}
+        <span className="ml-auto flex flex-wrap gap-3 text-[11px] text-muted">
+          {byTier.map((tr) => (
+            <span key={tr.id} title={t(tr.label)}>
+              {tr.emoji} {tr.got}/{tr.total}
+            </span>
+          ))}
+        </span>
       </div>
+      {shown.length === 0 && <p className="text-xs text-muted">{t('Nenhuma por aqui ainda. Continue ouvindo!')}</p>}
+      {CATEGORIES.map((cat) => {
+        const items = shown.filter((a) => a.cat === cat.id)
+        if (!items.length) return null
+        return (
+          <div key={cat.id} className="mb-5">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted">{t(cat.label)}</p>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
+              {items.map((a, i) => {
+                const tier = TIERS.find((x) => x.id === a.tier)!
+                const hidden = a.secret && !a.got
+                return (
+                  <div
+                    key={a.id}
+                    title={a.unlockedAt ? t('Desbloqueada em {date}', { date: new Date(a.unlockedAt).toLocaleDateString() }) : undefined}
+                    className={`glass lift fade-rise group relative overflow-hidden rounded-2xl p-4 text-center ${a.got ? '' : 'opacity-75'}`}
+                    style={{
+                      animationDelay: `${i * 30}ms`,
+                      background: a.got ? `linear-gradient(160deg, ${tier.colour}33, hsl(${hue} 80% 60% / 0.08) 55%, transparent 80%)` : undefined
+                    }}
+                  >
+                    <span
+                      className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                      style={{ color: tier.colour, background: `${tier.colour}1f` }}
+                    >
+                      {t(tier.label)}
+                    </span>
+                    <div
+                      className={`mx-auto grid h-14 w-14 place-items-center rounded-full text-3xl transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110 ${
+                        a.got ? '' : 'bg-white/5 grayscale'
+                      } ${a.tier === 'legend' && a.got ? 'ach-legend' : ''}`}
+                      style={a.got ? { background: `${tier.colour}26`, boxShadow: `0 0 0 2px ${tier.colour}88` } : undefined}
+                    >
+                      {hidden ? '❔' : a.got ? a.emoji : '🔒'}
+                    </div>
+                    <p className="mt-2 text-sm font-semibold">{hidden ? '???' : a.title}</p>
+                    <p className="text-[11px] text-muted">{hidden ? t('Conquista secreta. Continue ouvindo…') : a.detail}</p>
+                    {!a.got && !hidden && (
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full origin-left" style={{ transform: `scaleX(${a.progress})`, background: tier.colour }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

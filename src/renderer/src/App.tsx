@@ -36,6 +36,7 @@ import { CursorLayer } from '@/components/CursorLayer'
 import { PageSwap } from '@/components/PageSwap'
 import { CoverTilt } from '@/components/CoverTilt'
 import { UiSounds } from '@/components/UiSounds'
+import { AchievementToast } from '@/components/AchievementToast'
 import { startPlaylistSessions } from '@/utils/playlistSession'
 import { useStickerStore } from '@/store/stickerStore'
 import { useIconStore } from '@/store/iconStore'
@@ -258,6 +259,7 @@ export function App(): JSX.Element {
           {!IS_ANDROID && <CursorLayer />}
           {!IS_ANDROID && <CoverTilt />}
           <UiSounds />
+          <AchievementToast />
           <IconDefs />
         </div>
       </HashRouter>

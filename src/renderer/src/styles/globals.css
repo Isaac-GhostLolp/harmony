@@ -2430,3 +2430,59 @@ html.ultra-fast :is(.page-swap-fade, .page-swap-slide, .page-swap-zoom) {
 html.ultra-fast .pl-disc {
   animation: none;
 }
+
+/* achievements (Meu Mundo → Conquistas; components/AchievementToast.tsx) */
+.ach-toast {
+  background: color-mix(in srgb, var(--bg-base) 88%, var(--tier));
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent);
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    0 0 30px color-mix(in srgb, var(--tier) 35%, transparent);
+  animation: ach-in 520ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.ach-toast-badge {
+  background: color-mix(in srgb, var(--tier) 25%, transparent);
+  box-shadow: 0 0 0 2px var(--tier);
+  animation: ach-pop 900ms ease-out;
+}
+@keyframes ach-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+}
+html.platform-android .ach-toast {
+  animation-name: ach-in-top;
+}
+@keyframes ach-in-top {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.92);
+  }
+}
+@keyframes ach-pop {
+  0% {
+    transform: scale(0.4) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+.ach-legend {
+  animation: ach-shine 3s ease-in-out infinite;
+}
+@keyframes ach-shine {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px #b98bff);
+  }
+  50% {
+    filter: drop-shadow(0 0 14px #e2c8ff);
+  }
+}
+html.ultra-fast :is(.ach-toast, .ach-toast-badge, .ach-legend) {
+  animation: none;
+}

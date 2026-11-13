@@ -5,6 +5,7 @@
  */
 import type { Db } from './db'
 import { playlistPlusHandlers, playlistSongs, PLAYLIST_EXTRA_COLUMNS, toJsonColumn } from './playlistsPlus'
+import { achievementMetrics } from './achievements'
 
 /** Effective cover honoring the user's per-album preference. */
 export const EFFECTIVE_COVER_SQL = `CASE
@@ -49,6 +50,47 @@ export function pruneOrphans(db: Db): void {
         AND id NOT IN (SELECT DISTINCT artist_id FROM songs WHERE artist_id IS NOT NULL)
         AND id NOT IN (SELECT DISTINCT artist_id FROM albums WHERE artist_id IS NOT NULL);
   `)
+}
+
+/**
+ * Genre tags that say nothing about the music: a placeholder ("Music",
+ * "Other"…) or the YouTube category a downloaded video carries ("People &
+ * Blogs", "Entertainment"…). They never count as a favourite genre.
+ */
+const JUNK_GENRES = [
+  'music', 'musica', 'música', 'other', 'others', 'outro', 'outros', 'unknown', 'desconhecido', 'genre', 'misc', 'none', 'n/a',
+  'people & blogs', 'entertainment', 'film & animation', 'gaming', 'comedy', 'education', 'howto & style',
+  'news & politics', 'nonprofits & activism', 'science & technology', 'sports', 'travel & events',
+  'autos & vehicles', 'pets & animals', 'shows', 'trailers'
+]
+export const JUNK_SQL = JUNK_GENRES.map((g) => `'${g.replace(/'/g, "''")}'`).join(', ')
+
+/** a favourite genre only means something when enough of the listening has one */
+const GENRE_MIN_SHARE = 0.15
+const GENRE_MIN_PLAYS = 5
+
+/**
+ * The most listened genres among the plays matching `where` (a condition on
+ * `h`, the history), with "funk" and "Funk" as one. Empty when too few plays
+ * have a real genre to tell — better no favourite genre than a wrong one
+ * (a handful of tagged songs used to win among thousands of untagged ones).
+ */
+export function genreRanking(
+  db: Db,
+  limit: number,
+  where = '1 = 1',
+  params?: Record<string, unknown>
+): { genre: string; plays: number }[] {
+  const run = <T>(sql: string): T[] => (params ? db.prepare(sql).all(params) : db.prepare(sql).all()) as T[]
+  const rows = run<{ genre: string; plays: number }>(
+    `SELECT MAX(TRIM(s.genre)) as genre, COUNT(*) as plays FROM history h JOIN songs s ON s.id = h.song_id
+     WHERE ${where} AND s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(TRIM(s.genre)) NOT IN (${JUNK_SQL})
+     GROUP BY LOWER(TRIM(s.genre)) ORDER BY plays DESC`
+  )
+  const total = (run<{ n: number }>(`SELECT COUNT(*) as n FROM history h WHERE ${where}`)[0]?.n ?? 0) || 0
+  const tagged = rows.reduce((n, r) => n + r.plays, 0)
+  if (!rows.length || rows[0].plays < GENRE_MIN_PLAYS || tagged < total * GENRE_MIN_SHARE) return []
+  return rows.slice(0, limit)
 }
 
 export function getSetting(db: Db, key: string): unknown {
@@ -123,7 +165,7 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
           `SELECT ar.id, ar.name, ar.image_path as imagePath,
                   COUNT(DISTINCT sa.song_id) as songCount
            FROM artists ar LEFT JOIN song_artists sa ON sa.artist_id = ar.id
-           GROUP BY ar.id ORDER BY ar.name`
+           GROUP BY ar.id HAVING songCount > 0 ORDER BY ar.name`
         )
         .all(),
     'artists:getSongs': (artistId: number) =>
@@ -249,6 +291,7 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
            ) h ON h.song_id = s.id ORDER BY h.lastPlayed DESC LIMIT 100`
         )
         .all(),
+    'stats:achievements': () => achievementMetrics(db()),
     'stats:profile': () => {
       const q = <T>(sql: string): T => db().prepare(sql).get() as T
       const qAll = <T>(sql: string): T[] => db().prepare(sql).all() as T[]
@@ -263,12 +306,7 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
          JOIN songs s ON s.id = h.song_id JOIN albums al ON al.id = s.album_id
          GROUP BY al.id ORDER BY plays DESC LIMIT 1`
       )
-      const topGenre = q<{ genre: string; plays: number } | undefined>(
-        `SELECT s.genre as genre, COUNT(*) as plays FROM history h
-         JOIN songs s ON s.id = h.song_id
-         WHERE s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
-         GROUP BY s.genre ORDER BY plays DESC LIMIT 1`
-      )
+      const topGenre = genreRanking(db(), 1)[0]
       const topSong = q<{ title: string; artist: string | null; plays: number; seconds: number } | undefined>(
         `SELECT s.title, ar.name as artist, COUNT(*) as plays, SUM(s.duration) as seconds
          FROM history h JOIN songs s ON s.id = h.song_id
@@ -390,11 +428,7 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
             ) ?? { c: null }
           ).c ?? null
       }))
-      const topGenres = all(
-        `SELECT s.genre as genre, COUNT(*) as plays FROM history h JOIN songs s ON s.id = h.song_id
-         WHERE s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
-         GROUP BY s.genre ORDER BY plays DESC LIMIT 6`
-      )
+      const topGenres = genreRanking(db(), 6)
       const hours = new Array(24).fill(0)
       for (const r of all<{ h: number; n: number }>(
         `SELECT CAST(strftime('%H', ${LOCAL}) AS INTEGER) as h, COUNT(*) as n FROM history GROUP BY h`
@@ -527,11 +561,7 @@ export function libraryHandlers(db: () => Db): Record<string, Handler> {
               .get({ ...range, artist: a.id }) as { c: string | null } | undefined
           )?.c ?? null
       }))
-      const topGenres = all(
-        `SELECT s.genre as genre, COUNT(*) as plays FROM history h JOIN songs s ON s.id = h.song_id
-         WHERE ${IN} AND s.genre IS NOT NULL AND TRIM(s.genre) != '' AND LOWER(s.genre) != 'music'
-         GROUP BY s.genre ORDER BY plays DESC LIMIT 5`
-      )
+      const topGenres = genreRanking(db(), 5, IN, range)
       const hours = new Array(24).fill(0)
       for (const r of all<{ h: number; n: number }>(
         `SELECT CAST(strftime('%H', ${LOCAL}) AS INTEGER) as h, COUNT(*) as n FROM history h WHERE ${IN} GROUP BY h`

@@ -13,7 +13,9 @@ import { MoodMix, Roulette } from './myworld/Fun'
 import { Achievements, Anthem, GenreDNA, Journey, ListeningClock, Numbers, Podium, TopSongs } from './myworld/Insights'
 import { Confetti, type ConfettiHandle } from './myworld/parts'
 import { Capsules } from './myworld/Capsules'
-import { badgesOf, greetingWord, levelOf, personalityOf, type WorldStats } from './myworld/worldData'
+import { greetingWord, levelOf, personalityOf, type WorldStats } from './myworld/worldData'
+import { achievementXp, clientMetrics, evaluate, type Achievement } from '@/utils/achievements'
+import type { AchievementMetrics } from '../../../core/achievements'
 import { t, locale } from '@/i18n'
 
 /**
@@ -59,6 +61,7 @@ function accentHue(): number {
 export function MyWorld(): JSX.Element {
   const [profile, setProfile] = useState<MusicProfile | null>(null)
   const [world, setWorld] = useState<WorldStats | null>(null)
+  const [achievements, setAchievements] = useState<Achievement[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [prefs, setPrefs] = useState<WorldPrefs>(DEFAULT_PREFS)
   const [editingName, setEditingName] = useState(false)
@@ -74,10 +77,13 @@ export function MyWorld(): JSX.Element {
   useEffect(() => {
     let alive = true
     setLoadError(false)
-    Promise.all([api.stats.profile(), api.stats.world(), api.library.getSongs(), api.settings.get()]).then(
-      ([p, w, s, raw]) => {
+    Promise.all([api.stats.profile(), api.stats.world(), api.library.getSongs(), api.settings.get(), api.stats.achievements()]).then(
+      ([p, w, s, raw, m]) => {
         if (!alive) return
         const st = raw as Record<string, unknown>
+        setAchievements(evaluate({ ...(m as AchievementMetrics), ...clientMetrics() }))
+        // a fresh look, so anything just earned is celebrated too
+        window.dispatchEvent(new Event('harmony:check-achievements'))
         setProfile(p as MusicProfile)
         setWorld(w as WorldStats)
         setSongs(s as Song[])
@@ -102,12 +108,19 @@ export function MyWorld(): JSX.Element {
     }
   }, [reloadKey])
 
+  // something unlocked while the page is open: show it right away
+  useEffect(() => {
+    const again = (): void => setReloadKey((k) => k + 1)
+    window.addEventListener('harmony:achievements-changed', again)
+    return () => window.removeEventListener('harmony:achievements-changed', again)
+  }, [])
+
   const set = <K extends keyof WorldPrefs>(key: K, value: WorldPrefs[K], delay = 250): void => {
     setPrefs((p) => ({ ...p, [key]: value }))
     persistSettingDebounced(`world.${key}`, value, delay)
   }
 
-  const level = profile && world ? levelOf(profile, world) : null
+  const level = profile && world ? levelOf(profile, world, achievementXp(achievements)) : null
 
   // deep links (e.g. from the "what's new" card): ?recap=1, ?section=capsules
   useEffect(() => {
@@ -182,7 +195,6 @@ export function MyWorld(): JSX.Element {
 
   const hue = prefs.hue ?? accentHue()
   const personality = personalityOf(profile, world)
-  const badges = badgesOf(profile, world)
   const journey = harmonyJourney(profile)
 
   return (
@@ -264,7 +276,7 @@ export function MyWorld(): JSX.Element {
       </div>
 
       <Capsules songs={songs} hue={hue} />
-      <Achievements badges={badges} hue={hue} />
+      <Achievements list={achievements} hue={hue} />
       <Journey entries={journey} />
 
       <Confetti ref={confetti} />

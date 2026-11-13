@@ -278,7 +278,7 @@ export async function installAndroidApi(): Promise<void> {
     },
     favorites: { toggle: q('favorites:toggle'), getAll: q('favorites:getAll') },
     history: { add: q('history:add'), getRecent: q('history:getRecent') },
-    stats: { get: q('stats:get'), profile: q('stats:profile'), world: q('stats:world'), recap: q('stats:recap') },
+    stats: { get: q('stats:get'), profile: q('stats:profile'), world: q('stats:world'), achievements: q('stats:achievements'), recap: q('stats:recap') },
     capsules: {
       list: q('capsules:list'),
       create: q('capsules:create'),
