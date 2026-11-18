@@ -3,6 +3,11 @@
  * missing here shows in Portuguese. Keep the {placeholders} of each key.
  */
 export const en: Record<string, string> = {
+  "O Harmony conversa com o Poper": "Harmony talks to Poper",
+  "Tocando agora no Poper": "Now playing in Poper",
+  "Com o Harmony aberto, o Poper mostra na Home a música que está tocando — capa, artista e tempo — e deixa pausar, voltar e pular sem trocar de janela.": "While Harmony is open, Poper shows the song that's playing on its Home — cover, artist and time — and lets you pause, go back and skip without switching windows.",
+  "Só no seu computador": "Only on your computer",
+  "A conversa entre os dois apps fica no próprio PC: nada sai para a internet, e sites abertos no navegador não conseguem controlar o seu player.": "The two apps talk only inside your PC: nothing goes out to the internet, and websites open in your browser can't control your player.",
   "O idioma de todo o app. Muda na hora, sem parar a música.": "The language of the whole app. It changes instantly, without stopping the music.",
   "Barra de música": "Music bar",
   "O jeito do player e da barra de progresso.": "How the player and the progress bar look.",

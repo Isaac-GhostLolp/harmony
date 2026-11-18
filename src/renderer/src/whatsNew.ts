@@ -54,6 +54,23 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '0.21.2',
+    title: tk('O Harmony conversa com o Poper'),
+    date: '2026-11-18',
+    items: [
+      {
+        emoji: '📦',
+        title: tk("Tocando agora no Poper"),
+        text: tk("Com o Harmony aberto, o Poper mostra na Home a música que está tocando — capa, artista e tempo — e deixa pausar, voltar e pular sem trocar de janela.")
+      },
+      {
+        emoji: '🔒',
+        title: tk("Só no seu computador"),
+        text: tk("A conversa entre os dois apps fica no próprio PC: nada sai para a internet, e sites abertos no navegador não conseguem controlar o seu player.")
+      }
+    ]
+  },
+  {
     version: '0.21.1',
     title: tk('Ouvindo de verdade (e mais rápido)'),
     date: '2026-11-12',
