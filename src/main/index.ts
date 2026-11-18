@@ -8,6 +8,7 @@ import { initDiscord, updatePresence, type PresenceState } from './services/disc
 import { startPharafBridge, stopPharafBridge } from './services/pharafBridge'
 import { registerPhoneBridge } from './services/phoneBridge'
 import { initAutoUpdate } from './services/updater'
+import { setBridgeState, startPoperBridge, stopPoperBridge, type BridgeState } from './services/poperBridge'
 
 // Pin the app name so the userData folder is ALWAYS "harmony" — in dev it
 // would otherwise default to "Electron", putting the database (library,
@@ -311,6 +312,14 @@ app.whenReady().then(() => {
       miniWindow.webContents.send('player:state', state)
     }
     updatePresence(state)
+    setBridgeState(state as unknown as BridgeState)
+  })
+
+  // Ponte local com o Poper: "tocando agora" + play/pause/próxima.
+  startPoperBridge((cmd) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('player:command', cmd)
+    }
   })
 
   // Mini window sends transport commands back to the main window.
@@ -353,6 +362,8 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('will-quit', () => stopPoperBridge())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

@@ -141,6 +141,7 @@ export function App(): JSX.Element {
         title: song?.title ?? null,
         artist: song?.artist ?? null,
         cover: mediaUrl(song?.coverPath ?? null) ?? null,
+        coverPath: song?.coverPath ?? null,
         isPlaying: s.isPlaying,
         currentTime: s.currentTime,
         duration: song?.duration ?? 0
